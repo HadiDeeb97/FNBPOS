@@ -1,0 +1,106 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.PurchaseOrderEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure">
+    <DockPanel>
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="170" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="{l:T Purchasing.SupplierRequired}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5" />
+                <ComboBox infra:SmartCombo.IsEnabled="True" Tag="{l:T Common.TypeToSearch}" ItemsSource="{Binding Suppliers}" SelectedItem="{Binding SelectedSupplier}" DisplayMemberPath="Name" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="{l:T Purchasing.ExpectedDelivery}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5" />
+                <DatePicker SelectedDate="{Binding ExpectedDate}" />
+            </StackPanel>
+            <StackPanel Grid.Column="4">
+                <TextBlock Text="{l:T Common.Notes}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5" />
+                <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+        </Grid>
+
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="{l:T Common.Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+                <Button Content="{l:T Purchasing.SaveOrder}" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" Margin="0" MinWidth="110" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding TotalUnits, StringFormat={l:T Purchasing.UnitsFormat}}" Style="{StaticResource MutedText}" FontSize="14" VerticalAlignment="Center" Margin="0,0,14,0" />
+                <TextBlock Text="{Binding Total, Converter={StaticResource Money}}" FontSize="18" FontWeight="SemiBold" />
+            </StackPanel>
+        </DockPanel>
+
+        <Grid infra:LayoutMemory.Key="PurchaseOrderEditor" infra:PanelFit.IsEnabled="True">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400" MinWidth="300" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" MinWidth="400" />
+            </Grid.ColumnDefinitions>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="{l:T Purchasing.AddItems}" Style="{StaticResource SectionTitle}" />
+                <TextBox DockPanel.Dock="Top" Style="{StaticResource FilterBox}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Tag="{l:T Purchasing.SearchHint}" Margin="0,0,0,10">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <WrapPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                    <Button Content="{l:T Purchasing.AddSelected}" Command="{Binding AddResultCommand}" CommandParameter="{x:Null}" Margin="0,0,8,8" />
+                    <Button Content="{l:T Purchasing.AddAllResults}" Command="{Binding AddAllResultsCommand}" Margin="0,0,8,8" />
+                    <Button Content="{l:T Purchasing.AddLowStock}" Command="{Binding AddLowStockCommand}" Margin="0,0,8,8" />
+                </WrapPanel>
+                <DataGrid ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedResult}" MouseDoubleClick="OnResultDoubleClick">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding DisplayName}" Width="*" MinWidth="140" />
+                        <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding StockQuantity}" Width="Auto" MinWidth="65" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="{l:T Common.Cost}" Binding="{Binding EffectiveCost, Converter={StaticResource Money}}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="1" Style="{StaticResource ColumnSplitter}" />
+
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Text="{l:T Purchasing.OrderLines}" Style="{StaticResource SectionTitle}" />
+                <DataGrid ItemsSource="{Binding Lines}" IsReadOnly="False" RowHeight="40">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Variant.DisplayName, Mode=OneWay}" Width="*" MinWidth="140" IsReadOnly="True" />
+                        <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Variant.Sku, Mode=OneWay}" Width="Auto" MinWidth="130" IsReadOnly="True" />
+                        <DataGridTextColumn Header="{l:T Inventory.OnHand}" Binding="{Binding Variant.StockQuantity, Mode=OneWay}" Width="Auto" MinWidth="75" IsReadOnly="True" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTemplateColumn Header="{l:T Common.Qty}" Width="Auto" MinWidth="75">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Padding="6,2" MinHeight="28" HorizontalContentAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="{l:T Purchasing.UnitCost}" Width="Auto" MinWidth="95">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding UnitCost, UpdateSourceTrigger=LostFocus}" Padding="6,2" MinHeight="28" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding LineTotal, Converter={StaticResource Money}, Mode=OneWay}" Width="Auto" MinWidth="95" IsReadOnly="True" ElementStyle="{StaticResource StrongRightCell}" />
+                        <DataGridTemplateColumn Width="52" MinWidth="52" MaxWidth="52" CanUserResize="False" CanUserReorder="False" CanUserSort="False" CellStyle="{StaticResource ActionCell}">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource IconButton}" Width="32" Height="32" Content="&#xE74D;" Foreground="{StaticResource DangerBrush}"
+                                            ToolTip="{l:T Common.Remove}"
+                                            Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

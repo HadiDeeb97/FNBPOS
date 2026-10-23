@@ -1,0 +1,14 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.PromptView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             Width="420">
+    <StackPanel>
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,0,0,12" FontSize="13.5" LineHeight="20" />
+        <TextBox x:Name="ValueBox" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" FontSize="15" MinHeight="40" />
+        <StackPanel Style="{StaticResource DialogFooter}">
+            <Button Content="{l:T Common.Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+            <Button Content="{l:T Common.Ok}" Style="{StaticResource PrimaryButton}" Command="{Binding OkCommand}" IsDefault="True" Margin="0" MinWidth="90" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

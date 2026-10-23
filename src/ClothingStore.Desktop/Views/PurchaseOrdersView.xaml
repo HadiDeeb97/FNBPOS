@@ -1,0 +1,82 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.PurchaseOrdersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure">
+    <DockPanel>
+        <DockPanel Style="{StaticResource Toolbar}" DockPanel.Dock="Top">
+            <Button DockPanel.Dock="Right" Content="{l:T Purchasing.NewButton}" Style="{StaticResource PrimaryButton}" Command="{Binding NewCommand}" Margin="0" />
+            <ComboBox ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" DisplayMemberPath="Label" Width="200" HorizontalAlignment="Left" />
+        </DockPanel>
+        <Grid infra:LayoutMemory.Key="PurchaseOrders">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" MinWidth="320" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="3*" MinWidth="400" />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource TableCard}">
+                <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}" infra:LayoutMemory.Key="PurchaseOrders.List">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{l:T Purchasing.Order}" Binding="{Binding OrderNumber}" Width="Auto" MinWidth="140" FontWeight="SemiBold" />
+                        <DataGridTextColumn Header="{l:T Common.Supplier}" Binding="{Binding Supplier.Name}" Width="*" MinWidth="140" />
+                        <DataGridTextColumn Header="{l:T Purchasing.Created}" Binding="{Binding CreatedAt, StringFormat={}{0:yyyy-MM-dd}}" Width="Auto" MinWidth="95" />
+                        <DataGridTextColumn Header="{l:T Common.Status}" Binding="{Binding Status, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="120" />
+                        <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding Total, Converter={StaticResource Money}}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource RightCell}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Style="{StaticResource ColumnSplitter}" />
+
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+                <Grid>
+                    <TextBlock Text="{l:T Purchasing.SelectHint}" Style="{StaticResource MutedText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding Detail, Converter={StaticResource HasValueToVis}, ConverterParameter=invert}" />
+                    <DockPanel Visibility="{Binding Detail, Converter={StaticResource HasValueToVis}}">
+                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Right" Style="{StaticResource Chip}" Background="{StaticResource PrimaryLightBrush}">
+                                    <TextBlock Text="{Binding Detail.Status, Converter={StaticResource EnumDisplay}}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkBrush}" />
+                                </Border>
+                                <TextBlock FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap">
+                                    <Run Text="{Binding Detail.OrderNumber, Mode=OneWay}" />
+                                    <Run Text="·" Foreground="{StaticResource SubtleTextBrush}" />
+                                    <Run Text="{Binding Detail.Supplier.Name, Mode=OneWay}" />
+                                </TextBlock>
+                            </DockPanel>
+                            <WrapPanel Margin="0,8,0,0">
+                                <TextBlock Text="{Binding Detail.ExpectedDate, StringFormat={l:T Purchasing.ExpectedFormat}}" Style="{StaticResource MutedText}" Margin="0,0,20,0" />
+                                <TextBlock Text="{Binding Detail.ReceivedAt, StringFormat={l:T Purchasing.ReceivedFormat}}" Style="{StaticResource MutedText}" />
+                            </WrapPanel>
+                            <TextBlock Text="{Binding Detail.Notes}" Style="{StaticResource HintText}" />
+                            <WrapPanel Margin="0,12,0,0">
+                                <Button Content="{l:T Purchasing.ReceiveStock}" Style="{StaticResource SuccessButton}" Command="{Binding ReceiveCommand}" Margin="0,0,8,8" />
+                                <Button Content="{l:T Purchasing.MarkOrdered}" Command="{Binding MarkOrderedCommand}" Margin="0,0,8,8" />
+                                <Button Content="{l:T Common.Edit}" Command="{Binding EditCommand}" Margin="0,0,8,8" />
+                                <Button Content="{l:T Common.Print}" Command="{Binding PrintCommand}" Margin="0,0,8,8" />
+                                <Button Content="{l:T Purchasing.CloseOrder}" Command="{Binding CancelOrderCommand}" Margin="0,0,8,8" />
+                                <Button Content="{l:T Purchasing.DeleteDraft}" Style="{StaticResource GhostButton}" Foreground="{StaticResource DangerBrush}" Command="{Binding DeleteCommand}" Margin="0,0,8,8" />
+                            </WrapPanel>
+                        </StackPanel>
+                        <Border DockPanel.Dock="Bottom" Background="{StaticResource SurfaceAltBrush}" CornerRadius="8" Padding="12,10" Margin="0,12,0,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Detail.Total, Converter={StaticResource Money}}" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Detail.TotalUnits, StringFormat={l:T Purchasing.UnitsFormat}}" Style="{StaticResource MutedText}" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </Border>
+                        <DataGrid ItemsSource="{Binding Detail.Lines}" Style="{StaticResource CardGrid}" infra:LayoutMemory.Key="PurchaseOrders.Lines">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding ProductVariant.DisplayName}" Width="*" MinWidth="140" />
+                                <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding ProductVariant.Sku}" Width="Auto" MinWidth="140" />
+                                <DataGridTextColumn Header="{l:T Purchasing.Ordered}" Binding="{Binding QuantityOrdered}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource RightCell}" />
+                                <DataGridTextColumn Header="{l:T Purchasing.Received}" Binding="{Binding QuantityReceived}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                <DataGridTextColumn Header="{l:T Common.Cost}" Binding="{Binding UnitCost, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
+                                <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding LineTotal, Converter={StaticResource Money}}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource RightCell}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

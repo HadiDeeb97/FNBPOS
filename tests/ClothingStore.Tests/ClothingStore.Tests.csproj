@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ClothingStore.Core\ClothingStore.Core.csproj" />
+    <ProjectReference Include="..\..\src\ClothingStore.Data\ClothingStore.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UI helpers with no WPF dependency, tested here because the desktop project only builds for Windows. -->
+    <Compile Include="..\..\src\ClothingStore.Desktop\Infrastructure\LatestSearch.cs" Link="Desktop\LatestSearch.cs" />
+    <Compile Include="..\..\src\ClothingStore.Desktop\Infrastructure\DbErrors.cs" Link="Desktop\DbErrors.cs" />
+    <Compile Include="..\..\src\ClothingStore.Desktop\Services\LabelLayout.cs" Link="Desktop\LabelLayout.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+<Window x:Class="ClothingStore.Desktop.Views.DialogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure"
+        Title="{Binding Title}"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        MinWidth="360"
+        Background="{StaticResource SurfaceBrush}"
+        FontFamily="{StaticResource UiFont}"
+        Foreground="{StaticResource TextBrush}"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+    <!-- A form taller than the screen scrolls instead of losing its bottom fields and buttons. Lists and editors
+         (resizable, see code-behind) fill the window instead and their tables scroll inside. -->
+    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                  infra:UiScale.IsRoot="True">
+        <ContentPresenter x:Name="Host" Content="{Binding}" Margin="24,22,24,22" />
+    </ScrollViewer>
+</Window>

@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ClothingStore.Desktop</RootNamespace>
+    <AssemblyName>ClothingStorePOS</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Default icon of the program file and its shortcuts; a store's own logo replaces it on its shortcuts (ShortcutIcons). -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClothingStore.Core\ClothingStore.Core.csproj" />
+    <ProjectReference Include="..\ClothingStore.Data\ClothingStore.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Vendor public key and contact details, built into the program so they can't be swapped on a customer's PC. -->
+    <EmbeddedResource Include="licensing.json" LogicalName="ClothingStore.Desktop.licensing.json" />
+  </ItemGroup>
+
+  <!-- A release build without the vendor's public key would run unlicensed: refuse to build it.
+       Run "pos-license keygen" and paste public.pem into licensing.json, or pass -p:AllowUnlicensedBuild=true. -->
+  <Target Name="RequireLicensingKey" BeforeTargets="Build"
+          Condition="'$(Configuration)' == 'Release' And '$(AllowUnlicensedBuild)' != 'true' And $([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/licensing.json').Contains('BEGIN PUBLIC KEY')) == false">
+    <Error Text="licensing.json has no public key. Create keys with tools/ClothingStore.LicenseTool (pos-license keygen), paste public.pem into src/ClothingStore.Desktop/licensing.json, then build again. To build an unlicensed release anyway, add -p:AllowUnlicensedBuild=true." />
+  </Target>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

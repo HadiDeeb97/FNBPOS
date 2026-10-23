@@ -1,0 +1,181 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.LabelPrintView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization">
+    <UserControl.Resources>
+        <Style x:Key="MmBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="{l:T Common.Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+                <Button Content="{l:T Print.ChoosePrinter}" Command="{Binding PrintToCommand}" ToolTip="{l:T Print.ChoosePrinterTip}" Margin="8,0,0,0" />
+                <Button Content="{l:T Labels.Print}" Style="{StaticResource PrimaryButton}" Command="{Binding PrintCommand}" Margin="8,0,0,0" MinWidth="120" />
+            </StackPanel>
+            <TextBlock Text="{Binding PrinterText}" Style="{StaticResource MutedText}" FontSize="11.5" VerticalAlignment="Center" TextWrapping="Wrap" />
+        </DockPanel>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="340" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Items to print -->
+            <DockPanel>
+                <Grid DockPanel.Dock="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="AddBox" Style="{StaticResource SearchBox}" Tag="{l:T Labels.AddHint}"
+                             Text="{Binding AddText, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding AddCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <Button Grid.Column="1" Content="{l:T Labels.Add}" Command="{Binding AddCommand}" Margin="8,0,0,0" />
+                </Grid>
+
+                <DockPanel DockPanel.Dock="Top" Margin="0,10,0,10">
+                    <Button DockPanel.Dock="Right" Content="{l:T Labels.ClearList}" Style="{StaticResource GhostButton}" Command="{Binding ClearRowsCommand}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{l:T Labels.CopiesForAll}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Text="{Binding CopiesForAllText, UpdateSourceTrigger=PropertyChanged}" Width="56" HorizontalContentAlignment="Center" />
+                        <Button Content="{l:T Labels.Apply}" Command="{Binding SetAllCopiesCommand}" Margin="6,0,0,0" />
+                        <Button Content="{l:T Labels.CopiesFromStock}" Command="{Binding CopiesFromStockCommand}" Margin="6,0,0,0" />
+                    </StackPanel>
+                </DockPanel>
+
+                <Border DockPanel.Dock="Bottom" Style="{StaticResource InfoBanner}" Margin="0,10,0,0">
+                    <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                </Border>
+
+                <Border Style="{StaticResource TableCard}">
+                    <Grid>
+                        <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Rows}" IsReadOnly="False" CanUserAddRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Name, Mode=OneWay}" Width="*" MinWidth="140" IsReadOnly="True" />
+                                <DataGridTextColumn Header="{l:T Labels.Variant}" Binding="{Binding Variant.Description, Mode=OneWay}" Width="Auto" MinWidth="110" IsReadOnly="True" />
+                                <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Variant.Sku, Mode=OneWay}" Width="Auto" MinWidth="120" IsReadOnly="True" />
+                                <DataGridTextColumn Header="{l:T Common.Price}" Binding="{Binding Variant.EffectivePrice, Converter={StaticResource Money}, Mode=OneWay}" Width="Auto" MinWidth="80" IsReadOnly="True" ElementStyle="{StaticResource RightCell}" />
+                                <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding Variant.StockQuantity, Mode=OneWay}" Width="Auto" MinWidth="60" IsReadOnly="True" ElementStyle="{StaticResource RightCell}" />
+                                <DataGridTemplateColumn Header="{l:T Labels.Copies}" Width="Auto" MinWidth="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBox Text="{Binding Copies, UpdateSourceTrigger=PropertyChanged}" Padding="4,2" MinHeight="28" HorizontalContentAlignment="Center" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="48" MinWidth="48" MaxWidth="48" CanUserResize="False" CanUserReorder="False" CanUserSort="False" CellStyle="{StaticResource ActionCell}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource LinkButton}" Foreground="{StaticResource DangerBrush}" ToolTip="{l:T Common.Remove}"
+                                                    Command="{Binding DataContext.RemoveRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="10" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock Text="{l:T Labels.Empty}" Style="{StaticResource HintText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   TextAlignment="Center" MaxWidth="360" Visibility="{Binding HasRows, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                    </Grid>
+                </Border>
+            </DockPanel>
+
+            <!-- Layout and preview -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,6,0">
+                    <TextBlock Text="{l:T Labels.Preview}" Style="{StaticResource Caption}" />
+                    <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="10" Padding="16" Height="190">
+                        <ContentControl x:Name="PreviewHost" Focusable="False" />
+                    </Border>
+
+                    <TextBlock Text="{l:T Labels.Size}" Style="{StaticResource Caption}" Margin="0,16,0,4" />
+                    <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name" />
+
+                    <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left" Margin="0,10,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource SegmentButton}" GroupName="Paper" Content="{l:T Labels.Sheet}" IsChecked="{Binding Sheet}" />
+                            <RadioButton Style="{StaticResource SegmentButton}" GroupName="Paper" Content="{l:T Labels.LabelPrinter}" IsChecked="{Binding LabelPrinter}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{l:T Labels.WidthMm}" Style="{StaticResource FieldLabel}" />
+                            <TextBox Style="{StaticResource MmBox}" Text="{Binding WidthMm, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{l:T Labels.HeightMm}" Style="{StaticResource FieldLabel}" />
+                            <TextBox Style="{StaticResource MmBox}" Text="{Binding HeightMm, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Expander Header="{l:T Labels.SheetLayout}" Margin="0,12,0,0" Visibility="{Binding Sheet, Converter={StaticResource BoolToVis}}">
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{l:T Labels.MarginTop}" Style="{StaticResource FieldLabel}" />
+                                <TextBox Style="{StaticResource MmBox}" Text="{Binding MarginTopMm, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{l:T Labels.MarginLeft}" Style="{StaticResource FieldLabel}" />
+                                <TextBox Style="{StaticResource MmBox}" Text="{Binding MarginLeftMm, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1">
+                                <TextBlock Text="{l:T Labels.GapX}" Style="{StaticResource FieldLabel}" />
+                                <TextBox Style="{StaticResource MmBox}" Text="{Binding GapXMm, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="2">
+                                <TextBlock Text="{l:T Labels.GapY}" Style="{StaticResource FieldLabel}" />
+                                <TextBox Style="{StaticResource MmBox}" Text="{Binding GapYMm, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.ColumnSpan="3">
+                                <TextBlock Text="{l:T Labels.StartAt}" Style="{StaticResource FieldLabel}" />
+                                <TextBox Text="{Binding SkipLabels, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" HorizontalContentAlignment="Center" />
+                                <TextBlock Text="{l:T Labels.StartAtHint}" Style="{StaticResource HintText}" />
+                            </StackPanel>
+                        </Grid>
+                    </Expander>
+
+                    <TextBlock Text="{l:T Labels.ShowOnLabel}" Style="{StaticResource Caption}" Margin="0,16,0,4" />
+                    <UniformGrid Columns="2">
+                        <CheckBox Content="{l:T Labels.ShowName}" IsChecked="{Binding ShowName}" Margin="0,3" />
+                        <CheckBox Content="{l:T Labels.ShowVariant}" IsChecked="{Binding ShowVariant}" Margin="0,3" />
+                        <CheckBox Content="{l:T Labels.ShowPrice}" IsChecked="{Binding ShowPrice}" Margin="0,3" />
+                        <CheckBox Content="{l:T Labels.ShowLbpPrice}" IsChecked="{Binding ShowLbpPrice}" IsEnabled="{Binding LbpAvailable}" Margin="0,3" />
+                        <CheckBox Content="{l:T Labels.ShowBarcode}" IsChecked="{Binding ShowBarcode}" Margin="0,3" />
+                        <CheckBox Content="{l:T Labels.ShowBarcodeText}" IsChecked="{Binding ShowBarcodeText}" IsEnabled="{Binding ShowBarcode}" Margin="0,3" />
+                        <CheckBox Content="{l:T Labels.ShowSku}" IsChecked="{Binding ShowSku}" Margin="0,3" />
+                        <CheckBox Content="{l:T Labels.ShowStoreName}" IsChecked="{Binding ShowStoreName}" Margin="0,3" />
+                        <CheckBox Content="{l:T Labels.ShowBorder}" IsChecked="{Binding ShowBorder}" Margin="0,3" />
+                    </UniformGrid>
+
+                    <TextBlock Text="{l:T Labels.TextSize}" Style="{StaticResource FieldLabel}" />
+                    <Slider Minimum="0.6" Maximum="1.6" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding TextScale}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</UserControl>

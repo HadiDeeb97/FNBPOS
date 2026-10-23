@@ -1,0 +1,15 @@
+{
+  "Categories.Deactivated": "Products still use this category, so it was deactivated instead.",
+  "Categories.DeleteConfirm": "Delete category '{0}'?",
+  "Categories.Details": "Category details",
+  "Categories.NameRequired": "Name *",
+  "Categories.NewButton": "+ New",
+  "Suppliers.Contact": "Contact",
+  "Suppliers.ContactPerson": "Contact person",
+  "Suppliers.Deactivated": "This supplier has purchase orders, so it was deactivated instead.",
+  "Suppliers.DeleteConfirm": "Delete supplier '{0}'?",
+  "Suppliers.Details": "Supplier details",
+  "Suppliers.NameRequired": "Name *",
+  "Suppliers.NewButton": "+ New",
+  "Suppliers.NotesLabel": "Notes (terms, lead time…)"
+}

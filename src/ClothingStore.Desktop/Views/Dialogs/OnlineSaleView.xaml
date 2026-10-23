@@ -1,0 +1,80 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.OnlineSaleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure"
+             Width="460">
+    <StackPanel>
+        <TextBlock Text="{l:T OnlineSale.From}" Style="{StaticResource FieldLabel}" Margin="0,0,0,8" />
+        <ItemsControl ItemsSource="{Binding Channels}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="3" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <RadioButton GroupName="Channel" Margin="0,0,6,6" MinHeight="44" Cursor="Hand"
+                                 Content="{Binding Converter={StaticResource EnumDisplay}}"
+                                 Command="{Binding DataContext.PickChannelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                        <RadioButton.IsChecked>
+                            <MultiBinding Mode="OneWay" Converter="{StaticResource AllEqual}">
+                                <Binding />
+                                <Binding Path="DataContext.Channel" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                            </MultiBinding>
+                        </RadioButton.IsChecked>
+                        <RadioButton.Template>
+                            <ControlTemplate TargetType="RadioButton">
+                                <Border x:Name="Box" CornerRadius="10" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}"
+                                        Background="{StaticResource SurfaceBrush}" Padding="10,8">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Box" Property="Background" Value="{StaticResource HoverBrush}" />
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Box" Property="Background" Value="{StaticResource PrimaryBrush}" />
+                                        <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                        <Setter Property="Foreground" Value="White" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </RadioButton.Template>
+                    </RadioButton>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Content="{l:T OnlineSale.ManagePartners}" Style="{StaticResource LinkButton}" Command="{Binding ManagePartnersCommand}"
+                    Margin="0" VerticalAlignment="Bottom" />
+            <TextBlock Text="{l:T OnlineSale.Courier}" Style="{StaticResource FieldLabel}" />
+        </DockPanel>
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE711;" Width="32" Height="32" Margin="6,0,0,0"
+                    Command="{Binding ClearPartnerCommand}" ToolTip="{l:T OnlineSale.NoCourier}"
+                    Visibility="{Binding HasPartner, Converter={StaticResource BoolToVis}}" />
+            <ComboBox infra:SmartCombo.IsEnabled="True" ItemsSource="{Binding Partners}" SelectedItem="{Binding SelectedPartner}"
+                      DisplayMemberPath="Name" Tag="{l:T OnlineSale.CourierSearch}" />
+        </DockPanel>
+        <TextBlock Text="{Binding CourierInfo}" Style="{StaticResource HintText}" Visibility="{Binding CourierInfo, Converter={StaticResource HasValueToVis}}" />
+
+        <TextBlock Text="{l:T OnlineSale.DeliveryReference}" Style="{StaticResource FieldLabel}" />
+        <TextBox x:Name="ReferenceBox" Text="{Binding DeliveryReference, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" Tag="{l:T OnlineSale.DeliveryReferenceHint}" />
+
+        <TextBlock Text="{l:T OnlineSale.DeliveryFee}" Style="{StaticResource FieldLabel}" />
+        <TextBox x:Name="FeeBox" Text="{Binding DeliveryFeeText, UpdateSourceTrigger=PropertyChanged}" Width="140" HorizontalAlignment="Left" Tag="$" />
+        <TextBlock Text="{l:T OnlineSale.FeeHint}" Style="{StaticResource HintText}" />
+
+        <TextBlock Text="{l:T OnlineSale.Notes}" Style="{StaticResource FieldLabel}" />
+        <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MultilineBox}" MinHeight="70"
+                 Tag="{l:T OnlineSale.NotesHint}" />
+
+        <StackPanel Style="{StaticResource DialogFooter}">
+            <Button Content="{l:T Common.Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+            <Button Content="{l:T OnlineSale.Apply}" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsDefault="True" Margin="8,0,0,0" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,48 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:ClothingStore.Desktop.ViewModels"
+                    xmlns:dlg="clr-namespace:ClothingStore.Desktop.ViewModels.Dialogs"
+                    xmlns:v="clr-namespace:ClothingStore.Desktop.Views"
+                    xmlns:vd="clr-namespace:ClothingStore.Desktop.Views.Dialogs">
+
+    <!-- Pages -->
+    <DataTemplate DataType="{x:Type vm:SalesViewModel}"><v:SalesView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReturnsViewModel}"><v:ReturnsView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:DeliveriesViewModel}"><v:DeliveriesView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SalesHistoryViewModel}"><v:SalesHistoryView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:CustomersViewModel}"><v:CustomersView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ProductsViewModel}"><v:ProductsView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:InventoryViewModel}"><v:InventoryView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PurchaseOrdersViewModel}"><v:PurchaseOrdersView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SuppliersViewModel}"><v:SuppliersView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:CategoriesViewModel}"><v:CategoriesView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ShiftViewModel}"><v:ShiftView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReportsViewModel}"><v:ReportsView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:UsersViewModel}"><v:UsersView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView /></DataTemplate>
+
+    <!-- Dialogs -->
+    <DataTemplate DataType="{x:Type dlg:MessageDialogViewModel}"><vd:MessageDialogView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:PromptViewModel}"><vd:PromptView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:ChangePasswordViewModel}"><vd:ChangePasswordView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:ManagerApprovalViewModel}"><vd:ManagerApprovalView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:TextPreviewViewModel}"><vd:TextPreviewView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:CustomerEditorViewModel}"><vd:CustomerEditorView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:CustomerPickerViewModel}"><vd:CustomerPickerView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:HeldSalesViewModel}"><vd:HeldSalesView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:DiscountViewModel}"><vd:DiscountView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:PaymentViewModel}"><vd:PaymentView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:ExchangeRateViewModel}"><vd:ExchangeRateView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:StoreLogoViewModel}"><vd:StoreLogoView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:ActivationViewModel}"><vd:ActivationView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:OnlineSaleViewModel}"><vd:OnlineSaleView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:SettleDeliveriesViewModel}"><vd:SettleDeliveriesView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:DeliveryPartnersViewModel}"><vd:DeliveryPartnersView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:VariantPickerViewModel}"><vd:VariantPickerView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:ProductEditorViewModel}"><vd:ProductEditorView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:LabelPrintViewModel}"><vd:LabelPrintView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:StockAdjustViewModel}"><vd:StockAdjustView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PurchaseOrderEditorViewModel}"><vd:PurchaseOrderEditorView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReceivePurchaseOrderViewModel}"><vd:ReceivePurchaseOrderView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:UserEditorViewModel}"><vd:UserEditorView /></DataTemplate>
+</ResourceDictionary>

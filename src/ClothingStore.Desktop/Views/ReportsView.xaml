@@ -1,0 +1,546 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.ReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:core="clr-namespace:ClothingStore.Core;assembly=ClothingStore.Core"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure">
+    <UserControl.Resources>
+        <!-- Sections listed down the left, so every report gets the full height (no rows of tabs). -->
+        <Style x:Key="SideTabs" TargetType="TabControl">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" MaxWidth="230" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource Card}" Padding="6" VerticalAlignment="Top">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel IsItemsHost="True" />
+                                </ScrollViewer>
+                            </Border>
+                            <ContentPresenter Grid.Column="2" ContentSource="SelectedContent" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="TabItem">
+                        <Setter Property="FontSize" Value="13.5" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TabItem">
+                                    <Border x:Name="Bd" CornerRadius="8" Padding="12,9" Margin="0,1" Background="Transparent">
+                                        <ContentPresenter ContentSource="Header">
+                                            <ContentPresenter.Resources>
+                                                <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap" /></Style>
+                                            </ContentPresenter.Resources>
+                                        </ContentPresenter>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBrush}" />
+                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+                                            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- An empty table says why instead of looking broken. -->
+        <Style x:Key="ReportGrid" TargetType="DataGrid" BasedOn="{StaticResource CardGrid}">
+            <Style.Triggers>
+                <Trigger Property="HasItems" Value="False">
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <VisualBrush Stretch="None" AlignmentX="Center" AlignmentY="Center">
+                                <VisualBrush.Visual>
+                                    <TextBlock Text="{l:T Reports.NoData}" Foreground="#94A3B8" FontSize="13" Margin="20" />
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+    <DockPanel>
+        <DockPanel Style="{StaticResource Toolbar}" DockPanel.Dock="Top">
+            <Button DockPanel.Dock="Right" Content="{l:T Reports.PrintSummary}" Command="{Binding PrintSummaryCommand}" Margin="0" />
+            <WrapPanel>
+                <DatePicker SelectedDate="{Binding From}" MinWidth="135" Margin="0,0,6,0" />
+                <TextBlock Text="{l:T Common.To}" VerticalAlignment="Center" Style="{StaticResource MutedText}" Margin="0,0,6,0" />
+                <DatePicker SelectedDate="{Binding To}" MinWidth="135" Margin="0,0,10,0" />
+                <Button Content="{l:T Reports.Run}" Style="{StaticResource PrimaryButton}" Command="{Binding RunReportCommand}" />
+                <Button Content="{l:T Common.Today}" Style="{StaticResource LinkButton}" Command="{Binding QuickRangeCommand}" CommandParameter="today" Margin="0" />
+                <Button Content="{l:T Common.Yesterday}" Style="{StaticResource LinkButton}" Command="{Binding QuickRangeCommand}" CommandParameter="yesterday" Margin="0" />
+                <Button Content="{l:T Reports.ThisWeek}" Style="{StaticResource LinkButton}" Command="{Binding QuickRangeCommand}" CommandParameter="week" Margin="0" />
+                <Button Content="{l:T Common.ThisMonth}" Style="{StaticResource LinkButton}" Command="{Binding QuickRangeCommand}" CommandParameter="month" Margin="0" />
+                <Button Content="{l:T Reports.LastMonth}" Style="{StaticResource LinkButton}" Command="{Binding QuickRangeCommand}" CommandParameter="lastmonth" Margin="0" />
+                <Button Content="{l:T Reports.YearToDate}" Style="{StaticResource LinkButton}" Command="{Binding QuickRangeCommand}" CommandParameter="year" Margin="0" />
+                <Border Style="{StaticResource Chip}" Background="{StaticResource PrimaryLightBrush}" Margin="10,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding PeriodText, Converter={StaticResource HasValueToVis}}">
+                    <TextBlock Text="{Binding PeriodText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" FontSize="12" />
+                </Border>
+            </WrapPanel>
+        </DockPanel>
+
+
+
+        <TabControl Style="{StaticResource SideTabs}">
+            <TabItem Header="{l:T Reports.Overview}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                    <UniformGrid Columns="3" Margin="0,12,0,0">
+                        <Border Style="{StaticResource KpiCard}" Margin="0,0,12,12"><StackPanel>
+                            <TextBlock Text="{l:T Reports.TotalSales}" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding Report.TotalSales, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" />
+                            <TextBlock Text="{Binding SalesChangeText}" Style="{StaticResource MutedText}" FontSize="11.5" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource KpiCard}" Margin="0,0,12,12"><StackPanel>
+                            <TextBlock Text="{l:T Reports.Transactions}" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding Report.Transactions}" Style="{StaticResource KpiValue}" />
+                            <TextBlock Text="{Binding TransactionsChangeText}" Style="{StaticResource MutedText}" FontSize="11.5" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource KpiCard}" Margin="0,0,12,12"><StackPanel>
+                            <TextBlock Text="{l:T Reports.GrossProfit}" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding Report.GrossProfit, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" Foreground="{StaticResource SuccessBrush}" />
+                            <TextBlock Text="{Binding ProfitChangeText}" Style="{StaticResource MutedText}" FontSize="11.5" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource KpiCard}" Margin="0,0,12,12"><StackPanel>
+                            <TextBlock Text="{l:T Reports.NetRevenue}" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding Report.NetRevenue, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" />
+                            <TextBlock Text="{Binding Report.MarginPercent, StringFormat={l:T Reports.MarginFormat}}" Style="{StaticResource MutedText}" FontSize="11.5" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource KpiCard}" Margin="0,0,12,12"><StackPanel>
+                            <TextBlock Text="{l:T Reports.AverageBasket}" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding Report.AverageBasket, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" />
+                            <TextBlock Text="{Binding Report.ItemsSold, StringFormat={l:T Reports.ItemsSoldFormat}}" Style="{StaticResource MutedText}" FontSize="11.5" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource KpiCard}" Margin="0,0,12,12"><StackPanel>
+                            <TextBlock Text="{l:T Reports.StockAtCost}" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding Valuation.CostValue, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" />
+                            <TextBlock Text="{Binding Valuation.Units, StringFormat={l:T Reports.UnitsOnHandFormat}}" Style="{StaticResource MutedText}" FontSize="11.5" />
+                        </StackPanel></Border>
+                    </UniformGrid>
+                    <Grid Margin="0,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" MinWidth="280" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="{l:T Reports.SalesByDay}" Style="{StaticResource Caption}" />
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding DailyBars}" Height="180" Margin="0,8,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Width="34" Margin="2,0" ToolTip="{Binding Tooltip}" Background="Transparent">
+                                                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding Label}" FontSize="10.5" HorizontalAlignment="Center" Style="{StaticResource MutedText}" />
+                                                    <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="4,4,0,0" Background="{StaticResource PrimaryBrush}" Margin="4,0,4,4" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="{l:T Reports.SalesByHour}" Style="{StaticResource Caption}" />
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding HourlyBars}" Height="180" Margin="0,8,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Width="34" Margin="2,0" ToolTip="{Binding Tooltip}" Background="Transparent">
+                                                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding Label}" FontSize="10.5" HorizontalAlignment="Center" Style="{StaticResource MutedText}" />
+                                                    <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="4,4,0,0" Background="{StaticResource PrimaryBrush}" Margin="4,0,4,4" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                        </StackPanel>
+                        <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                            <StackPanel>
+                                <TextBlock Text="{l:T Reports.Breakdown}" Style="{StaticResource Caption}" />
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.GrossSales, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Reports.GrossSales}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.Discounts, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Reports.DiscountsGiven}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.Tax, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Reports.TaxCollected}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.DeliveryFees, Converter={StaticResource Money}}" /><TextBlock Text="{l:T History.DeliveryFee}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.TotalSales, Converter={StaticResource Money}}" FontWeight="Bold" /><TextBlock Text="{l:T Reports.TotalSalesInclTax}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <Separator Margin="0,8" />
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.ReturnsCount}" /><TextBlock Text="{l:T Reports.ReturnsCount}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.Refunds, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Shift.Refunds}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.VoidedCount}" /><TextBlock Text="{l:T Reports.Voided}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <Separator Margin="0,8" />
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.NetRevenue, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Reports.NetRevenueExTax}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.CostOfGoods, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Reports.CostOfGoods}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Report.GrossProfit, Converter={StaticResource Money}}" FontWeight="Bold" /><TextBlock Text="{l:T Reports.GrossProfit}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <Separator Margin="0,8" />
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding DeliveryOwed, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Reports.DeliveryOwedNow}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Valuation.LowStockCount}" /><TextBlock Text="{l:T Reports.LowStockCount}" Style="{StaticResource MutedText}" /></DockPanel>
+                                <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding Valuation.OutOfStockCount}" /><TextBlock Text="{l:T Reports.OutOfStockCount}" Style="{StaticResource MutedText}" /></DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="{l:T Reports.TopProducts}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.TopProducts}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <DockPanel Margin="0,12,0,0">
+                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="products" />
+                        <Border Style="{StaticResource TableCard}">
+                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.TopProducts}" infra:LayoutMemory.Key="Reports.Products">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Product}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Units}" Binding="{Binding Quantity}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.NetSales}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Cost}" Binding="{Binding Cost, Converter={StaticResource Money}}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Profit}" Binding="{Binding Profit, Converter={StaticResource Money}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Margin}" Binding="{Binding MarginPercent, StringFormat={}{0:0.#}%}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.Categories}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Categories}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <DockPanel Margin="0,12,0,0">
+                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="categories" />
+                        <Border Style="{StaticResource TableCard}">
+                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ByCategory}" infra:LayoutMemory.Key="Reports.Categories">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Category}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Units}" Binding="{Binding Quantity}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.NetSales}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Cost}" Binding="{Binding Cost, Converter={StaticResource Money}}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Profit}" Binding="{Binding Profit, Converter={StaticResource Money}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Margin}" Binding="{Binding MarginPercent, StringFormat={}{0:0.#}%}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Share}" Binding="{Binding SharePercent, StringFormat={}{0:0.#}%}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.Sizes}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Sizes}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <DockPanel Margin="0,12,0,0">
+                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="sizes" />
+                        <Border Style="{StaticResource TableCard}">
+                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.BySize}" infra:LayoutMemory.Key="Reports.Sizes">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Size}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Units}" Binding="{Binding Quantity}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.NetSales}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="130" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Share}" Binding="{Binding SharePercent, StringFormat={}{0:0.#}%}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.Customers}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Customers}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <DockPanel Margin="0,12,0,0">
+                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="customers" />
+                        <Border Style="{StaticResource TableCard}">
+                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.TopCustomers}" infra:LayoutMemory.Key="Reports.Customers">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Customer}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Sales}" Binding="{Binding Count}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Items}" Binding="{Binding Quantity}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="130" ElementStyle="{StaticResource StrongRightCell}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.Payments}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Payments}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <DockPanel Margin="0,12,0,0">
+                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="payments" />
+                        <Border Style="{StaticResource TableCard}">
+                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ByPaymentMethod}" infra:LayoutMemory.Key="Reports.Payments">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Reports.Method}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Count}" Binding="{Binding Count}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Amount}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="130" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Share}" Binding="{Binding SharePercent, StringFormat={}{0:0.#}%}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.ChannelsDeliveries}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Channels}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8"><Button DockPanel.Dock="Right" Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" CommandParameter="channels" Margin="0" /><TextBlock Text="{l:T Reports.Channels}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <Border Style="{StaticResource TableCard}">
+                                <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ByChannel}" infra:LayoutMemory.Key="Reports.Channels">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T History.Source}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Sales}" Binding="{Binding Count}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Items}" Binding="{Binding Quantity}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource StrongRightCell}" />
+                                        <DataGridTextColumn Header="{l:T Reports.Share}" Binding="{Binding SharePercent, StringFormat={}{0:0.#}%}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </DockPanel>
+                        <DockPanel Grid.Column="2">
+                            <UniformGrid DockPanel.Dock="Top" Columns="3" Margin="0,0,0,10">
+                                <StackPanel><TextBlock Text="{l:T Reports.DeliveryReceived}" Style="{StaticResource Caption}" /><TextBlock Text="{Binding DeliveryReceived, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" FontSize="18" /></StackPanel>
+                                <StackPanel><TextBlock Text="{l:T Reports.DeliveryKept}" Style="{StaticResource Caption}" /><TextBlock Text="{Binding DeliveryKept, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" FontSize="18" /></StackPanel>
+                                <StackPanel><TextBlock Text="{l:T Reports.DeliveryOwedNow}" Style="{StaticResource Caption}" /><TextBlock Text="{Binding DeliveryOwed, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" FontSize="18" /></StackPanel>
+                            </UniformGrid>
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8"><Button DockPanel.Dock="Right" Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" CommandParameter="settlements" Margin="0" /><TextBlock Text="{l:T Reports.Settlements}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <Border Style="{StaticResource TableCard}">
+                                <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.Settlements}" infra:LayoutMemory.Key="Reports.Settlements">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="100" />
+                                    <DataGridTextColumn Header="{l:T Deliveries.Company}" Binding="{Binding Courier}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Method}" Binding="{Binding Method, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="110" />
+                                    <DataGridTextColumn Header="{l:T Reports.Orders}" Binding="{Binding Orders}" Width="Auto" MinWidth="60" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Expected}" Binding="{Binding Expected, Converter={StaticResource Money}}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Received}" Binding="{Binding Received, Converter={StaticResource Money}}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Difference}" Binding="{Binding Difference, Converter={StaticResource Money}}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource RightCell}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.Cashiers}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Cashiers}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <DockPanel Margin="0,12,0,0">
+                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="cashiers" />
+                        <Border Style="{StaticResource TableCard}">
+                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ByCashier}" infra:LayoutMemory.Key="Reports.Cashiers">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Cashier}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Sales}" Binding="{Binding Count}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Items}" Binding="{Binding Quantity}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="130" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Share}" Binding="{Binding SharePercent, StringFormat={}{0:0.#}%}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.Returns}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Returns}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8"><Button DockPanel.Dock="Right" Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" CommandParameter="returns" Margin="0" /><TextBlock Text="{l:T Reports.TopReturned}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <Border Style="{StaticResource TableCard}">
+                                <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.TopReturned}" infra:LayoutMemory.Key="Reports.Returned">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Units}" Binding="{Binding Quantity}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Refunded}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource StrongRightCell}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </DockPanel>
+                        <DockPanel Grid.Column="2">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8"><TextBlock Text="{l:T Reports.ReturnReasons}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <Border Style="{StaticResource TableCard}" DockPanel.Dock="Top" MaxHeight="260" Margin="0,0,0,14">
+                                <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ReturnsByReason}" infra:LayoutMemory.Key="Reports.ReturnReasons">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Reason}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Count}" Binding="{Binding Count}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.Refunded}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                    
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8"><TextBlock Text="{l:T Reports.RefundsByMethod}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <Border Style="{StaticResource TableCard}">
+                                <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.RefundsByMethod}" infra:LayoutMemory.Key="Reports.RefundMethods">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Reports.Method}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Count}" Binding="{Binding Count}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Amount}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource StrongRightCell}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.CashShifts}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.CashShifts}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8"><Button DockPanel.Dock="Right" Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" CommandParameter="shifts" Margin="0" /><TextBlock Text="{l:T Reports.ShiftCloses}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <Border Style="{StaticResource TableCard}">
+                                <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ShiftCloses}" infra:LayoutMemory.Key="Reports.ShiftCloses">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Shift.ClosedCol}" Binding="{Binding ClosedAt, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="110" />
+                                    <DataGridTextColumn Header="{l:T Common.Cashier}" Binding="{Binding Cashier}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Shift.ExpectedCol}" Binding="{Binding Expected, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Shift.CountedCol}" Binding="{Binding Counted, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Shift.VarianceCol}" Binding="{Binding Variance, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Shift.VarianceLbpCol}" Binding="{Binding VarianceLbp, Converter={StaticResource Lbp}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource RightCell}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </DockPanel>
+                        <DockPanel Grid.Column="2">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8"><Button DockPanel.Dock="Right" Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" CommandParameter="cash" Margin="0" /><TextBlock Text="{l:T Reports.CashMovements}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <Border Style="{StaticResource TableCard}">
+                                <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.CashMovements}" infra:LayoutMemory.Key="Reports.CashMovements">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="100" />
+                                    <DataGridTextColumn Header="{l:T Reports.Type}" Binding="{Binding Type, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="80" />
+                                    <DataGridTextColumn Header="{l:T Reports.Currency}" Binding="{Binding Currency, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="60" />
+                                    <DataGridTemplateColumn Header="{l:T Common.Amount}" Width="Auto" MinWidth="110">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <!-- Each movement in its own currency -->
+                                                <TextBlock x:Name="Amount" Text="{Binding Amount, Converter={StaticResource Money}}" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0" />
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding Currency}" Value="{x:Static core:CashCurrency.Lbp}">
+                                                        <Setter TargetName="Amount" Property="Text" Value="{Binding Amount, Converter={StaticResource Lbp}}" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="{l:T Common.Reason}" Binding="{Binding Reason}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Common.User}" Binding="{Binding User}" Width="Auto" MinWidth="110" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.ByDay}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.ByDay}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <DockPanel Margin="0,12,0,0">
+                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="daily" />
+                        <Border Style="{StaticResource TableCard}">
+                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ByDay}" infra:LayoutMemory.Key="Reports.Daily">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, StringFormat={}{0:ddd yyyy-MM-dd}}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Transactions}" Binding="{Binding Transactions}" Width="Auto" MinWidth="130" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding Total, Converter={StaticResource Money}}" Width="Auto" MinWidth="150" ElementStyle="{StaticResource StrongRightCell}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:T Reports.Stock}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Stock}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="0,12,0,0">
+                            <DockPanel Margin="0,0,0,8"><Button DockPanel.Dock="Right" Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" CommandParameter="lowstock" Margin="0" /><TextBlock Text="{l:T Reports.LowStock}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <Border Style="{StaticResource TableCard}" MaxHeight="320">
+                                <DataGrid MaxHeight="380" MinHeight="120" Style="{StaticResource ReportGrid}" ItemsSource="{Binding Alerts.LowStock}" infra:LayoutMemory.Key="Reports.LowStock">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Product}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Labels.Variant}" Binding="{Binding Variant}" Width="Auto" MinWidth="110" />
+                                    <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku}" Width="Auto" MinWidth="130" />
+                                    <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding Stock}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.ReorderAt}" Binding="{Binding ReorderLevel}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.LastSold}" Binding="{Binding LastSold, StringFormat={}{0:dd MMM yyyy}}" Width="Auto" MinWidth="110" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                            <DockPanel Margin="0,16,0,8"><Button DockPanel.Dock="Right" Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" CommandParameter="slow" Margin="0" /><TextBlock Text="{l:T Reports.SlowMovers}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" /></DockPanel>
+                            <TextBlock Text="{l:T Reports.SlowMoversHint}" Style="{StaticResource HintText}" Margin="0,0,0,8" />
+                            <Border Style="{StaticResource TableCard}" MaxHeight="320">
+                                <DataGrid MaxHeight="380" MinHeight="120" Style="{StaticResource ReportGrid}" ItemsSource="{Binding Alerts.SlowMovers}" infra:LayoutMemory.Key="Reports.SlowMovers">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Product}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Labels.Variant}" Binding="{Binding Variant}" Width="Auto" MinWidth="110" />
+                                    <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku}" Width="Auto" MinWidth="130" />
+                                    <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding Stock}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.ValueAtCost}" Binding="{Binding CostValue, Converter={StaticResource Money}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource StrongRightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.LastSold}" Binding="{Binding LastSold, StringFormat={}{0:dd MMM yyyy}}" Width="Auto" MinWidth="110" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                            <TextBlock Text="{l:T Reports.StockByCategory}" Style="{StaticResource SectionTitle}" Margin="0,16,0,8" />
+                            <Border Style="{StaticResource TableCard}" MaxHeight="320">
+                                <DataGrid MaxHeight="380" MinHeight="120" Style="{StaticResource ReportGrid}" ItemsSource="{Binding Valuation.ByCategoryCost}" infra:LayoutMemory.Key="Reports.Stock">
+                                    <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{l:T Common.Category}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Units}" Binding="{Binding Quantity}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                                    <DataGridTextColumn Header="{l:T Reports.ValueAtCost}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="150" ElementStyle="{StaticResource StrongRightCell}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>

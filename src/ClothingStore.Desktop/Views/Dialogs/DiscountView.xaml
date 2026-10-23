@@ -1,0 +1,39 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.DiscountView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             Width="420">
+    <StackPanel>
+        <Border Style="{StaticResource SegmentGroup}">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Style="{StaticResource SegmentButton}" Content="{l:T Discount.Percent}" GroupName="DiscType"
+                             IsChecked="{Binding DiscountType, Converter={StaticResource Equals}, ConverterParameter=Percent}" />
+                <RadioButton Style="{StaticResource SegmentButton}" Content="{l:T Discount.Fixed}" GroupName="DiscType"
+                             IsChecked="{Binding DiscountType, Converter={StaticResource Equals}, ConverterParameter=Amount}" />
+            </StackPanel>
+        </Border>
+        <TextBox x:Name="ValueBox" Style="{StaticResource BigNumberBox}" Margin="0,14,0,0" Tag="{l:T Discount.Value}"
+                 Text="{Binding ValueText, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Text="{Binding Preview}" Style="{StaticResource HintText}" Foreground="{StaticResource SuccessBrush}" />
+        <ItemsControl ItemsSource="{Binding QuickPercents}" Margin="0,14,0,0">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="6" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Content="{Binding}" ContentStringFormat="{}{0}%" Margin="0,0,6,0" Padding="4,8" MinHeight="40"
+                            Command="{Binding DataContext.QuickPercentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <DockPanel Margin="0,20,0,0">
+            <Button Content="{l:T Discount.Remove}" Style="{StaticResource GhostButton}" Foreground="{StaticResource DangerBrush}" Command="{Binding RemoveCommand}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{l:T Common.Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+                <Button Content="{l:T Common.Apply}" Style="{StaticResource PrimaryButton}" Command="{Binding ApplyCommand}" IsDefault="True" Margin="0" MinWidth="90" />
+            </StackPanel>
+        </DockPanel>
+    </StackPanel>
+</UserControl>

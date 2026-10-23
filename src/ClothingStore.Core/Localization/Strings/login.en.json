@@ -1,0 +1,9 @@
+{
+  "Login.FirstRunHint": "First run: sign in as '{0}' / '{1}' (you will be asked to choose a new password). Demo data also adds manager/manager123 and cashier/cashier123.",
+  "Login.Invalid": "Invalid username or password.",
+  "Login.SignIn": "Sign in",
+  "Login.Subtitle": "Sign in to open the register.",
+  "Login.Tagline": "Sales, stock, customers and cash in one place.",
+  "Login.Welcome": "Welcome back",
+  "Login.WindowTitle": "Sign in"
+}

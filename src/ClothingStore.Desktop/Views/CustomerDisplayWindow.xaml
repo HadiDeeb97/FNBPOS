@@ -1,0 +1,197 @@
+<Window x:Class="ClothingStore.Desktop.Views.CustomerDisplayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+        Title="{l:T Display.Section}"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Focusable="False"
+        Topmost="True"
+        WindowStartupLocation="Manual"
+        Background="{StaticResource BackgroundBrush}"
+        FontFamily="{StaticResource UiFont}"
+        Foreground="{StaticResource TextBrush}"
+        UseLayoutRounding="True">
+    <Window.Resources>
+        <Style x:Key="Panel" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="26,20" />
+        </Style>
+        <Style x:Key="RowLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="RowValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="DockPanel.Dock" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
+
+    <!-- Drawn at 1280 x 720 and scaled to fit any screen, so it reads the same on a 10" display and a 24" monitor. -->
+    <Viewbox Stretch="Uniform">
+        <Grid Width="1280" Height="720">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Store header (hidden on the welcome screen, which shows the logo large) -->
+            <Border Background="{StaticResource SidebarBrush}" Padding="32,16"
+                    Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding RateText}" Foreground="{StaticResource SidebarTextBrush}" FontSize="18"
+                               VerticalAlignment="Center" Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}" />
+                    <Image Source="{Binding Branding.Icon}" Width="48" Height="48" Margin="0,0,16,0" RenderOptions.BitmapScalingMode="HighQuality"
+                           Visibility="{Binding Branding.HasLogo, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="{Binding StoreName}" Foreground="White" FontSize="26" FontWeight="SemiBold" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </Border>
+
+            <!-- Welcome -->
+            <StackPanel Grid.RowSpan="2" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="1100"
+                        Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}">
+                <Image Source="{Binding Branding.Icon}" Width="240" Height="240" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,0,28"
+                       Visibility="{Binding Branding.HasLogo, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Text="{Binding StoreName}" FontSize="56" FontWeight="Bold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding WelcomeMessage}" FontSize="30" Foreground="{StaticResource PrimaryDarkBrush}" HorizontalAlignment="Center"
+                           TextAlignment="Center" TextWrapping="Wrap" Margin="0,16,0,0" />
+                <TextBlock Text="{Binding StorePhone}" FontSize="22" Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center" Margin="0,22,0,0"
+                           FlowDirection="LeftToRight" Visibility="{Binding StorePhone, Converter={StaticResource HasValueToVis}}" />
+            </StackPanel>
+
+            <!-- Thank you -->
+            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="1100"
+                        Visibility="{Binding IsThankYou, Converter={StaticResource BoolToVis}}">
+                <Border Width="120" Height="120" CornerRadius="60" Background="{StaticResource SuccessLightBrush}" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="60" Foreground="{StaticResource SuccessBrush}" />
+                </Border>
+                <TextBlock Text="{l:T Display.ThankYou}" FontSize="64" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,24,0,0" />
+                <Border Style="{StaticResource Panel}" Margin="0,30,0,0" Padding="40,20" HorizontalAlignment="Center"
+                        Background="{StaticResource SuccessLightBrush}" BorderBrush="{StaticResource SuccessBrush}"
+                        Visibility="{Binding HasChangeGiven, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <TextBlock Text="{l:T Display.Change}" FontSize="24" Foreground="#166534" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding ChangeGiven}" FontSize="52" FontWeight="Bold" Foreground="#166534" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{l:T Display.SeeYou}" FontSize="26" Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center" Margin="0,30,0,0" />
+            </StackPanel>
+
+            <!-- Items and totals (while ringing up and while paying) -->
+            <Grid Grid.Row="1" Margin="28,24" Visibility="{Binding ShowsCart, Converter={StaticResource BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="470" />
+                </Grid.ColumnDefinitions>
+
+                <Border Style="{StaticResource Panel}" Padding="0">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="26,18,26,10">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Sales.ItemCount, StringFormat={l:T Display.Items}}" Style="{StaticResource RowLabel}" />
+                            <TextBlock Text="{l:T Display.YourItems}" FontSize="24" FontWeight="SemiBold" />
+                        </DockPanel>
+                        <ListBox x:Name="Lines" ItemsSource="{Binding Sales.Items}" BorderThickness="0" Background="Transparent" Focusable="False"
+                                 IsHitTestVisible="False" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                 Padding="0,0,0,10">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Focusable" Value="False" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <ContentPresenter />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="26,12">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" MinWidth="130" Margin="16,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Total, Converter={StaticResource Money}}" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                                <TextBlock Text="{Binding DiscountDisplay}" FontSize="15" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right"
+                                                           Visibility="{Binding DiscountDisplay, Converter={StaticResource HasValueToVis}}" />
+                                            </StackPanel>
+                                            <TextBlock DockPanel.Dock="Right" FontSize="18" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" Margin="16,0,0,0">
+                                                <Run Text="{Binding Quantity, Mode=OneWay}" /><Run Text=" × " /><Run Text="{Binding UnitPrice, Converter={StaticResource Money}, Mode=OneWay}" />
+                                            </TextBlock>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ProductName}" FontSize="21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding VariantDescription}" FontSize="16" Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis"
+                                                           Visibility="{Binding VariantDescription, Converter={StaticResource HasValueToVis}}" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+
+                <StackPanel Grid.Column="2">
+                    <!-- Totals -->
+                    <Border Style="{StaticResource Panel}">
+                        <StackPanel>
+                            <DockPanel Margin="0,4">
+                                <TextBlock Text="{Binding Sales.Totals.Subtotal, Converter={StaticResource Money}}" Style="{StaticResource RowValue}" />
+                                <TextBlock Text="{l:T Display.Subtotal}" Style="{StaticResource RowLabel}" />
+                            </DockPanel>
+                            <DockPanel Margin="0,4" Visibility="{Binding Sales.Totals.DiscountTotal, Converter={StaticResource HasValueToVis}}">
+                                <TextBlock Text="{Binding Sales.Totals.DiscountTotal, Converter={StaticResource Money}, StringFormat='-{0}'}" Style="{StaticResource RowValue}"
+                                           Foreground="{StaticResource SuccessBrush}" />
+                                <TextBlock Text="{l:T Display.Discount}" Style="{StaticResource RowLabel}" Foreground="{StaticResource SuccessBrush}" />
+                            </DockPanel>
+                            <DockPanel Margin="0,4" Visibility="{Binding Sales.Totals.TaxTotal, Converter={StaticResource HasValueToVis}}">
+                                <TextBlock Text="{Binding Sales.Totals.TaxTotal, Converter={StaticResource Money}}" Style="{StaticResource RowValue}" />
+                                <TextBlock Text="{Binding Sales.TaxLabel}" Style="{StaticResource RowLabel}" />
+                            </DockPanel>
+                            <DockPanel Margin="0,4" Visibility="{Binding Sales.IsOnline, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding Sales.DeliveryFee, Converter={StaticResource Money}}" Style="{StaticResource RowValue}" />
+                                <TextBlock Text="{l:T Display.Delivery}" Style="{StaticResource RowLabel}" />
+                            </DockPanel>
+                            <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,10" />
+                            <TextBlock Text="{l:T Display.Total}" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource MutedTextBrush}" />
+                            <TextBlock Text="{Binding Total, Converter={StaticResource Money}}" FontSize="56" FontWeight="Bold" />
+                            <TextBlock Text="{Binding TotalLbp, Converter={StaticResource Lbp}}" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkBrush}"
+                                       Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Paying: what was handed over, then what is left or the change -->
+                    <Border Style="{StaticResource Panel}" Margin="0,18,0,0" Visibility="{Binding IsPayment, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <DockPanel Margin="0,4" Visibility="{Binding HasCashReceived, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding CashReceivedText}" Style="{StaticResource RowValue}" />
+                                <TextBlock Text="{l:T Display.CashReceived}" Style="{StaticResource RowLabel}" />
+                            </DockPanel>
+                            <DockPanel Margin="0,4" Visibility="{Binding Payment.NonCashPaid, Converter={StaticResource HasValueToVis}}">
+                                <TextBlock Text="{Binding Payment.NonCashPaid, Converter={StaticResource Money}}" Style="{StaticResource RowValue}" />
+                                <TextBlock Text="{l:T Display.OtherPaid}" Style="{StaticResource RowLabel}" />
+                            </DockPanel>
+                            <StackPanel Margin="0,8,0,0" Visibility="{Binding Payment.HasRemaining, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{l:T Display.Remaining}" FontSize="22" Foreground="{StaticResource WarningBrush}" />
+                                <TextBlock Text="{Binding Payment.RemainingText}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Margin="0,8,0,0" Visibility="{Binding Payment.HasChange, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{l:T Display.Change}" FontSize="22" Foreground="{StaticResource SuccessBrush}" />
+                                <TextBlock Text="{Binding Payment.ChangeText}" FontSize="36" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Viewbox>
+</Window>

@@ -1,0 +1,45 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.MessageDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             MinWidth="380" MaxWidth="520">
+    <StackPanel>
+        <DockPanel>
+            <Border Width="44" Height="44" CornerRadius="22" VerticalAlignment="Top" Margin="0,0,16,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{StaticResource InfoLightBrush}" />
+                        <Setter Property="TextElement.Foreground" Value="{StaticResource InfoBrush}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Kind}" Value="Warning">
+                                <Setter Property="Background" Value="{StaticResource WarningLightBrush}" />
+                                <Setter Property="TextElement.Foreground" Value="{StaticResource WarningBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Kind}" Value="Error">
+                                <Setter Property="Background" Value="{StaticResource DangerLightBrush}" />
+                                <Setter Property="TextElement.Foreground" Value="{StaticResource DangerBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Kind}" Value="Question">
+                                <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+                                <Setter Property="TextElement.Foreground" Value="{StaticResource PrimaryBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="20" />
+            </Border>
+            <StackPanel>
+                <TextBlock Text="{Binding Title}" Style="{StaticResource SectionTitle}" FontSize="16" Margin="0,2,0,6" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="13.5" LineHeight="20" Foreground="#334155" />
+                <TextBlock Text="{Binding Details}" Style="{StaticResource HintText}" Margin="0,10,0,0"
+                           Visibility="{Binding Details, Converter={StaticResource HasValueToVis}}" />
+            </StackPanel>
+        </DockPanel>
+        <StackPanel Style="{StaticResource DialogFooter}">
+            <Button Content="{Binding SecondaryText}" Command="{Binding DeclineCommand}" IsCancel="True"
+                    Visibility="{Binding IsQuestion, Converter={StaticResource BoolToVis}}" />
+            <Button x:Name="PrimaryButton" Content="{Binding PrimaryText}" Style="{StaticResource PrimaryButton}" Command="{Binding AcceptCommand}"
+                    IsDefault="True" MinWidth="90" Margin="0" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

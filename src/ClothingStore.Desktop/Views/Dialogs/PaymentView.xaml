@@ -1,0 +1,195 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.PaymentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="clr-namespace:ClothingStore.Core;assembly=ClothingStore.Core"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             Width="880">
+    <UserControl.Resources>
+        <!-- Quick amount buttons under each cash box: each as wide as its amount (10,000,000 LBP needs more room than
+             $50), wrapping onto the next line when they don't fit -->
+        <ItemsPanelTemplate x:Key="QuickPanel">
+            <WrapPanel />
+        </ItemsPanelTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="320" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel>
+            <!-- Cash: dollars and pounds side by side -->
+            <TextBlock Text="{l:T Payment.CashCaption}" Style="{StaticResource Caption}" />
+            <UniformGrid Rows="1">
+                <StackPanel Margin="0,0,8,0">
+                    <TextBlock Text="{l:T Payment.DollarsReceived}" Style="{StaticResource FieldLabel}" Margin="0,4,0,5" />
+                    <TextBox x:Name="UsdBox" Style="{StaticResource BigNumberBox}" Tag="$"
+                             Text="{Binding UsdText, UpdateSourceTrigger=PropertyChanged}" />
+                    <ItemsControl ItemsSource="{Binding QuickUsd}" ItemsPanel="{StaticResource QuickPanel}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Label}" Margin="0,0,6,6" MinHeight="40" MinWidth="96" Padding="14,0"
+                                        Command="{Binding DataContext.SetUsdCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Margin="8,0,0,0" Visibility="{Binding LbpEnabled, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{l:T Payment.PoundsReceived}" Style="{StaticResource FieldLabel}" Margin="0,4,0,5" />
+                    <TextBox x:Name="LbpBox" Style="{StaticResource BigNumberBox}" Tag="{l:T Currency.Lbp}"
+                             Text="{Binding LbpText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="{Binding LbpWorth}" Style="{StaticResource HintText}" Margin="2,4,0,0" />
+                    <ItemsControl ItemsSource="{Binding QuickLbp}" ItemsPanel="{StaticResource QuickPanel}" Margin="0,4,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Label}" Margin="0,0,6,6" MinHeight="40" MinWidth="96" Padding="14,0"
+                                        Command="{Binding DataContext.SetLbpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </UniformGrid>
+
+            <DockPanel Margin="0,6,0,0" Visibility="{Binding LbpEnabled, Converter={StaticResource BoolToVis}}">
+                <Button DockPanel.Dock="Right" Content="{l:T Payment.ClearCash}" Style="{StaticResource GhostButton}" Command="{Binding ClearCashCommand}" />
+                <TextBlock Text="{l:T Payment.ChangeIn}" Style="{StaticResource FieldLabel}" Margin="0,0,10,0" VerticalAlignment="Center" />
+                <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource SegmentButton}" GroupName="ChangeIn" Content="{l:T Enum.ChangeCurrency.Mixed}"
+                                     IsChecked="{Binding ChangeIn, Converter={StaticResource Equals}, ConverterParameter=Mixed}" />
+                        <RadioButton Style="{StaticResource SegmentButton}" GroupName="ChangeIn" Content="{l:T Enum.ChangeCurrency.Usd}"
+                                     IsChecked="{Binding ChangeIn, Converter={StaticResource Equals}, ConverterParameter=Usd}" />
+                        <RadioButton Style="{StaticResource SegmentButton}" GroupName="ChangeIn" Content="{l:T Enum.ChangeCurrency.Lbp}"
+                                     IsChecked="{Binding ChangeIn, Converter={StaticResource Equals}, ConverterParameter=Lbp}" />
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+
+            <Separator Margin="0,16,0,12" />
+
+            <!-- Card, wallet, store credit, points (always in dollars) -->
+            <TextBlock Text="{l:T Payment.OtherCaption}" Style="{StaticResource Caption}" />
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Text="{Binding AmountText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" Tag="{l:T Payment.Amount}" />
+                <Button Grid.Column="1" Content="{l:T Enum.PaymentMethod.Card}" Style="{StaticResource PrimaryButton}" MinWidth="100" Margin="8,0,0,0"
+                        Command="{Binding AddTenderCommand}" CommandParameter="{x:Static core:PaymentMethod.Card}" />
+                <Button Grid.Column="2" Content="{l:T Enum.PaymentMethod.MobileWallet}" Style="{StaticResource PrimaryButton}" MinWidth="110" Margin="8,0,0,0"
+                        Command="{Binding AddTenderCommand}" CommandParameter="{x:Static core:PaymentMethod.MobileWallet}" />
+            </Grid>
+            <Button Margin="0,8,0,0" MinHeight="44" Command="{Binding AddTenderCommand}" CommandParameter="{x:Static core:PaymentMethod.Delivery}"
+                    Visibility="{Binding AllowDelivery, Converter={StaticResource BoolToVis}}" Style="{StaticResource PrimaryButton}">
+                <StackPanel>
+                    <TextBlock Text="{l:T Enum.PaymentMethod.Delivery}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock Text="{l:T Payment.DeliveryHint}" FontSize="11.5" Opacity="0.85" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <TextBox Text="{Binding Reference, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T Payment.ReferenceHint}" Margin="0,8,0,0" />
+
+            <StackPanel Visibility="{Binding Customer, Converter={StaticResource HasValueToVis}}" Margin="0,14,0,0">
+                <TextBlock Text="{Binding Customer.FullName, StringFormat={l:T Payment.CustomerFormat}}" FontWeight="SemiBold" />
+                <UniformGrid Columns="2" Margin="0,6,0,0">
+                    <Button Command="{Binding UseFullStoreCreditCommand}" IsEnabled="{Binding CanUseStoreCredit}" Margin="0,0,6,0">
+                        <TextBlock Text="{Binding StoreCreditAvailable, Converter={StaticResource Money}, StringFormat={l:T Payment.UseCredit}}" />
+                    </Button>
+                    <Button Command="{Binding UseFullLoyaltyCommand}" IsEnabled="{Binding CanUseLoyalty}" Margin="6,0,0,0">
+                        <TextBlock Text="{Binding LoyaltyInfo, StringFormat={l:T Payment.RedeemPoints}}" />
+                    </Button>
+                </UniformGrid>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Summary -->
+        <DockPanel Grid.Column="2">
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                <Button Content="{l:T Payment.Complete}" Style="{StaticResource BigPayButton}" Command="{Binding CompleteCommand}"
+                        IsEnabled="{Binding IsFullyPaid}" IsDefault="True" />
+                <Button Content="{l:T Common.Cancel}" Command="{Binding CancelCommand}" IsCancel="True" Margin="0,8,0,0" />
+            </StackPanel>
+            <Border Style="{StaticResource Card}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="{l:T Payment.TotalDue}" Style="{StaticResource Caption}" />
+                        <TextBlock Text="{Binding Total, Converter={StaticResource Money}}" FontSize="30" FontWeight="Bold" />
+                        <StackPanel Visibility="{Binding LbpEnabled, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding TotalLbp, Converter={StaticResource Lbp}}" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkBrush}" />
+                            <TextBlock Text="{Binding RateText}" Style="{StaticResource HintText}" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <Separator Margin="0,12" />
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Bottom">
+                        <Separator Margin="0,10" />
+                        <DockPanel Margin="0,2">
+                            <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <TextBlock Text="{Binding CashDue, Converter={StaticResource Money}}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding CashDueLbp, Converter={StaticResource Lbp}}" Style="{StaticResource MutedText}" HorizontalAlignment="Right"
+                                           Visibility="{Binding LbpEnabled, Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
+                            <TextBlock Text="{l:T Payment.CashDue}" FontSize="14" VerticalAlignment="Top" />
+                        </DockPanel>
+
+                        <Border Background="{StaticResource DangerLightBrush}" CornerRadius="8" Padding="12,10" Margin="0,12,0,0"
+                                Visibility="{Binding HasRemaining, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="{l:T Payment.Remaining}" Style="{StaticResource Caption}" Foreground="{StaticResource DangerBrush}" />
+                                <TextBlock Text="{Binding RemainingText}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Background="{StaticResource SuccessLightBrush}" CornerRadius="8" Padding="12,10" Margin="0,12,0,0"
+                                Visibility="{Binding HasChange, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="{l:T Payment.Change}" Style="{StaticResource Caption}" Foreground="{StaticResource SuccessBrush}" />
+                                <TextBlock Text="{Binding ChangeText}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" TextWrapping="Wrap" />
+
+                                <!-- The cashier's own split: type what you have in one currency, the rest comes in the other -->
+                                <StackPanel Margin="0,10,0,0" Visibility="{Binding LbpEnabled, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{l:T Payment.SplitHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" />
+                                    <UniformGrid Rows="1" Margin="0,4,0,0">
+                                        <StackPanel Margin="0,0,4,0">
+                                            <TextBlock Text="{l:T Payment.GiveUsd}" Style="{StaticResource FieldLabel}" Margin="0,0,0,3" />
+                                            <TextBox Text="{Binding GiveUsdText, UpdateSourceTrigger=PropertyChanged}" Tag="{Binding GiveUsdHint}" FontSize="15" />
+                                        </StackPanel>
+                                        <StackPanel Margin="4,0,0,0">
+                                            <TextBlock Text="{l:T Payment.GiveLbp}" Style="{StaticResource FieldLabel}" Margin="0,0,0,3" />
+                                            <TextBox Text="{Binding GiveLbpText, UpdateSourceTrigger=PropertyChanged}" Tag="{Binding GiveLbpHint}" FontSize="15" />
+                                        </StackPanel>
+                                    </UniformGrid>
+                                    <TextBlock Text="{Binding SplitError}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                               Visibility="{Binding SplitError, Converter={StaticResource HasValueToVis}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel>
+                        <TextBlock Text="{l:T Payment.Tendered}" Style="{StaticResource Caption}" />
+                        <TextBlock Text="{l:T Payment.NoOtherTenders}" Style="{StaticResource HintText}"
+                                   Visibility="{Binding Tenders.Count, Converter={StaticResource HasValueToVis}, ConverterParameter=invert}" />
+                        <ItemsControl ItemsSource="{Binding Tenders}" Margin="0,4,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,3">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Foreground="{StaticResource DangerBrush}"
+                                                Command="{Binding DataContext.RemoveTenderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="10" />
+                                        </Button>
+                                        <TextBlock Text="{Binding Amount, Converter={StaticResource Money}}" DockPanel.Dock="Right" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Method, Converter={StaticResource EnumDisplay}}" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </DockPanel>
+    </Grid>
+</UserControl>

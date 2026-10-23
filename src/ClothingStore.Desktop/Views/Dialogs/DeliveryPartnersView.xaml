@@ -1,0 +1,73 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.DeliveryPartnersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}" Margin="0,14,0,0">
+            <Button Content="{l:T Common.Close}" Style="{StaticResource PrimaryButton}" Command="{Binding DoneCommand}" Margin="0" MinWidth="90" />
+        </StackPanel>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="340" />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource TableCard}">
+                <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{l:T Common.Name}" Binding="{Binding Partner.Name}" Width="*" MinWidth="140" FontWeight="SemiBold" />
+                        <DataGridTextColumn Header="{l:T Partners.Kind}" Binding="{Binding Partner.Kind, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="80" />
+                        <DataGridTextColumn Header="{l:T Common.Phone}" Binding="{Binding Partner.Phone}" Width="Auto" MinWidth="110" />
+                        <DataGridTextColumn Header="{l:T Partners.DefaultFee}" Binding="{Binding Partner.DefaultFee, Converter={StaticResource Money}}" Width="Auto" MinWidth="80" />
+                        <DataGridTextColumn Header="{l:T Partners.Owes}" Binding="{Binding Owed, Converter={StaticResource Money}}" Width="Auto" MinWidth="90" />
+                        <DataGridCheckBoxColumn Header="{l:T Common.Active}" Binding="{Binding Partner.IsActive}" Width="Auto" MinWidth="60" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,4">
+                        <Button DockPanel.Dock="Right" Content="{l:T Partners.New}" Style="{StaticResource LinkButton}" Command="{Binding NewCommand}" Margin="0" />
+                        <TextBlock Text="{l:T Partners.Details}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock Text="{l:T Partners.NameRequired}" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding Editing.Name, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="{l:T Partners.Kind}" Style="{StaticResource FieldLabel}" />
+                    <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Editing.Kind}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate><TextBlock Text="{Binding Converter={StaticResource EnumDisplay}}" /></DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="{l:T Partners.Contact}" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding Editing.ContactName, UpdateSourceTrigger=PropertyChanged}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{l:T Common.Phone}" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding Editing.Phone, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{l:T Partners.Phone2}" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding Editing.Phone2, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="{l:T Common.Address}" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding Editing.Address, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="{l:T Partners.DefaultFeeLabel}" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding DefaultFeeText, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
+                    <TextBlock Text="{l:T Partners.Notes}" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding Editing.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MultilineBox}" />
+                    <CheckBox Content="{l:T Common.Active}" IsChecked="{Binding Editing.IsActive}" Margin="0,12,0,0" />
+                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                        <Button Content="{l:T Common.Save}" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" MinWidth="90" IsDefault="True" />
+                        <Button Content="{l:T Common.Delete}" Style="{StaticResource GhostButton}" Foreground="{StaticResource DangerBrush}" Command="{Binding DeleteCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</UserControl>

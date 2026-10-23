@@ -1,0 +1,107 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.CustomersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure">
+    <DockPanel>
+        <DockPanel Style="{StaticResource Toolbar}" DockPanel.Dock="Top">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" />
+                <Button Content="{l:T Customers.NewButton}" Style="{StaticResource PrimaryButton}" Command="{Binding NewCommand}" Margin="0" />
+            </StackPanel>
+            <WrapPanel>
+                <TextBox Style="{StaticResource FilterBox}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Tag="{l:T Customers.SearchHint}" Width="320" Margin="0,0,14,0" />
+                <ComboBox infra:SmartCombo.IsEnabled="True" Tag="{l:T Common.TypeToSearch}" ItemsSource="{Binding Regions}" SelectedItem="{Binding RegionFilter}" DisplayMemberPath="DisplayName" Width="170" Margin="0,0,14,0" />
+                <CheckBox Content="{l:T Common.IncludeInactive}" IsChecked="{Binding IncludeInactive}" VerticalAlignment="Center" />
+            </WrapPanel>
+        </DockPanel>
+
+        <Grid infra:LayoutMemory.Key="Customers">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" MinWidth="380" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="2*" MinWidth="320" />
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource TableCard}">
+                <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Customers}" SelectedItem="{Binding SelectedCustomer}"
+                          MouseDoubleClick="OnDoubleClick" infra:LayoutMemory.Key="Customers.List">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{l:T Common.Name}" Binding="{Binding FullName}" Width="*" MinWidth="140" />
+                        <DataGridTextColumn Header="{l:T Common.Phone}" Binding="{Binding Phone}" Width="Auto" MinWidth="120" />
+                        <DataGridTextColumn Header="{l:T Customers.State}" Binding="{Binding Region.DisplayName}" Width="Auto" MinWidth="110" />
+                        <DataGridTextColumn x:Name="TotalSpentColumn" Header="{l:T Customers.TotalSpent}" Binding="{Binding TotalSpent, Converter={StaticResource Money}}" Width="Auto" MinWidth="105" ElementStyle="{StaticResource StrongRightCell}" />
+                        <DataGridTextColumn Header="{l:T Customers.Visits}" Binding="{Binding Visits}" Width="Auto" MinWidth="65" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="{l:T Customers.LastVisit}" Binding="{Binding LastVisit, StringFormat={}{0:dd MMM yyyy}}" Width="Auto" MinWidth="105" />
+                        <DataGridTextColumn Header="{l:T Common.Points}" Binding="{Binding LoyaltyPoints}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="{l:T Common.Credit}" Binding="{Binding StoreCredit, Converter={StaticResource Money}}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridCheckBoxColumn Header="{l:T Common.Active}" Binding="{Binding IsActive}" Width="Auto" MinWidth="70" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Style="{StaticResource ColumnSplitter}" />
+
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+                <Grid>
+                    <TextBlock Text="{l:T Customers.SelectHint}" Style="{StaticResource MutedText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding SelectedCustomer, Converter={StaticResource HasValueToVis}, ConverterParameter=invert}" />
+                    <DockPanel Visibility="{Binding SelectedCustomer, Converter={StaticResource HasValueToVis}}">
+                        <StackPanel DockPanel.Dock="Top">
+                            <DockPanel>
+                                <Border Style="{StaticResource Avatar}" Width="48" Height="48" CornerRadius="24" Margin="0,0,14,0">
+                                    <TextBlock Text="{Binding SelectedCustomer.FullName, Converter={StaticResource Initials}}" FontSize="17" FontWeight="SemiBold"
+                                               Foreground="{StaticResource PrimaryDarkBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                    <Button Content="{l:T Common.Edit}" Command="{Binding EditCommand}" />
+                                    <Button Content="{l:T Customers.AdjustCredit}" Command="{Binding AdjustCreditCommand}" Margin="0"
+                                            Visibility="{Binding CanAdjustCredit, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding SelectedCustomer.FullName}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding SelectedCustomer.Phone}" Style="{StaticResource MutedText}" />
+                                    <TextBlock Text="{Binding SelectedCustomer.FullAddress}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
+                                               Visibility="{Binding SelectedCustomer.FullAddress, Converter={StaticResource HasValueToVis}}" />
+                                </StackPanel>
+                            </DockPanel>
+                            <TextBlock Text="{Binding SelectedCustomer.CreatedAt, StringFormat={l:T Customers.SinceFormat}}" Style="{StaticResource HintText}" Margin="0,10,0,0" />
+                            <Border Style="{StaticResource InfoBanner}" Margin="0,10,0,0" Visibility="{Binding SelectedCustomer.Notes, Converter={StaticResource HasValueToVis}}">
+                                <TextBlock Text="{Binding SelectedCustomer.Notes}" TextWrapping="Wrap" />
+                            </Border>
+                            <UniformGrid Rows="1" Margin="0,16,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Customers.Visits}" Style="{StaticResource Caption}" />
+                                    <TextBlock Text="{Binding VisitCount}" Style="{StaticResource KpiValue}" FontSize="20" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding CanSeeSpending, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{l:T Customers.LifetimeSpend}" Style="{StaticResource Caption}" />
+                                    <TextBlock Text="{Binding LifetimeSpend, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" FontSize="20" />
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Common.Points}" Style="{StaticResource Caption}" />
+                                    <TextBlock Text="{Binding SelectedCustomer.LoyaltyPoints}" Style="{StaticResource KpiValue}" FontSize="20" />
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Common.Credit}" Style="{StaticResource Caption}" />
+                                    <TextBlock Text="{Binding SelectedCustomer.StoreCredit, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" FontSize="20" />
+                                </StackPanel>
+                            </UniformGrid>
+                            <TextBlock Text="{l:T Customers.PurchaseHistory}" Style="{StaticResource SectionTitle}" />
+                        </StackPanel>
+                        <DataGrid ItemsSource="{Binding History}" Style="{StaticResource CardGrid}" infra:LayoutMemory.Key="Customers.History">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding CreatedAt, StringFormat={}{0:yyyy-MM-dd}}" Width="Auto" MinWidth="95" />
+                                <DataGridTextColumn Header="{l:T Common.Receipt}" Binding="{Binding ReceiptNumber}" Width="*" MinWidth="140" />
+                                <DataGridTextColumn Header="{l:T Common.Items}" Binding="{Binding ItemCount}" Width="Auto" MinWidth="60" ElementStyle="{StaticResource RightCell}" />
+                                <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding Total, Converter={StaticResource Money}}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource RightCell}" />
+                                <DataGridTextColumn Header="{l:T Common.Status}" Binding="{Binding Status, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="90" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

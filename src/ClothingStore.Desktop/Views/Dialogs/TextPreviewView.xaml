@@ -1,0 +1,41 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.TextPreviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization">
+    <DockPanel>
+        <!-- How many copies, on its own row so it is never squeezed out by the buttons. -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource SurfaceAltBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,16,0">
+                    <TextBlock Text="{l:T Print.Copies}" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,10,0" />
+                    <Button Content="&#x2212;" Command="{Binding FewerCopiesCommand}" Style="{StaticResource SmallButton}" Padding="0" MinWidth="34" Height="34" Margin="0" FontSize="16" />
+                    <TextBox Text="{Binding Copies, UpdateSourceTrigger=PropertyChanged}" MinWidth="56" Padding="4,6" Margin="6,0" TextAlignment="Center"
+                             FontSize="15" FontWeight="SemiBold" />
+                    <Button Content="+" Command="{Binding MoreCopiesCommand}" Style="{StaticResource SmallButton}" Padding="0" MinWidth="34" Height="34" Margin="0" FontSize="16" />
+                </StackPanel>
+                <TextBlock Text="{Binding PrinterText}" Style="{StaticResource MutedText}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
+        <WrapPanel DockPanel.Dock="Bottom" Margin="0,16,0,0" HorizontalAlignment="Right">
+            <Button Content="{l:T Print.ChoosePrinter}" Command="{Binding PrintToCommand}" ToolTip="{l:T Print.ChoosePrinterTip}" Margin="0,0,8,6" />
+            <Button Command="{Binding PrintCommand}" Margin="0,0,8,6">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE749;" Style="{StaticResource Icon}" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding PrintButtonText}" />
+                </StackPanel>
+            </Button>
+            <Button Content="{Binding CloseText}" Style="{StaticResource PrimaryButton}" Command="{Binding DoneCommand}" IsDefault="True" Margin="0,0,0,6" MinWidth="90" />
+        </WrapPanel>
+        <!-- The receipt is fixed-width text, so it always reads left to right. -->
+        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="22" MaxHeight="560"
+                FlowDirection="LeftToRight" HorizontalAlignment="Center">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Image Source="{Binding Logo}" MaxHeight="90" MaxWidth="180" HorizontalAlignment="Center" Margin="0,0,0,8"
+                           Visibility="{Binding Logo, Converter={StaticResource HasValueToVis}}" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="{Binding Text}" FontFamily="{StaticResource MonoFont}" FontSize="13" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</UserControl>

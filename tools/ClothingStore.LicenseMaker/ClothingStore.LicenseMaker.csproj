@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Vendor app: issue and renew customers' license keys without the command line. Never ship it to customers. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>LicenseMaker</AssemblyName>
+    <RootNamespace>ClothingStore.LicenseMaker</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ClothingStore.Core\ClothingStore.Core.csproj" />
+  </ItemGroup>
+
+</Project>

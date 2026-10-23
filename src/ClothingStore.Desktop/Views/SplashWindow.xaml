@@ -1,0 +1,26 @@
+<Window x:Class="ClothingStore.Desktop.Views.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+        Title="{l:T Shell.AppName}"
+        Width="420" Height="240"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True"
+        Background="{StaticResource SidebarBrush}"
+        FontFamily="{StaticResource UiFont}"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+    <Grid Margin="32">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Border Width="64" Height="64" CornerRadius="18" Background="{StaticResource PrimaryBrush}" HorizontalAlignment="Center">
+                <TextBlock Text="&#xE719;" Style="{StaticResource Icon}" FontSize="30" Foreground="White" />
+            </Border>
+            <TextBlock Text="{l:T Shell.AppName}" Foreground="White" FontSize="18" FontWeight="SemiBold" Margin="0,18,0,4" HorizontalAlignment="Center" />
+            <TextBlock x:Name="StatusText" Text="{l:T Startup.Connecting}" Foreground="{StaticResource SidebarTextBrush}" HorizontalAlignment="Center" />
+            <ProgressBar IsIndeterminate="True" Height="3" Width="220" Margin="0,18,0,0" BorderThickness="0"
+                         Background="{StaticResource SidebarHoverBrush}" Foreground="#2DD4BF" />
+        </StackPanel>
+    </Grid>
+</Window>

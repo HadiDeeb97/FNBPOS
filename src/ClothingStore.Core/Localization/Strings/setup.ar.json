@@ -1,0 +1,15 @@
+{
+  "Categories.Deactivated": "ما زالت منتجات تستخدم هذه الفئة، لذلك تم إيقافها بدلاً من حذفها.",
+  "Categories.DeleteConfirm": "حذف الفئة '{0}'؟",
+  "Categories.Details": "بيانات الفئة",
+  "Categories.NameRequired": "الاسم *",
+  "Categories.NewButton": "+ جديد",
+  "Suppliers.Contact": "جهة الاتصال",
+  "Suppliers.ContactPerson": "الشخص المسؤول",
+  "Suppliers.Deactivated": "لهذا المورّد طلبات شراء، لذلك تم إيقافه بدلاً من حذفه.",
+  "Suppliers.DeleteConfirm": "حذف المورّد '{0}'؟",
+  "Suppliers.Details": "بيانات المورّد",
+  "Suppliers.NameRequired": "الاسم *",
+  "Suppliers.NewButton": "+ جديد",
+  "Suppliers.NotesLabel": "ملاحظات (شروط الدفع، مدة التوريد…)"
+}

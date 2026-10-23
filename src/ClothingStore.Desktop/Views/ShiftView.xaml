@@ -1,0 +1,261 @@
+<UserControl x:Class="ClothingStore.Desktop.Views.ShiftView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure">
+    <UserControl.Resources>
+        <Style x:Key="SummaryRow" TargetType="DockPanel">
+            <Setter Property="Margin" Value="0,3" />
+        </Style>
+    </UserControl.Resources>
+    <Grid infra:LayoutMemory.Key="Shift">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="380" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="340" />
+        </Grid.ColumnDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,4,0">
+                <!-- Another cashier's drawer is still open on this PC -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,14" Visibility="{Binding ShowOtherDrawer, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <DockPanel>
+                            <Border Width="44" Height="44" CornerRadius="22" Background="{StaticResource WarningLightBrush}" Margin="0,0,14,0" VerticalAlignment="Top">
+                                <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" FontSize="20" Foreground="#B45309" />
+                            </Border>
+                            <StackPanel>
+                                <TextBlock Text="{l:T Shift.OtherDrawerTitle}" Style="{StaticResource SectionTitle}" Margin="0,0,0,2" />
+                                <TextBlock Text="{Binding OtherDrawerText}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                        <WrapPanel Margin="0,16,0,0">
+                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding ContinueDrawerCommand}" MinHeight="44" Padding="18,7" Margin="0,0,10,8">
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Shift.ContinueDrawer}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{l:T Shift.ContinueDrawerHint}" FontSize="11" FontWeight="Normal" Opacity="0.85" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding CountOtherDrawerCommand}" MinHeight="44" Padding="18,7" Margin="0,0,0,8">
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Shift.CountAndClose}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{l:T Shift.CountAndCloseHint}" FontSize="11" FontWeight="Normal" Foreground="{StaticResource MutedTextBrush}" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- No open shift -->
+                <Border Style="{StaticResource Card}" Visibility="{Binding ShowOpenForm, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <DockPanel>
+                            <Border Width="44" Height="44" CornerRadius="22" Background="{StaticResource PrimaryLightBrush}" Margin="0,0,14,0">
+                                <TextBlock Text="&#xE825;" Style="{StaticResource Icon}" FontSize="20" Foreground="{StaticResource PrimaryBrush}" />
+                            </Border>
+                            <StackPanel>
+                                <TextBlock Text="{l:T Shift.OpenTitle}" Style="{StaticResource SectionTitle}" Margin="0,0,0,2" />
+                                <TextBlock Text="{l:T Shift.OpenHint}" Style="{StaticResource MutedText}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                        <TextBlock Text="{l:T Shift.OpeningFloat}" Style="{StaticResource FieldLabel}" Margin="0,18,0,5" />
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel>
+                                <TextBlock Text="{l:T Shift.FloatUsd}" Style="{StaticResource Caption}" />
+                                <TextBox Text="{Binding OpeningFloatText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BigNumberBox}" Width="200" Tag="$" />
+                            </StackPanel>
+                            <StackPanel Margin="14,0,0,0" Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{l:T Shift.FloatLbp}" Style="{StaticResource Caption}" />
+                                <TextBox Text="{Binding OpeningFloatLbpText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BigNumberBox}" Width="220" Tag="{l:T Currency.Lbp}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <Button Content="{l:T Shift.OpenShift}" Style="{StaticResource SuccessButton}" Command="{Binding OpenShiftCommand}" HorizontalAlignment="Left" Margin="0,16,0,0" MinHeight="44" Padding="22,7" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Open shift (this user's, or a drawer being counted and closed) -->
+                <StackPanel Visibility="{Binding ShowActiveDrawer, Converter={StaticResource BoolToVis}}">
+                    <Border Style="{StaticResource Banner}" Margin="0,0,0,14" Visibility="{Binding IsClosingOther, Converter={StaticResource BoolToVis}}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="{l:T Common.Back}" Style="{StaticResource LinkButton}" Command="{Binding StopClosingCommand}" Margin="8,0,0,0" />
+                            <TextBlock Text="{Binding ClosingText}" TextWrapping="Wrap" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <Button DockPanel.Dock="Right" Content="{l:T Shift.PrintX}" Command="{Binding PrintXReportCommand}" Margin="0" />
+                                <TextBlock Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"
+                                           Text="{Binding Summary.OpenedAt, StringFormat={l:T Shift.CurrentOpened}}" />
+                            </DockPanel>
+                            <UniformGrid Columns="3" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Shift.Sales}" Style="{StaticResource Caption}" />
+                                    <TextBlock Text="{Binding Summary.SalesCount}" Style="{StaticResource KpiValue}" />
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Shift.TotalSales}" Style="{StaticResource Caption}" />
+                                    <TextBlock Text="{Binding Summary.TotalSales, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" />
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Shift.Refunds}" Style="{StaticResource Caption}" />
+                                    <TextBlock Text="{Binding Summary.TotalRefunds, Converter={StaticResource Money}}" Style="{StaticResource KpiValue}" />
+                                </StackPanel>
+                            </UniformGrid>
+                            <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="10" Padding="14,10">
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Shift.DollarsSection}" Style="{StaticResource Caption}" Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}" />
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.OpeningFloat, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Shift.OpeningFloat}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.CashSales, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Shift.CashSales}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}" Visibility="{Binding Summary.DeliveryCash, Converter={StaticResource HasValueToVis}}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.DeliveryCash, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Shift.DeliveryCash}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.PayIns, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Shift.PayIns}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.PayOuts, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Shift.PayOuts}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.CashRefunds, Converter={StaticResource Money}}" /><TextBlock Text="{l:T Shift.CashRefunds}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <Separator Margin="0,8" />
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Summary.ExpectedCash, Converter={StaticResource Money}}" FontWeight="Bold" FontSize="20" />
+                                        <TextBlock Text="{l:T Shift.Expected}" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="10" Padding="14,10" Margin="0,10,0,0"
+                                    Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Shift.PoundsSection}" Style="{StaticResource Caption}" />
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.OpeningFloatLbp, Converter={StaticResource Lbp}}" /><TextBlock Text="{l:T Shift.OpeningFloat}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.CashSalesLbp, Converter={StaticResource Lbp}}" /><TextBlock Text="{l:T Shift.CashSales}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}" Visibility="{Binding Summary.DeliveryCashLbp, Converter={StaticResource HasValueToVis}}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.DeliveryCashLbp, Converter={StaticResource Lbp}}" /><TextBlock Text="{l:T Shift.DeliveryCash}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.PayInsLbp, Converter={StaticResource Lbp}}" /><TextBlock Text="{l:T Shift.PayIns}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.PayOutsLbp, Converter={StaticResource Lbp}}" /><TextBlock Text="{l:T Shift.PayOuts}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <DockPanel Style="{StaticResource SummaryRow}"><TextBlock DockPanel.Dock="Right" Text="{Binding Summary.CashRefundsLbp, Converter={StaticResource Lbp}}" /><TextBlock Text="{l:T Shift.CashRefunds}" Style="{StaticResource MutedText}" /></DockPanel>
+                                    <Separator Margin="0,8" />
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Summary.ExpectedCashLbp, Converter={StaticResource Lbp}}" FontWeight="Bold" FontSize="20" />
+                                        <TextBlock Text="{l:T Shift.Expected}" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,14" Visibility="{Binding IsOwnDrawer, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="{l:T Shift.CashInOut}" Style="{StaticResource SectionTitle}" />
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Content="{l:T Shift.PayOutOption}" GroupName="Move"
+                                             IsChecked="{Binding MovementType, Converter={StaticResource Equals}, ConverterParameter=PayOut}" />
+                                <RadioButton Content="{l:T Shift.PayInOption}" GroupName="Move"
+                                             IsChecked="{Binding MovementType, Converter={StaticResource Equals}, ConverterParameter=PayIn}" />
+                                <Border Style="{StaticResource SegmentGroup}" Margin="20,0,0,0" Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource SegmentButton}" GroupName="MoveCurrency" Content="{l:T Enum.CashCurrency.Usd}"
+                                                     IsChecked="{Binding MovementCurrency, Converter={StaticResource Equals}, ConverterParameter=Usd}" />
+                                        <RadioButton Style="{StaticResource SegmentButton}" GroupName="MoveCurrency" Content="{l:T Enum.CashCurrency.Lbp}"
+                                                     IsChecked="{Binding MovementCurrency, Converter={StaticResource Equals}, ConverterParameter=Lbp}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding MovementAmountText, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T Common.Amount}" />
+                                <TextBox Grid.Column="2" Text="{Binding MovementReason, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T Common.Reason}" Margin="0,0,8,0" />
+                                <Button Grid.Column="3" Content="{l:T Shift.Record}" Command="{Binding AddMovementCommand}" Margin="0" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Summary.CashMovements}" Margin="0,12,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="0,3">
+                                            <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="{Binding Amount, Converter={StaticResource Money}}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Currency}" Value="Lbp">
+                                                                <Setter Property="Text" Value="{Binding Amount, Converter={StaticResource Lbp}}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding CreatedAt, StringFormat={}{0:HH:mm}}" Style="{StaticResource MutedText}" Margin="0,0,10,0" />
+                                            <TextBlock Text="{Binding Type, Converter={StaticResource EnumDisplay}}" FontWeight="SemiBold" Margin="0,0,10,0" />
+                                            <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="{l:T Shift.EndOfDay}" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Text="{l:T Shift.CountHint}" Style="{StaticResource MutedText}" TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="{l:T Shift.CountedUsd}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5" />
+                                    <TextBox Text="{Binding CountedCashText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BigNumberBox}" Width="200" Tag="$" />
+                                    <TextBlock Text="{Binding VariancePreview}" Margin="0,8,0,0" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Margin="14,0,0,0" Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{l:T Shift.CountedLbp}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5" />
+                                    <TextBox Text="{Binding CountedCashLbpText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BigNumberBox}" Width="220" Tag="{l:T Currency.Lbp}" />
+                                    <TextBlock Text="{Binding VariancePreviewLbp}" Margin="0,8,0,0" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </StackPanel>
+                            <TextBlock Text="{l:T Common.Notes}" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding CloseNotes}" />
+                            <Button Content="{l:T Shift.CloseAndPrint}" Style="{StaticResource DangerButton}" Command="{Binding CloseShiftCommand}" HorizontalAlignment="Left" Margin="0,16,0,0" MinHeight="44" Padding="20,7" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <GridSplitter Grid.Column="1" Style="{StaticResource ColumnSplitter}" />
+
+        <Border Grid.Column="2" Style="{StaticResource TableCard}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="16,12,12,10">
+                    <Button DockPanel.Dock="Right" Content="{l:T Shift.ViewReport}" Command="{Binding ViewHistoryReportCommand}" Margin="0" />
+                    <Button DockPanel.Dock="Right" Content="{l:T Shift.CountAndCloseSelected}" Command="{Binding CloseSelectedDrawerCommand}" Margin="0,0,8,0"
+                            ToolTip="{l:T Shift.CountAndCloseSelectedTip}" />
+                    <TextBlock Text="{l:T Shift.Recent}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" Margin="0" />
+                </DockPanel>
+                <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding History}" SelectedItem="{Binding SelectedHistory}" infra:LayoutMemory.Key="Shift.History">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{l:T Shift.Number}" Binding="{Binding Id}" Width="Auto" MinWidth="55" />
+                        <DataGridTextColumn Header="{l:T Common.Cashier}" Binding="{Binding User.FullName}" Width="*" MinWidth="140" />
+                        <DataGridTextColumn Header="{l:T Shift.TillCol}" Binding="{Binding TillName}" Width="Auto" MinWidth="80" />
+                        <DataGridTextColumn Header="{l:T Shift.RunningCol}" Binding="{Binding CurrentUser.FullName}" Width="Auto" MinWidth="100" />
+                        <DataGridTextColumn Header="{l:T Shift.OpenedCol}" Binding="{Binding OpenedAt, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="110" />
+                        <DataGridTextColumn Header="{l:T Shift.ClosedCol}" Binding="{Binding ClosedAt, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="110" />
+                        <DataGridTextColumn Header="{l:T Shift.ExpectedCol}" Binding="{Binding ExpectedCash, Converter={StaticResource Money}}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="{l:T Shift.CountedCol}" Binding="{Binding CountedCash, Converter={StaticResource Money}}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTemplateColumn Header="{l:T Shift.VarianceCol}" Width="Auto" MinWidth="95">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Variance, Converter={StaticResource Money}}" HorizontalAlignment="Right" FontWeight="SemiBold"
+                                               Foreground="{Binding Variance, Converter={StaticResource SignBrush}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="{l:T Shift.VarianceLbpCol}" Width="Auto" MinWidth="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding VarianceLbp, Converter={StaticResource Lbp}}" HorizontalAlignment="Right" FontWeight="SemiBold"
+                                               Foreground="{Binding VarianceLbp, Converter={StaticResource SignBrush}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

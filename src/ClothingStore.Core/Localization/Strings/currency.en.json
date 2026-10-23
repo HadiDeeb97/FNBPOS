@@ -1,0 +1,17 @@
+{
+  "Rate.BigChangeConfirm": "Change the rate from {0} to {1}? That is a big jump; check for a missing or extra zero.",
+  "Rate.By": "Changed by",
+  "Rate.Changed": "Exchange rate updated: $1 = {0} LBP",
+  "Rate.ChangedElsewhere": "The exchange rate was changed: $1 = {0} LBP",
+  "Rate.Current": "CURRENT RATE",
+  "Rate.From": "From",
+  "Rate.Hint": "The new rate applies on every till straight away. A sale already on the payment screen is stopped so the customer is not charged at the old rate.",
+  "Rate.History": "RECENT CHANGES",
+  "Rate.New": "New rate (LBP for 1 dollar)",
+  "Rate.Save": "Update rate",
+  "Rate.Short": "$1 = {0} LBP",
+  "Rate.Title": "Exchange rate",
+  "Rate.To": "To",
+  "Rate.Tooltip": "Today's dollar rate. Click to see the history or change it.",
+  "Rate.When": "When"
+}
