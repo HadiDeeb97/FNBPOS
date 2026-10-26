@@ -7,7 +7,7 @@
         ShowInTaskbar="False"
         MinWidth="360"
         Background="{StaticResource SurfaceBrush}"
-        FontFamily="{StaticResource UiFont}"
+        FontFamily="{DynamicResource UiFont}"
         Foreground="{StaticResource TextBrush}"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display">

@@ -21,7 +21,11 @@ public class DatabaseInitializer(IDbContextFactory<PosDbContext> factory)
         // An existing database is tuned first, so it doesn't shut itself down (AUTO_CLOSE) while being upgraded.
         var existed = await db.Database.CanConnectAsync(ct);
         if (existed) await TuneDatabaseAsync(db, ct);
+        // An upgrade can rebuild an index over every sale ever made: on a big database and a slow disk one step can
+        // take many minutes, and stopping it half-way only rolls it back to start again (and the app never opens).
+        db.Database.SetCommandTimeout(UpgradeStepTimeout);
         await MigrateAsync(db, ct);
+        db.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
         if (!existed) await TuneDatabaseAsync(db, ct);
         await LimitServerMemoryAsync(db, ct);
 
@@ -46,6 +50,9 @@ public class DatabaseInitializer(IDbContextFactory<PosDbContext> factory)
             && !await db.Customers.AnyAsync(ct) && !await db.Sales.AnyAsync(ct))
             await DemoDataSeeder.SeedAsync(db, ct);
     }
+
+    /// <summary>How long one step of a version upgrade may take.</summary>
+    internal static readonly TimeSpan UpgradeStepTimeout = TimeSpan.FromMinutes(30);
 
     /// <summary>
     /// Applies pending migrations. EF Core holds a lock on the database while upgrading and releases it at the end; on

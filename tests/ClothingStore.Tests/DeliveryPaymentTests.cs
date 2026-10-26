@@ -199,7 +199,7 @@ public class DeliveryCashMixupTests
         var migrator = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>(ctx);
         await migrator.MigrateAsync("SaleConcurrencyChecks");
         // How the earlier version saved it: the $22 left in the cash box all became change.
-        await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(ctx.Database,
+        await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlAsync(ctx.Database,
             $"UPDATE Sales SET CashTendered = 22, ChangeGiven = 21, ChangeGivenLbp = 89000 WHERE Id = {delivery.Id}");
         await migrator.MigrateAsync();
 

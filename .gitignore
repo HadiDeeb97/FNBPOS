@@ -11,3 +11,6 @@ TestResults/
 *.pem
 license-keys/
 *.lic
+
+# Release builds (dotnet publish -o publish)
+publish/

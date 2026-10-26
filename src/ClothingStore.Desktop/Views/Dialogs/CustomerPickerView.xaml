@@ -1,7 +1,8 @@
 <UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.CustomerPickerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization">
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure">
     <DockPanel>
         <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Style="{StaticResource SearchBox}" Tag="{l:T Customers.SearchHint}"
                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
@@ -12,7 +13,7 @@
                 <Button Content="{l:T Customers.SelectButton}" Style="{StaticResource PrimaryButton}" Command="{Binding SelectCommand}" IsDefault="True" Margin="0" MinWidth="90" />
             </StackPanel>
         </DockPanel>
-        <DataGrid ItemsSource="{Binding Results}" SelectedItem="{Binding SelectedCustomer}" MouseDoubleClick="OnDoubleClick">
+        <DataGrid ItemsSource="{Binding Results}" SelectedItem="{Binding SelectedCustomer}" MouseDoubleClick="OnDoubleClick" infra:LayoutMemory.Key="CustomerPicker">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{l:T Common.Name}" Binding="{Binding FullName}" Width="*" MinWidth="140" />
                 <DataGridTextColumn Header="{l:T Common.Phone}" Binding="{Binding Phone}" Width="Auto" MinWidth="130" />

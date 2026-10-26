@@ -314,7 +314,8 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     private void AddVariant(ProductVariant variant)
     {
         if (IsBusy) return; // the sale is being saved: anything added now would be cleared with it
-        var existing = Items.FirstOrDefault(i => i.VariantId == variant.Id && i.DiscountType == DiscountType.None);
+        // A line with a discount or a typed price stays as it is: the item scanned again goes on its own line.
+        var existing = Items.FirstOrDefault(i => i.VariantId == variant.Id && i.DiscountType == DiscountType.None && !i.PriceChanged);
         var newQty = (existing?.Quantity ?? 0) + 1;
         if (!CheckStock(variant.Id, variant.StockQuantity, newQty, existing, variant.DisplayName)) return;
 
@@ -325,7 +326,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         }
         else
         {
-            var item = new CartItemViewModel(variant);
+            var item = NewItem(variant);
             Items.Add(item);
             SelectedItem = item;
         }
@@ -401,7 +402,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         var (oldType, oldValue) = (item.DiscountType, item.DiscountValue);
         item.DiscountType = dialog.DiscountType;
         item.DiscountValue = dialog.Value;
-        if (!EnsureDiscountApproved())
+        if (!EnsurePricesApproved())
         {
             item.DiscountType = oldType;
             item.DiscountValue = oldValue;
@@ -419,7 +420,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         CartDiscountType = dialog.DiscountType;
         CartDiscountValue = dialog.Value;
         Recalculate();
-        if (!EnsureDiscountApproved())
+        if (!EnsurePricesApproved())
         {
             CartDiscountType = oldType;
             CartDiscountValue = oldValue;
@@ -432,26 +433,69 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     /// <summary>The X on a row passes that row; the toolbar button passes nothing and removes the selected one.</summary>
     private bool CanRemoveItem(CartItemViewModel? item) => item is not null || SelectedItem is not null;
 
-    /// <summary>Cashiers need a manager's credentials for discounts above the configured limit.</summary>
-    private bool EnsureDiscountApproved()
+    /// <summary>
+    /// Cashiers need a manager's credentials to give more than their limit off the shelf prices (typed prices and
+    /// discounts together) and to sell anything below cost. Managers only see the "below cost" warning on the line.
+    /// </summary>
+    private bool EnsurePricesApproved()
     {
         Recalculate();
         if (Session.Can(Permission.OverrideDiscountLimit)) return true;
 
         var limit = _settings.Current.MaxCashierDiscountPercent;
-        var worst = Math.Max(
-            CartCalculator.DiscountPercent(Totals.Subtotal, Totals.DiscountTotal),
-            Totals.Lines.Select(l => CartCalculator.DiscountPercent(l.Gross, l.Discount)).DefaultIfEmpty(0).Max());
-        if (worst <= limit) return true;
-        if (_approvedByUserId is not null && worst <= _approvedDiscountPercent) return true;
+        var worst = PriceRules.ReductionPercent(Items.Select(i => (i.ShelfPrice, i.Quantity)).ToList(), Totals);
+        var overLimit = worst > limit && !(_approvedByUserId is not null && worst <= _approvedDiscountPercent);
+        var belowCost = Items.Where(i => i.NeedsBelowCostApproval).ToList();
+        if (!overLimit && belowCost.Count == 0) return true;
 
-        var approval = new ManagerApprovalViewModel(Dialogs, _users,
-            Loc.T("Register.DiscountOverLimit", worst, limit), Permission.OverrideDiscountLimit);
+        var reasons = new List<string>();
+        if (belowCost.Count > 0)
+            reasons.Add(Loc.T("Register.BelowCostApproval", string.Join("\n", belowCost.Select(i => $"• {i.ProductName} {i.VariantDescription}".TrimEnd()))));
+        if (overLimit) reasons.Add(Loc.T("Register.DiscountOverLimit", worst, limit));
+        var approval = new ManagerApprovalViewModel(Dialogs, _users, string.Join("\n\n", reasons), Permission.OverrideDiscountLimit);
         if (!Dialogs.ShowDialog(approval) || approval.ApprovedBy is null) return false;
 
         _approvedByUserId = approval.ApprovedBy.Id;
-        _approvedDiscountPercent = worst;
+        _approvedDiscountPercent = Math.Max(_approvedDiscountPercent, worst);
+        foreach (var item in belowCost) item.BelowCostApprovedAt = item.NetEach;
         return true;
+    }
+
+    private CartItemViewModel NewItem(ProductVariant variant, int quantity = 1) =>
+        new(variant, quantity) { ShowCost = Session.Can(Permission.OverrideDiscountLimit) };
+
+    /// <summary>The cashier typed a price in a cart line's price box (Enter, Tab or clicking away).</summary>
+    private void OnPriceTyped(object? sender, string text)
+    {
+        // Not for a line that left the cart (sold, held or cleared) while the typed price was on its way.
+        if (sender is not CartItemViewModel item || IsBusy || !Items.Contains(item)) return;
+        var cleaned = text.Replace(CurrencyFormat.Symbol, "").Trim();
+
+        // A barcode scanned while the price box had the keyboard: it's an item to add, not a price.
+        if (cleaned.Length >= 8 && cleaned.All(char.IsAsciiDigit))
+        {
+            SearchText = cleaned;
+            SearchCommand.Execute(null);
+            FocusSearchRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+        if (!PriceRules.TryParsePrice(cleaned, out var price) || price <= 0)
+        {
+            Dialogs.Warning(Loc.T("Register.InvalidPrice"));
+            return;
+        }
+        price = Money.Round(price);
+        if (price == item.UnitPrice) return;
+        // A slip of the finger (4500 for 45.00) is caught before it reaches the total.
+        if (item.ShelfPrice > 0 && price > item.ShelfPrice * 10
+            && !Dialogs.Confirm(Loc.T("Register.PriceMuchHigher", CurrencyFormat.Format(price), CurrencyFormat.Format(item.ShelfPrice))))
+            return;
+
+        var old = item.UnitPrice;
+        item.SetPrice(price);
+        if (!EnsurePricesApproved()) item.SetPrice(old);
+        Recalculate();
+        FocusSearchRequested?.Invoke(this, EventArgs.Empty);
     }
 
     // ---- Customer ---------------------------------------------------------------------------
@@ -486,7 +530,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         if (label is null) return;
 
         var cart = new HeldCart(
-            Items.Select(i => new HeldCartLine(i.VariantId, i.Quantity, i.DiscountType, i.DiscountValue)).ToList(),
+            Items.Select(i => new HeldCartLine(i.VariantId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null)).ToList(),
             CartDiscountType, CartDiscountValue, Customer?.Id, Channel, IsOnline ? DeliveryFee : 0, IsOnline ? OrderNotes : null, IsOnline ? Courier : null, IsOnline ? DeliveryReference : null);
         await _sales.HoldAsync(label, Session.User.Id, cart);
         ResetSale();
@@ -521,7 +565,11 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
                 missing++;
                 continue;
             }
-            Items.Add(new CartItemViewModel(v, line.Quantity) { DiscountType = line.DiscountType, DiscountValue = line.DiscountValue });
+            var item = NewItem(v, line.Quantity);
+            item.DiscountType = line.DiscountType;
+            item.DiscountValue = line.DiscountValue;
+            if (line.UnitPrice is { } price) item.SetPrice(price);
+            Items.Add(item);
         }
         CartDiscountType = cart.CartDiscountType;
         CartDiscountValue = cart.CartDiscountValue;
@@ -656,7 +704,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
             return;
         }
 
-        if (!EnsureDiscountApproved()) return;
+        if (!EnsurePricesApproved()) return;
         if (IsOnline && Customer is null)
         {
             Dialogs.Warning(Loc.T("Register.OnlineNeedsCustomer"));
@@ -674,7 +722,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
                 foreach (var item in Items)
                 {
                     if (!variants.TryGetValue(item.VariantId, out var v) || !v.IsActive || v.Product is { IsActive: false }) unavailable.Add(item);
-                    else if (item.Reprice(v.EffectivePrice)) repriced++;
+                    else if (item.Reprice(v.EffectivePrice, v.EffectiveCost)) repriced++;
                 }
                 Recalculate();
             })) return;
@@ -690,6 +738,13 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
             Dialogs.Warning(Loc.T("Register.PricesChanged", repriced));
             return; // let the cashier see the new total before taking money
         }
+        // Shelf prices or costs may have changed since the prices were typed.
+        if (!EnsurePricesApproved()) return;
+        // Managers sell below cost without approval, but are asked once.
+        var belowCost = Items.Where(i => i.IsBelowCost).ToList();
+        if (belowCost.Count > 0 && Session.Can(Permission.OverrideDiscountLimit)
+            && !Dialogs.Confirm(Loc.T("Register.BelowCostConfirm", string.Join("\n", belowCost.Select(i => $"• {i.ProductName} {i.VariantDescription} ({i.BelowCostText})")))))
+            return;
 
         var payment = new PaymentViewModel(Dialogs, GrandTotal, Customer, _settings.Current, allowDelivery: IsOnline);
         PaymentStarted?.Invoke(this, payment);
@@ -717,7 +772,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
                 UserId = Session.User.Id,
                 ShiftId = Session.CurrentShift?.Id,
                 CustomerId = Customer?.Id,
-                Lines = Items.Select(i => new CheckoutLine(i.VariantId, i.Quantity, i.DiscountType, i.DiscountValue)).ToList(),
+                Lines = Items.Select(i => new CheckoutLine(i.VariantId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null)).ToList(),
                 CartDiscountType = CartDiscountType,
                 CartDiscountValue = CartDiscountValue,
                 Payments = payment.Payments,
@@ -797,9 +852,17 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.OldItems is not null)
-            foreach (CartItemViewModel item in e.OldItems) item.PropertyChanged -= OnItemPropertyChanged;
+            foreach (CartItemViewModel item in e.OldItems)
+            {
+                item.PropertyChanged -= OnItemPropertyChanged;
+                item.PriceTyped -= OnPriceTyped;
+            }
         if (e.NewItems is not null)
-            foreach (CartItemViewModel item in e.NewItems) item.PropertyChanged += OnItemPropertyChanged;
+            foreach (CartItemViewModel item in e.NewItems)
+            {
+                item.PropertyChanged += OnItemPropertyChanged;
+                item.PriceTyped += OnPriceTyped;
+            }
         if (e.Action == NotifyCollectionChangedAction.Reset)
             SelectedItem = null;
         Recalculate();
@@ -807,7 +870,8 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
 
     private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(CartItemViewModel.Quantity) or nameof(CartItemViewModel.DiscountType) or nameof(CartItemViewModel.DiscountValue))
+        if (e.PropertyName is nameof(CartItemViewModel.Quantity) or nameof(CartItemViewModel.DiscountType) or nameof(CartItemViewModel.DiscountValue)
+            or nameof(CartItemViewModel.UnitPrice))
             Recalculate();
     }
 

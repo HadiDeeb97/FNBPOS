@@ -17,15 +17,24 @@ public partial class MainWindow : Window
         Loaded += (_, _) => PreparePagesWhenIdle();
     }
 
+    /// <summary>The pages used all day, whose screens are built ahead of time.</summary>
+    private static readonly Type[] PreparedPages =
+    [
+        typeof(ViewModels.SalesViewModel), typeof(ViewModels.SalesHistoryViewModel),
+        typeof(ViewModels.ProductsViewModel), typeof(ViewModels.CustomersViewModel),
+    ];
+
     /// <summary>
-    /// After the window is up, builds the other pages' screens one at a time whenever the app is idle, so opening any
-    /// page for the first time is quick too. Nothing is loaded from the database until a page is opened.
+    /// After the window is up, builds the screens of the pages used all day (<see cref="PreparedPages"/>) one at a time
+    /// whenever the app is idle, so they open quickly the first time too. The others are built when first opened:
+    /// building every screen ahead kept them all in memory even on tills that never open them. Nothing is loaded from
+    /// the database until a page is opened.
     /// </summary>
     private void PreparePagesWhenIdle()
     {
         if (DataContext is not ViewModels.MainViewModel main
             || App.Services.GetService(typeof(NavigationService)) is not NavigationService navigation) return;
-        var queue = new Queue<Type>(main.NavGroups.SelectMany(g => g.Items).Select(i => i.PageType));
+        var queue = new Queue<Type>(main.NavGroups.SelectMany(g => g.Items).Select(i => i.PageType).Where(PreparedPages.Contains));
         void Next()
         {
             if (queue.Count == 0 || !IsLoaded) return;

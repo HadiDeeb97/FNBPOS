@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using ClothingStore.Core.Entities;
 using ClothingStore.Core.Security;
 using ClothingStore.Data.Services;
-using ClothingStore.Desktop.Converters;
 using ClothingStore.Desktop.Infrastructure;
 using ClothingStore.Desktop.Services;
 using ClothingStore.Desktop.ViewModels.Dialogs;

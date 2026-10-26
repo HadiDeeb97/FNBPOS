@@ -20,6 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The online reports website (cloud/reports-worker), which the POS publishes to the shop's Cloudflare account. -->
+    <EmbeddedResource Include="..\..\cloud\reports-worker\src\**\*" LogicalName="ReportsWorker/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="ClothingStore.Tests" />
   </ItemGroup>
 

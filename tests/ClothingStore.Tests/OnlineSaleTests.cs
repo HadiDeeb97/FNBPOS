@@ -89,7 +89,7 @@ public class OnlineSaleTests
         await migrator.MigrateAsync("AddAppState"); // back to the version that had the online-orders screen
 
         // A confirmed order holding 3 tees, and a completed one (its stock already became a sale).
-        await ctx.Database.ExecuteSqlRawAsync($"""
+        await ctx.Database.ExecuteSqlAsync($"""
             UPDATE ProductVariants SET StockQuantity = StockQuantity - 3 WHERE Id = {variant.Id};
             INSERT OnlineOrders (OrderNumber, CreatedAt, CreatedByUserId, Channel, Status, CustomerName, DiscountType, DiscountValue,
                                  Subtotal, DiscountTotal, TaxTotal, ItemsTotal, DeliveryFee, Total, StockHeld)

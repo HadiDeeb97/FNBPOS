@@ -108,9 +108,13 @@ public static class LayoutMemory
             if (parts.Length != 2) continue;
             // "-" = the user never resized it: keep its own sizing (fit to content, or share of the free space).
             // A fixed column (a bin or tick-box column) keeps its own width, whatever an older version saved.
+            // A width the user dragged is kept as it was, however narrow (see ColumnSizing).
             if (grid.Columns[i].CanUserResize
                 && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var width) && width > 10)
-                grid.Columns[i].Width = new DataGridLength(Math.Max(width, grid.Columns[i].MinWidth));
+            {
+                ColumnSizing.Release(grid.Columns[i]);
+                grid.Columns[i].Width = new DataGridLength(Math.Max(width, ColumnSizing.Floor));
+            }
             if (int.TryParse(parts[1], out var index) && index >= 0 && index < grid.Columns.Count)
                 order.Add((grid.Columns[i], index));
         }

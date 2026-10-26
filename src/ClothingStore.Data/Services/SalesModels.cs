@@ -3,7 +3,9 @@ using ClothingStore.Core.Pricing;
 
 namespace ClothingStore.Data.Services;
 
-public sealed record CheckoutLine(int VariantId, int Quantity, DiscountType DiscountType = DiscountType.None, decimal DiscountValue = 0m);
+/// <summary>A cart line; <paramref name="UnitPrice"/> is a price typed at the till instead of the shelf price.</summary>
+public sealed record CheckoutLine(
+    int VariantId, int Quantity, DiscountType DiscountType = DiscountType.None, decimal DiscountValue = 0m, decimal? UnitPrice = null);
 
 public sealed record PaymentInput(PaymentMethod Method, decimal Amount, string? Reference = null);
 
@@ -57,7 +59,7 @@ public sealed record CheckoutRequest
     public string? DeliveryReference { get; init; }
 }
 
-public sealed record HeldCartLine(int VariantId, int Quantity, DiscountType DiscountType, decimal DiscountValue);
+public sealed record HeldCartLine(int VariantId, int Quantity, DiscountType DiscountType, decimal DiscountValue, decimal? UnitPrice = null);
 
 public sealed record HeldCart(
     IReadOnlyList<HeldCartLine> Lines,

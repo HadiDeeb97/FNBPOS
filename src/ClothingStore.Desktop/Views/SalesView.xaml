@@ -185,21 +185,39 @@
                                                     <TextBlock Text="{Binding VariantDescription}" FontSize="11.5" />
                                                 </Border>
                                                 <TextBlock Text="{Binding Sku}" Style="{StaticResource MutedText}" FontSize="11.5" VerticalAlignment="Center" />
+                                                <Border Style="{StaticResource Chip}" Padding="7,1" Margin="6,0,0,0" Background="{StaticResource DangerLightBrush}"
+                                                        Visibility="{Binding IsBelowCost, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding BelowCostText}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource DangerBrush}" />
+                                                </Border>
                                             </StackPanel>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="{l:T Common.Price}" Width="Auto" MinWidth="95" Binding="{Binding UnitPrice, Converter={StaticResource Money}}" ElementStyle="{StaticResource RightCell}" />
+                            <DataGridTemplateColumn Header="{l:T Common.Price}" Width="Auto" MinWidth="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <!-- Type a new price here (or press F3 on the line); Enter keeps it, Esc puts the old one back. -->
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBox x:Name="PriceBox" Text="{Binding PriceText, UpdateSourceTrigger=LostFocus}" Style="{StaticResource CellBox}" MinHeight="30"
+                                                     HorizontalContentAlignment="Right" FontWeight="SemiBold" ToolTip="{l:T Register.PriceBoxTip}"
+                                                     PreviewKeyDown="OnPriceBoxKeyDown" GotKeyboardFocus="OnPriceBoxFocused" />
+                                            <TextBlock Text="{Binding ShelfPrice, Converter={StaticResource Money}}" TextDecorations="Strikethrough" Style="{StaticResource MutedText}"
+                                                       FontSize="11" HorizontalAlignment="Right" Margin="0,2,4,0" ToolTip="{l:T Register.ShelfPrice}"
+                                                       Visibility="{Binding PriceChanged, Converter={StaticResource BoolToVis}}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="{l:T Common.Qty}" Width="Auto" MinWidth="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Background="{StaticResource HoverBrush}" CornerRadius="10" HorizontalAlignment="Center" Padding="2">
                                             <StackPanel Orientation="Horizontal">
-                                                <Button Content="−" Style="{StaticResource IconButton}" FontFamily="{StaticResource UiFont}" FontSize="16" Width="30" Height="30"
+                                                <Button Content="−" Style="{StaticResource IconButton}" FontFamily="{DynamicResource UiFont}" FontSize="16" Width="30" Height="30"
                                                         Command="{Binding DataContext.DecreaseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                                                 <TextBlock Text="{Binding Quantity}" MinWidth="30" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="14" />
-                                                <Button Content="+" Style="{StaticResource IconButton}" FontFamily="{StaticResource UiFont}" FontSize="16" Width="30" Height="30"
+                                                <Button Content="+" Style="{StaticResource IconButton}" FontFamily="{DynamicResource UiFont}" FontSize="16" Width="30" Height="30"
                                                         Command="{Binding DataContext.IncreaseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                                             </StackPanel>
                                         </Border>

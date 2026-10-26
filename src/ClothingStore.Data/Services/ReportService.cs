@@ -1,5 +1,4 @@
 using ClothingStore.Core;
-using ClothingStore.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using ClothingStore.Core.Localization;
 
@@ -125,9 +124,9 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
 {
     public async Task<SalesReport> GetSalesReportAsync(DateTime from, DateTime to, CancellationToken ct = default)
     {
-        var report = await BuildAsync(from, to, details: true, ct);
+        var report = await BuildAsync(from, to, ct);
         // Same length of time just before, for the "vs previous period" figures.
-        var previous = await BuildAsync(from - (to - from), from, details: false, ct);
+        var previous = await ComparisonAsync(from - (to - from), from, ct);
         return report with
         {
             PreviousTotalSales = previous.TotalSales,
@@ -136,31 +135,95 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
         };
     }
 
-    private async Task<SalesReport> BuildAsync(DateTime from, DateTime to, bool details, CancellationToken ct)
+    /// <summary>
+    /// Only the three figures the comparison shows, added up by SQL Server (worked out as in <see cref="BuildAsync"/>):
+    /// building a whole report for them doubled the time of long periods.
+    /// </summary>
+    private async Task<(decimal TotalSales, int Transactions, decimal GrossProfit)> ComparisonAsync(DateTime from, DateTime to, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var sales = await db.Sales.AsNoTracking()
+            .Where(s => s.CreatedAt >= from && s.CreatedAt < to && s.Status == SaleStatus.Completed)
+            .GroupBy(_ => 1)
+            .Select(g => new { Count = g.Count(), Total = g.Sum(s => s.Total), Tax = g.Sum(s => s.TaxTotal) })
+            .FirstOrDefaultAsync(ct);
+        var cost = await db.SaleLines.AsNoTracking()
+            .Where(l => l.Sale!.CreatedAt >= from && l.Sale.CreatedAt < to && l.Sale.Status == SaleStatus.Completed)
+            .SumAsync(l => (decimal?)(l.UnitCost * l.Quantity), ct) ?? 0m;
+        var returns = await db.Returns.AsNoTracking()
+            .Where(r => r.CreatedAt >= from && r.CreatedAt < to)
+            .GroupBy(_ => 1)
+            .Select(g => new { Refunds = g.Sum(r => r.TotalRefund), Tax = g.Sum(r => r.TaxRefund) })
+            .FirstOrDefaultAsync(ct);
+        var returnedCost = await db.ReturnLines.AsNoTracking()
+            .Where(rl => rl.SaleReturn!.CreatedAt >= from && rl.SaleReturn.CreatedAt < to && rl.Restocked)
+            .SumAsync(rl => (decimal?)(rl.Quantity * (rl.SaleLine != null ? rl.SaleLine.UnitCost : 0m)), ct) ?? 0m;
+
+        var total = sales?.Total ?? 0m;
+        var netRevenue = total - (sales?.Tax ?? 0m) - ((returns?.Refunds ?? 0m) - (returns?.Tax ?? 0m));
+        return (total, sales?.Count ?? 0, netRevenue - (cost - returnedCost));
+    }
+
+    private async Task<SalesReport> BuildAsync(DateTime from, DateTime to, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
 
-        // Only the columns the report needs: whole sales with their products made long ranges slow.
-        var sales = await db.Sales.AsNoTracking()
-            .Where(s => s.CreatedAt >= from && s.CreatedAt < to)
-            .Select(s => new
+        // A long period of a busy shop has hundreds of thousands of sales and lines: SQL Server adds them up (overall,
+        // and per cashier, channel, day, hour, customer, product, category and size) instead of each being downloaded.
+        var periodSales = db.Sales.AsNoTracking().Where(s => s.CreatedAt >= from && s.CreatedAt < to);
+        var completed = periodSales.Where(s => s.Status == SaleStatus.Completed);
+        var totals = await completed
+            .GroupBy(_ => 1)
+            .Select(g => new
             {
-                s.Id, s.Status, s.CreatedAt, s.Subtotal, s.DiscountTotal, s.TaxTotal, s.Total, s.Channel, s.DeliveryFee,
-                Cashier = s.User != null ? s.User.FullName : null,
-                Customer = s.Customer != null ? s.Customer.FirstName + " " + s.Customer.LastName : null,
-                s.CustomerId,
+                Count = g.Count(), Total = g.Sum(s => s.Total), Tax = g.Sum(s => s.TaxTotal), Gross = g.Sum(s => s.Subtotal),
+                Discounts = g.Sum(s => s.DiscountTotal), Fees = g.Sum(s => s.DeliveryFee),
             })
-            .ToListAsync(ct);
-        var completed = sales.Where(s => s.Status == SaleStatus.Completed).ToList();
+            .FirstOrDefaultAsync(ct);
+        var voided = await periodSales.CountAsync(s => s.Status != SaleStatus.Completed, ct);
 
-        var lines = await db.SaleLines.AsNoTracking()
-            .Where(l => l.Sale!.CreatedAt >= from && l.Sale.CreatedAt < to && l.Sale.Status == SaleStatus.Completed)
-            .Select(l => new
+        var periodLines = db.SaleLines.AsNoTracking()
+            .Where(l => l.Sale!.CreatedAt >= from && l.Sale.CreatedAt < to && l.Sale.Status == SaleStatus.Completed);
+        var lines = await periodLines
+            .GroupBy(l => new { l.ProductName, l.CategoryName, Size = l.ProductVariant != null ? l.ProductVariant.Size : null })
+            .Select(g => new
             {
-                l.SaleId, l.Quantity, l.LineTotal, l.TaxAmount, l.UnitCost, l.ProductName, l.CategoryName,
-                Size = l.ProductVariant != null ? l.ProductVariant.Size : null,
+                g.Key.ProductName, g.Key.CategoryName, g.Key.Size, Quantity = g.Sum(l => l.Quantity),
+                Net = g.Sum(l => l.LineTotal - l.TaxAmount), Cost = g.Sum(l => l.UnitCost * l.Quantity), FirstLine = g.Min(l => l.Id),
             })
             .ToListAsync(ct);
+        lines = lines.OrderBy(l => l.FirstLine).ToList(); // ties in the lists stay in the order things were first sold
+
+        // Per cashier, channel and customer: sales, amount and items. Ties stay in the order of each one's first sale.
+        var byUser = (await completed.GroupBy(s => s.UserId)
+                .Select(g => new { g.Key, Count = g.Count(), Total = g.Sum(s => s.Total), First = g.Min(s => s.Id) }).ToListAsync(ct))
+            .OrderBy(x => x.First).ToList();
+        var userItems = await periodLines.GroupBy(l => l.Sale!.UserId)
+            .Select(g => new { g.Key, Quantity = g.Sum(l => l.Quantity) }).ToDictionaryAsync(x => x.Key, x => x.Quantity, ct);
+        var userIds = byUser.Select(x => x.Key).ToList();
+        var userNames = await db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+
+        var byChannel = (await completed.GroupBy(s => s.Channel)
+                .Select(g => new { g.Key, Count = g.Count(), Total = g.Sum(s => s.Total), First = g.Min(s => s.Id) }).ToListAsync(ct))
+            .OrderBy(x => x.First).ToList();
+        var channelItems = await periodLines.GroupBy(l => l.Sale!.Channel)
+            .Select(g => new { g.Key, Quantity = g.Sum(l => l.Quantity) }).ToDictionaryAsync(x => x.Key, x => x.Quantity, ct);
+
+        var byDay = await completed.GroupBy(s => s.CreatedAt.Date)
+            .Select(g => new DailySales(g.Key, g.Count(), g.Sum(s => s.Total))).ToListAsync(ct);
+        var byHour = await completed.GroupBy(s => s.CreatedAt.Hour)
+            .Select(g => new HourlySales(g.Key, g.Count(), g.Sum(s => s.Total))).ToListAsync(ct);
+
+        // By customer, not by name: two customers called the same are two rows.
+        var topCustomers = (await completed.Where(s => s.CustomerId != null).GroupBy(s => s.CustomerId!.Value)
+                .Select(g => new { g.Key, Count = g.Count(), Total = g.Sum(s => s.Total), First = g.Min(s => s.Id) })
+                .OrderByDescending(x => x.Total).ThenBy(x => x.First).Take(50).ToListAsync(ct));
+        var customerIds = topCustomers.Select(x => x.Key).ToList();
+        var customerNames = await db.Customers.AsNoTracking().Where(c => customerIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => (c.FirstName + " " + c.LastName).Trim(), ct);
+        var customerItems = await periodLines.Where(l => customerIds.Contains(l.Sale!.CustomerId!.Value)).GroupBy(l => l.Sale!.CustomerId!.Value)
+            .Select(g => new { g.Key, Quantity = g.Sum(l => l.Quantity) }).ToDictionaryAsync(x => x.Key, x => x.Quantity, ct);
 
         // SQL Server sums decimals exactly, so payment totals are grouped on the server.
         var payments = await db.Payments.AsNoTracking()
@@ -192,14 +255,13 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
             })
             .ToListAsync(ct);
         var items = lines
-            .Select(l => new ItemFlow(l.ProductName, l.CategoryName, l.Size, l.Quantity, l.LineTotal - l.TaxAmount, l.UnitCost * l.Quantity))
+            .Select(l => new ItemFlow(l.ProductName, l.CategoryName, l.Size, l.Quantity, l.Net, l.Cost))
             .Concat(returnedItems.Select(r => new ItemFlow(r.ProductName, r.CategoryName, r.Size, -r.Quantity, -r.Net, -r.Cost)))
             .ToList();
 
-        var itemsBySale = lines.GroupBy(l => l.SaleId).ToDictionary(g => g.Key, g => g.Sum(l => l.Quantity));
-        var extra = details ? await DetailsAsync(db, from, to, ct) : null;
-        var totalSales = completed.Sum(s => s.Total);
-        var tax = completed.Sum(s => s.TaxTotal);
+        var extra = await DetailsAsync(db, from, to, ct);
+        var totalSales = totals?.Total ?? 0m;
+        var tax = totals?.Tax ?? 0m;
         var refunds = returns.Sum(r => r.TotalRefund);
         var refundTax = returns.Sum(r => r.TaxRefund);
 
@@ -207,11 +269,11 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
         {
             From = from,
             To = to,
-            Transactions = completed.Count,
-            VoidedCount = sales.Count - completed.Count,
+            Transactions = totals?.Count ?? 0,
+            VoidedCount = voided,
             ItemsSold = lines.Sum(l => l.Quantity),
-            GrossSales = completed.Sum(s => s.Subtotal),
-            Discounts = completed.Sum(s => s.DiscountTotal),
+            GrossSales = totals?.Gross ?? 0m,
+            Discounts = totals?.Discounts ?? 0m,
             Tax = tax,
             TotalSales = totalSales,
             NetSales = totalSales - tax,
@@ -219,7 +281,7 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
             Refunds = refunds,
             RefundTax = refundTax,
             NetRevenue = totalSales - tax - (refunds - refundTax),
-            CostOfGoods = lines.Sum(l => l.UnitCost * l.Quantity) - returnedCost,
+            CostOfGoods = lines.Sum(l => l.Cost) - returnedCost,
 
             ByPaymentMethod = WithShares(payments
                 .Select(p => new NamedAmount(Loc.EnumText(p.Method), 0, p.Amount, p.Count))
@@ -242,45 +304,35 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
                 .Select(g => new NamedAmount(g.Key, g.Sum(l => l.Quantity), g.Sum(l => l.Net)))
                 .OrderByDescending(x => x.Quantity)),
 
-            ByCashier = WithShares(completed
-                .GroupBy(s => s.Cashier ?? "?")
-                .Select(g => new NamedAmount(g.Key, g.Sum(s => itemsBySale.GetValueOrDefault(s.Id)), g.Sum(s => s.Total), g.Count()))
+            // Two cashiers with the same name are one row, as before.
+            ByCashier = WithShares(byUser
+                .GroupBy(x => userNames.GetValueOrDefault(x.Key) ?? "?")
+                .Select(g => new NamedAmount(g.Key, g.Sum(x => userItems.GetValueOrDefault(x.Key)), g.Sum(x => x.Total), g.Sum(x => x.Count)))
                 .OrderByDescending(x => x.Amount)),
 
-            DeliveryFees = completed.Sum(s => s.DeliveryFee),
+            DeliveryFees = totals?.Fees ?? 0m,
 
-            ByChannel = WithShares(completed
-                .GroupBy(s => s.Channel)
-                .Select(g => new NamedAmount(Loc.EnumText(g.Key), g.Sum(s => itemsBySale.GetValueOrDefault(s.Id)), g.Sum(s => s.Total), g.Count()))
+            ByChannel = WithShares(byChannel
+                .Select(x => new NamedAmount(Loc.EnumText(x.Key), channelItems.GetValueOrDefault(x.Key), x.Total, x.Count))
                 .OrderByDescending(x => x.Amount)),
 
-            ByDay = completed
-                .GroupBy(s => s.CreatedAt.Date)
-                .Select(g => new DailySales(g.Key, g.Count(), g.Sum(s => s.Total)))
-                .OrderBy(d => d.Date).ToList(),
+            ByDay = byDay.OrderBy(d => d.Date).ToList(),
+            ByHour = byHour.OrderBy(h => h.Hour).ToList(),
 
-            ByHour = completed
-                .GroupBy(s => s.CreatedAt.Hour)
-                .Select(g => new HourlySales(g.Key, g.Count(), g.Sum(s => s.Total)))
-                .OrderBy(h => h.Hour).ToList(),
-
-            // By customer, not by name: two customers called the same are two rows.
-            TopCustomers = completed
-                .Where(s => s.CustomerId != null)
-                .GroupBy(s => s.CustomerId)
-                .Select(g => new NamedAmount(g.First().Customer!.Trim(), g.Sum(s => itemsBySale.GetValueOrDefault(s.Id)), g.Sum(s => s.Total), g.Count()))
-                .OrderByDescending(x => x.Amount).Take(50).ToList(),
+            TopCustomers = topCustomers
+                .Select(x => new NamedAmount(customerNames.GetValueOrDefault(x.Key) ?? "", customerItems.GetValueOrDefault(x.Key), x.Total, x.Count))
+                .ToList(),
 
             ReturnsByReason = returns
                 .GroupBy(r => string.IsNullOrWhiteSpace(r.Reason) ? Loc.T("Reports.NoReason") : r.Reason.Trim())
                 .Select(g => new NamedAmount(g.Key, 0, g.Sum(r => r.TotalRefund), g.Count()))
                 .OrderByDescending(x => x.Count).ToList(),
 
-            TopReturned = extra?.TopReturned ?? [],
-            RefundsByMethod = extra?.RefundsByMethod ?? [],
-            Settlements = extra?.Settlements ?? [],
-            CashMovements = extra?.CashMovements ?? [],
-            ShiftCloses = extra?.ShiftCloses ?? [],
+            TopReturned = extra.TopReturned,
+            RefundsByMethod = extra.RefundsByMethod,
+            Settlements = extra.Settlements,
+            CashMovements = extra.CashMovements,
+            ShiftCloses = extra.ShiftCloses,
         };
     }
 
@@ -288,7 +340,7 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
         IReadOnlyList<NamedAmount> TopReturned, IReadOnlyList<NamedAmount> RefundsByMethod, IReadOnlyList<SettlementRow> Settlements,
         IReadOnlyList<CashMovementRow> CashMovements, IReadOnlyList<ShiftCloseRow> ShiftCloses);
 
-    /// <summary>The parts only shown for the chosen period (not needed for the comparison).</summary>
+    /// <summary>Lists that come straight from the database: returns, refunds, settlements, cash in/out, drawer closes.</summary>
     private static async Task<Details> DetailsAsync(PosDbContext db, DateTime from, DateTime to, CancellationToken ct)
     {
         var returnedLines = await db.ReturnLines.AsNoTracking()

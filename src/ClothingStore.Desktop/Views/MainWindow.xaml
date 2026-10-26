@@ -9,7 +9,7 @@
         WindowState="Maximized"
         Background="{StaticResource BackgroundBrush}"
         Foreground="{StaticResource TextBrush}"
-        FontFamily="{StaticResource UiFont}"
+        FontFamily="{DynamicResource UiFont}"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display">
     <Window.Resources>

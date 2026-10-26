@@ -93,6 +93,7 @@
     <Style x:Key="RightCell" TargetType="TextBlock">
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
     <Style x:Key="StrongRightCell" TargetType="TextBlock" BasedOn="{StaticResource RightCell}">
         <Setter Property="FontWeight" Value="SemiBold" />
@@ -403,6 +404,16 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- A box typed in inside a table cell (price, quantity...): it fills the cell, so dragging the column resizes it
+         and it is never cut off, and clicking or tabbing into it selects the whole value so typing replaces it.
+         Give its column a MinWidth of at least the box's own room plus the cell padding (24). -->
+    <Style x:Key="CellBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="infra:SelectAllOnFocus.IsEnabled" Value="True" />
+    </Style>
     <Style x:Key="MultilineBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
         <Setter Property="AcceptsReturn" Value="True" />
         <Setter Property="TextWrapping" Value="Wrap" />
@@ -689,6 +700,8 @@
          Tables
          =================================================================================== -->
     <Style TargetType="DataGrid">
+        <!-- Any column can be dragged to any width (see ColumnSizing) -->
+        <Setter Property="infra:ColumnSizing.FreeResize" Value="True" />
         <Setter Property="AutoGenerateColumns" Value="False" />
         <Setter Property="CanUserAddRows" Value="False" />
         <Setter Property="CanUserDeleteRows" Value="False" />
@@ -746,6 +759,12 @@
         </Style.Triggers>
     </Style>
     <Style TargetType="DataGridCell">
+        <Style.Resources>
+            <!-- A column dragged narrow ends its text with "…" instead of cutting letters in half -->
+            <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            </Style>
+        </Style.Resources>
         <Setter Property="Padding" Value="12,0" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="BorderThickness" Value="0" />
@@ -968,7 +987,9 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- Tooltips and menus open in windows of their own, so they take the font from here. -->
     <Style TargetType="ToolTip">
+        <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="Padding" Value="8,5" />
         <Setter Property="Background" Value="#1E293B" />
@@ -980,6 +1001,7 @@
         <Setter Property="Margin" Value="0,10" />
     </Style>
     <Style TargetType="ContextMenu">
+        <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
         <Setter Property="FontSize" Value="13" />
     </Style>
 </ResourceDictionary>

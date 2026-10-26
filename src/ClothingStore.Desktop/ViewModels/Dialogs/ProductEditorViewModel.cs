@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using ClothingStore.Core;
 using ClothingStore.Core.Entities;
+using ClothingStore.Core.Text;
 using ClothingStore.Data.Services;
 using ClothingStore.Desktop.Infrastructure;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -34,6 +35,18 @@ public sealed partial class VariantRowViewModel : ObservableObject
 
 /// <summary>A size button: one of the built-in ones, or one the store added (those can be removed).</summary>
 public sealed record SizePreset(string Name, string Sizes, bool IsCustom = false);
+
+/// <summary>A colour button under the colours box: a click adds the colour to the list, or takes it off again.</summary>
+public sealed partial class ColorChoice(string name) : ObservableObject
+{
+    public string Name { get; } = name;
+
+    /// <summary>A dot in the colour for well-known names ("#111827" for Black); empty for the shop's own names.</summary>
+    public string? Swatch { get; } = Core.Text.ColorNames.Swatch(name);
+
+    [ObservableProperty]
+    public partial bool IsSelected { get; set; }
+}
 
 /// <summary>Create/edit a style with its size × colour matrix.</summary>
 public sealed partial class ProductEditorViewModel : DialogViewModelBase
@@ -90,6 +103,8 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
         vm.SelectedSupplier = vm.Suppliers.FirstOrDefault(s => s.Id == product?.SupplierId);
         try { vm.ShowPresets(await sizePresets.GetAllAsync()); }
         catch { /* the built-in buttons are enough to work with */ }
+        try { vm.ShowColors(await products.GetColorsAsync()); }
+        catch { vm.ShowColors([]); /* the common colours are enough to work with */ }
         return vm;
     }
 
@@ -192,6 +207,48 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
 
     [ObservableProperty] public partial string SizesText { get; set; } = "S, M, L, XL";
     [ObservableProperty] public partial string ColorsText { get; set; } = "";
+
+    /// <summary>How many colour buttons are shown: the shop's most used ones.</summary>
+    private const int ColorButtons = 18;
+
+    /// <summary>The shop's colours, most used first, then the common ones (in the app's language): offered while typing.</summary>
+    [ObservableProperty]
+    public partial List<string> ColorSuggestions { get; private set; } = [.. ColorNames.All(Loc.IsRightToLeft)];
+
+    public ObservableCollection<ColorChoice> ColorChoices { get; } = [];
+
+    private void ShowColors(IReadOnlyList<string> shopColors)
+    {
+        var common = ColorNames.All(Loc.IsRightToLeft);
+        ColorSuggestions = shopColors.Concat(common).DistinctBy(SmartSearch.Fold).ToList();
+        // The shop's own colours; a shop with few of its own also gets the common ones.
+        var buttons = shopColors.Take(ColorButtons).ToList();
+        if (buttons.Count < 10)
+            buttons = buttons.Concat(ColorNames.Common(Loc.IsRightToLeft)).DistinctBy(SmartSearch.Fold).Take(ColorButtons).ToList();
+        ColorChoices.Clear();
+        foreach (var name in buttons) ColorChoices.Add(new ColorChoice(name));
+        MarkChosenColors();
+    }
+
+    partial void OnColorsTextChanged(string value) => MarkChosenColors();
+
+    private void MarkChosenColors()
+    {
+        var chosen = ColorNames.Split(ColorsText).Select(SmartSearch.Fold).ToHashSet();
+        foreach (var choice in ColorChoices) choice.IsSelected = chosen.Contains(SmartSearch.Fold(choice.Name));
+    }
+
+    [RelayCommand]
+    private void ToggleColor(ColorChoice choice)
+    {
+        var colors = ColorNames.Split(ColorsText).ToList();
+        var key = SmartSearch.Fold(choice.Name);
+        if (colors.RemoveAll(c => SmartSearch.Fold(c) == key) == 0) colors.Add(choice.Name);
+        ColorsText = string.Join(", ", colors);
+    }
+
+    /// <summary>A colour as the shop already spells it ("black" is saved as the "Black" already in use).</summary>
+    private string Spelled(string color) => string.IsNullOrWhiteSpace(color) ? "" : ColorNames.Canonical(color, ColorSuggestions);
     [ObservableProperty] public partial int OpeningStock { get; set; }
 
     [RelayCommand]
@@ -201,10 +258,10 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
     private void Generate()
     {
         static string[] Split(string text) =>
-            text.Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            text.Split([',', '،', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         var sizes = Split(SizesText);
-        var colors = Split(ColorsText);
+        var colors = ColorNames.Split(ColorsText).Select(Spelled).ToArray();
         if (sizes.Length == 0) sizes = [""];
         if (colors.Length == 0) colors = [""];
         if (sizes is [""] && colors is [""])
@@ -297,6 +354,7 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
     private async Task SaveProductAsync()
     {
         if (SelectedCategory is null) throw new BusinessRuleException(Loc.T("ProductEditor.NeedCategory"));
+        foreach (var row in Variants) row.Color = Spelled(row.Color);
         var product = new Product
         {
             Id = _id,

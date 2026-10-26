@@ -77,14 +77,14 @@
                         <DataGridTemplateColumn Header="{l:T Common.Qty}" Width="Auto" MinWidth="75">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Padding="6,2" MinHeight="28" HorizontalContentAlignment="Center" />
+                                    <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellBox}" HorizontalContentAlignment="Center" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="{l:T Purchasing.UnitCost}" Width="Auto" MinWidth="95">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBox Text="{Binding UnitCost, UpdateSourceTrigger=LostFocus}" Padding="6,2" MinHeight="28" />
+                                    <TextBox Text="{Binding UnitCost, UpdateSourceTrigger=LostFocus}" Style="{StaticResource CellBox}" HorizontalContentAlignment="Right" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

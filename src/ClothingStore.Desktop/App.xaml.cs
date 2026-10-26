@@ -36,6 +36,7 @@ public partial class App : Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         HorizontalScrolling.Enable(); // touchpad swipes and Shift + wheel scroll tables sideways
         Loc.SetLanguage(LocalPreferences.Current.Language);
+        UiFont.Apply(); // this PC's font, before the first window
         _splash = new SplashWindow();
         _splash.Show();
 
@@ -95,7 +96,7 @@ public partial class App : Application
             {
                 // Can't even reach the server: the next step reports that properly.
             }
-            _splash?.SetStatus(Loc.T("Startup.Connecting"));
+            _splash?.SetStatus(Loc.T("Startup.Upgrading"));
         }
 
         if (!await PrepareDatabaseAsync(builder.Configuration.GetValue<bool?>("Pos:SeedDemoData") ?? SeedDemoDataByDefault)) return;
@@ -316,6 +317,7 @@ public partial class App : Application
         services.AddSingleton<PrintService>();
         services.AddSingleton<LicenseManager>();
         services.AddHostedService<AutoBackupWorker>();
+        services.AddHostedService<OnlineReportsWorker>();
 
         services.AddTransient<LoginViewModel>();
         services.AddTransient<MainViewModel>();
@@ -336,6 +338,7 @@ public partial class App : Application
         services.AddTransient<ReportsViewModel>();
         services.AddTransient<UsersViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<OnlineReportsViewModel>();
     }
 
     private void ShowLogin()

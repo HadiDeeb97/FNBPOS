@@ -273,6 +273,19 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding ProductName}" Width="*" MinWidth="140" />
                                 <DataGridTextColumn Header="{l:T History.Variant}" Binding="{Binding VariantDescription}" Width="Auto" MinWidth="100" />
+                                <DataGridTemplateColumn Header="{l:T Common.Price}" Width="Auto" MinWidth="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <!-- A price typed at the till shows with the shelf price it replaced. -->
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ListPrice, Converter={StaticResource Money}}" TextDecorations="Strikethrough" Style="{StaticResource MutedText}"
+                                                           FontSize="11.5" Margin="0,0,6,0" VerticalAlignment="Center" ToolTip="{l:T Register.ShelfPrice}"
+                                                           Visibility="{Binding PriceChanged, Converter={StaticResource BoolToVis}}" />
+                                                <TextBlock Text="{Binding UnitPrice, Converter={StaticResource Money}}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{l:T Common.Qty}" Binding="{Binding Quantity}" Width="Auto" MinWidth="50" ElementStyle="{StaticResource RightCell}" />
                                 <DataGridTextColumn Header="{l:T History.Returned}" Binding="{Binding ReturnedQuantity}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />
                                 <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding LineTotal, Converter={StaticResource Money}}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource RightCell}" />

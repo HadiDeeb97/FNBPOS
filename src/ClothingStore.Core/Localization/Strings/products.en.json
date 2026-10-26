@@ -55,6 +55,8 @@
   "ProductEditor.AllExist": "All of those size/colour combinations already exist.",
   "ProductEditor.Auto": "auto",
   "ProductEditor.CategoryRequired": "Category *",
+  "ProductEditor.ColourButtonTip": "Adds this colour to the colours box, or takes it off",
+  "ProductEditor.ColourButtons": "Your colours — click to add or remove",
   "ProductEditor.ColoursCsv": "Colours (comma separated)",
   "ProductEditor.ColoursHint": "e.g. Black, Navy, Olive",
   "ProductEditor.CostOverride": "Cost override",

@@ -9,7 +9,7 @@
         ResizeMode="NoResize"
         Background="{StaticResource SurfaceBrush}"
         Foreground="{StaticResource TextBrush}"
-        FontFamily="{StaticResource UiFont}"
+        FontFamily="{DynamicResource UiFont}"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display">
     <Grid infra:UiScale.IsRoot="True">

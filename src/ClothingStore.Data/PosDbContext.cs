@@ -85,7 +85,11 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
             e.Property(x => x.Barcode).HasMaxLength(64);
             e.HasIndex(x => x.Barcode).IsUnique().HasFilter("[Barcode] IS NOT NULL");
             // Likewise for variants: active ones with the columns a search matches on.
-            e.HasIndex(x => new { x.IsActive, x.ProductId }).IncludeProperties(x => new { x.Sku, x.Color, x.Size, x.Barcode });
+            // Stock and price columns too, so stock lists and low-stock checks read only this.
+            e.HasIndex(x => new { x.IsActive, x.ProductId }).IncludeProperties(x => new
+            {
+                x.Sku, x.Color, x.Size, x.Barcode, x.StockQuantity, x.ReorderLevel, x.PriceOverride, x.CostOverride,
+            });
             e.Property(x => x.Size).HasMaxLength(20);
             e.Property(x => x.Color).HasMaxLength(40);
             e.Property(x => x.Version).IsConcurrencyToken();
@@ -118,9 +122,14 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
             e.Property(x => x.ReceiptNumber).HasMaxLength(32).IsRequired();
             e.HasIndex(x => x.ReceiptNumber).IsUnique();
             e.Ignore(x => x.RefundedTotal);
-            // Sales history and reports pick sales by date; carrying status, channel and total lets the totals be added
-            // up from the index alone.
-            e.HasIndex(x => x.CreatedAt).IncludeProperties(x => new { x.Status, x.Channel, x.Total });
+            // Sales history and reports pick sales by date; carrying the amounts, cashier and customer lets a report read
+            // the index alone instead of looking up every sale.
+            e.HasIndex(x => x.CreatedAt).IncludeProperties(x => new
+            {
+                x.Status, x.Channel, x.Total, x.Subtotal, x.DiscountTotal, x.TaxTotal, x.DeliveryFee, x.UserId, x.CustomerId,
+            });
+            // A customer's total spent, visits and last visit (the customers list).
+            e.HasIndex(x => x.CustomerId).IncludeProperties(x => new { x.Status, x.Total, x.CreatedAt });
             e.Property(x => x.TaxRate).HasPrecision(9, 4);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
@@ -128,7 +137,7 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
             e.HasMany(x => x.Lines).WithOne(l => l.Sale).HasForeignKey(l => l.SaleId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Payments).WithOne(p => p.Sale).HasForeignKey(p => p.SaleId).OnDelete(DeleteBehavior.Cascade);
             e.Property(x => x.Courier).HasMaxLength(100);
-            e.HasIndex(x => x.Courier);
+            e.HasIndex(x => x.Courier).IncludeProperties(x => new { x.CreatedAt, x.Status, x.DeliverySettlementId });
             e.Property(x => x.DeliveryReference).HasMaxLength(100).UseCollation(CaseInsensitive);
             e.HasIndex(x => x.DeliveryReference);
             e.HasOne(x => x.DeliverySettlement).WithMany(d => d.Sales).HasForeignKey(x => x.DeliverySettlementId).OnDelete(DeleteBehavior.Restrict);
@@ -140,12 +149,28 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
 
         b.Entity<SaleLine>(e =>
         {
-            e.HasIndex(x => x.SaleId).IncludeProperties(x => x.Quantity); // item counts in sales history
+            // Copies of the product's own fields at the time of sale, so the same lengths. Reports group by them, and
+            // SQL Server groups text with no length limit about ten times slower.
+            e.Property(x => x.ProductName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.CategoryName).HasMaxLength(100);
+            e.Property(x => x.VariantDescription).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Sku).HasMaxLength(64).IsRequired();
+            // Item counts in sales history, and everything a report reads from a line, so a report over months doesn't
+            // look up each line on its own.
+            e.HasIndex(x => x.SaleId).IncludeProperties(x => new
+            {
+                x.Quantity, x.ReturnedQuantity, x.ProductVariantId, x.UnitPrice, x.UnitCost, x.LineTotal, x.TaxAmount, x.DiscountAmount,
+                x.ProductName, x.CategoryName,
+            });
             e.HasOne(x => x.ProductVariant).WithMany().HasForeignKey(x => x.ProductVariantId).OnDelete(DeleteBehavior.Restrict);
             // Two tills returning the same item at once: the second save fails instead of refunding it twice.
             e.Property(x => x.ReturnedQuantity).IsConcurrencyToken();
             e.Ignore(x => x.ReturnableQuantity);
+            e.Ignore(x => x.PriceChanged);
         });
+
+        // Payment totals by method for a period.
+        b.Entity<Payment>(e => e.HasIndex(x => x.SaleId).IncludeProperties(x => new { x.Method, x.Amount }));
 
         b.Entity<SaleReturn>(e =>
         {
@@ -194,6 +219,9 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
         {
             e.HasIndex(x => new { x.UserId, x.Status });
             e.HasIndex(x => new { x.TillId, x.Status });
+            // Drawer history and the open-drawer list.
+            e.HasIndex(x => new { x.Status, x.ClosedAt });
+            e.HasIndex(x => x.OpenedAt);
             e.Property(x => x.TillId).HasMaxLength(40);
             e.Property(x => x.TillName).HasMaxLength(100);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);

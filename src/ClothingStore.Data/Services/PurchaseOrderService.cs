@@ -45,8 +45,8 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
         {
             var now = DateTime.Now;
             var stem = QueryHelpers.DayStem("PO", now);
-            var last = await db.PurchaseOrders.Where(p => p.OrderNumber.StartsWith(stem))
-                .OrderByDescending(p => p.OrderNumber).Select(p => p.OrderNumber).FirstOrDefaultAsync(ct);
+            var last = await QueryHelpers.Highest(db.PurchaseOrders.Where(p => p.OrderNumber.StartsWith(stem)).Select(p => p.OrderNumber))
+                .FirstOrDefaultAsync(ct);
             entity = new PurchaseOrder
             {
                 OrderNumber = QueryHelpers.NextNumber("PO", now, last),

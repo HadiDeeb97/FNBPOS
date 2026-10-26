@@ -109,7 +109,14 @@ public class SaleLine : Entity
     public string Sku { get; set; } = "";
     public string? CategoryName { get; set; }
 
+    /// <summary>Price charged for one: the shelf price, or the price the cashier typed in.</summary>
     public decimal UnitPrice { get; set; }
+
+    /// <summary>The shelf price at the time of sale when the cashier typed another price; empty otherwise.</summary>
+    public decimal? ListPrice { get; set; }
+
+    public bool PriceChanged => ListPrice is { } shelf && shelf != UnitPrice;
+
     public decimal UnitCost { get; set; }
     public int Quantity { get; set; }
 

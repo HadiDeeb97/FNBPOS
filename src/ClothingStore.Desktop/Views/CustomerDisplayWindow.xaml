@@ -11,7 +11,7 @@
         Topmost="True"
         WindowStartupLocation="Manual"
         Background="{StaticResource BackgroundBrush}"
-        FontFamily="{StaticResource UiFont}"
+        FontFamily="{DynamicResource UiFont}"
         Foreground="{StaticResource TextBrush}"
         UseLayoutRounding="True">
     <Window.Resources>

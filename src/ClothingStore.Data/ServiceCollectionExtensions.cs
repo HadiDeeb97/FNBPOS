@@ -1,3 +1,4 @@
+using ClothingStore.Data.OnlineReports;
 using ClothingStore.Data.Seeding;
 using ClothingStore.Data.Services;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<LicenseClockService>();
         services.AddSingleton<DeliveryService>();
         services.AddSingleton<QueryWarmUp>();
+        services.AddSingleton<OnlineReportsBuilder>();
+        services.AddSingleton(sp => new OnlineReportsService(
+            sp.GetRequiredService<IDbContextFactory<PosDbContext>>(), sp.GetRequiredService<OnlineReportsBuilder>(),
+            new HttpClient { Timeout = TimeSpan.FromSeconds(60) }));
+        services.AddSingleton(_ => new CloudflareDeployer(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }));
         return services;
     }
 }

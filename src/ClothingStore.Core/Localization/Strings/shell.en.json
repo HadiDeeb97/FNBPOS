@@ -47,7 +47,7 @@
   "Shell.ResetLayout": "Reset panel sizes",
   "Shell.ResetLayoutConfirm": "Put every panel and table column back to its default size?",
   "Shell.ShiftOpenSince": "Shift open since {0:HH:mm}",
-  "Shell.ShortcutsHelp": "Everywhere\n  F1  this list\n  Ctrl+F  go to the page's search box\n  Esc  clear a search box / close a window\n  F5  reload the page\n  Ctrl+Shift+F  full screen on / off\n  Ctrl + / Ctrl −  bigger / smaller text     Ctrl+0  normal size\n  Enter  save in a window\n\nRegister\n  F2  search products     F4  customer\n  F6  quantity     F7  line discount     F8  cart discount\n  F9  hold sale     F10  resume held sale\n  F11  online order     F12  pay\n  + / −  quantity of the selected line     Delete  remove it\n\nSearch boxes find words in any order, Arabic spelling variants (أ/ا, ة/ه, ى/ي), Arabic digits and phone numbers however they are written.",
+  "Shell.ShortcutsHelp": "Everywhere\n  F1  this list\n  Ctrl+F  go to the page's search box\n  Esc  clear a search box / close a window\n  F5  reload the page\n  Ctrl+Shift+F  full screen on / off\n  Ctrl + / Ctrl −  bigger / smaller text     Ctrl+0  normal size\n  Enter  save in a window\n\nRegister\n  F2  search products     F3  change the price     F4  customer\n  F6  quantity     F7  line discount     F8  cart discount\n  F9  hold sale     F10  resume held sale\n  F11  online order     F12  pay\n  + / −  quantity of the selected line     Delete  remove it\n\nSearch boxes find words in any order, Arabic spelling variants (أ/ا, ة/ه, ى/ي), Arabic digits and phone numbers however they are written.",
   "Shell.ShortcutsTitle": "Keyboard shortcuts",
   "Shell.SignOut": "Sign out",
   "Shell.SignOutConfirm": "Sign out of the register?",
@@ -70,5 +70,6 @@
   "Startup.SlowRetry": "The database is slow to answer. Trying again ({0} of {1})…",
   "Startup.TryAgain": "Try again?",
   "Startup.UnexpectedError": "An unexpected error occurred.",
+  "Startup.Upgrading": "Upgrading the database for this version… On a big database this can take a few minutes. Please don't turn the PC off.",
   "Startup.WaitingForServer": "Waiting for SQL Server to start… (try {0} of {1})"
 }

@@ -3,13 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
         Title="{l:T Shell.AppName}"
-        Width="420" Height="240"
+        Width="420" MinHeight="240" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
         Background="{StaticResource SidebarBrush}"
-        FontFamily="{StaticResource UiFont}"
+        FontFamily="{DynamicResource UiFont}"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display">
     <Grid Margin="32">
@@ -18,7 +18,8 @@
                 <TextBlock Text="&#xE719;" Style="{StaticResource Icon}" FontSize="30" Foreground="White" />
             </Border>
             <TextBlock Text="{l:T Shell.AppName}" Foreground="White" FontSize="18" FontWeight="SemiBold" Margin="0,18,0,4" HorizontalAlignment="Center" />
-            <TextBlock x:Name="StatusText" Text="{l:T Startup.Connecting}" Foreground="{StaticResource SidebarTextBrush}" HorizontalAlignment="Center" />
+            <TextBlock x:Name="StatusText" Text="{l:T Startup.Connecting}" Foreground="{StaticResource SidebarTextBrush}" HorizontalAlignment="Center"
+                       TextWrapping="Wrap" TextAlignment="Center" MaxWidth="356" />
             <ProgressBar IsIndeterminate="True" Height="3" Width="220" Margin="0,18,0,0" BorderThickness="0"
                          Background="{StaticResource SidebarHoverBrush}" Foreground="#2DD4BF" />
         </StackPanel>

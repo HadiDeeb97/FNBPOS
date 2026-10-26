@@ -75,7 +75,7 @@
                                 <DataGridTemplateColumn Header="{l:T Returns.ReturnQty}" Width="Auto" MinWidth="105">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBox Text="{Binding ReturnQuantity, UpdateSourceTrigger=PropertyChanged}" Width="64" Padding="4,2" MinHeight="30" HorizontalContentAlignment="Center" />
+                                            <TextBox Text="{Binding ReturnQuantity, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellBox}" MinHeight="30" HorizontalContentAlignment="Center" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>

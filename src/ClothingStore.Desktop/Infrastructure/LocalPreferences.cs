@@ -64,6 +64,9 @@ public sealed class LocalPreferences
     /// <summary>Text size (zoom) of the POS on this PC: 1 = 100%. Snapped to ZoomSteps when read.</summary>
     public double UiScale { get; set; } = 1.0;
 
+    /// <summary>Font of this PC's screens (null = the app's own); see <see cref="UiFont"/>.</summary>
+    public string? UiFont { get; set; }
+
     /// <summary>This PC runs the POS full screen (no title bar or taskbar); it starts that way next time too.</summary>
     public bool FullScreen { get; set; }
 

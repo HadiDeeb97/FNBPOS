@@ -1,4 +1,3 @@
-using ClothingStore.Core;
 using ClothingStore.Data.Services;
 using ClothingStore.Desktop.Converters;
 using ClothingStore.Desktop.Infrastructure;

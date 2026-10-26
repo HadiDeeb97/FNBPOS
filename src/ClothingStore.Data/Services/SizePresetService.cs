@@ -94,7 +94,7 @@ public class SizePresetService(IDbContextFactory<PosDbContext> factory)
 
     /// <summary>"s,m ; L" → "s, m, L": the same list the Generate box takes, tidied.</summary>
     public static string Normalize(string? sizes) =>
-        string.Join(", ", (sizes ?? "").Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        string.Join(", ", (sizes ?? "").Split([',', '،', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
     private static List<CustomSizePreset> Parse(string? json)
     {

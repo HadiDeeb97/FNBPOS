@@ -1,7 +1,8 @@
 <UserControl x:Class="ClothingStore.Desktop.Views.Dialogs.LabelPrintView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization">
+             xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure">
     <UserControl.Resources>
         <Style x:Key="MmBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="HorizontalContentAlignment" Value="Right" />
@@ -57,7 +58,7 @@
 
                 <Border Style="{StaticResource TableCard}">
                     <Grid>
-                        <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Rows}" IsReadOnly="False" CanUserAddRows="False">
+                        <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Rows}" IsReadOnly="False" CanUserAddRows="False" infra:LayoutMemory.Key="Labels.Rows">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Name, Mode=OneWay}" Width="*" MinWidth="140" IsReadOnly="True" />
                                 <DataGridTextColumn Header="{l:T Labels.Variant}" Binding="{Binding Variant.Description, Mode=OneWay}" Width="Auto" MinWidth="110" IsReadOnly="True" />
@@ -67,7 +68,7 @@
                                 <DataGridTemplateColumn Header="{l:T Labels.Copies}" Width="Auto" MinWidth="80">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBox Text="{Binding Copies, UpdateSourceTrigger=PropertyChanged}" Padding="4,2" MinHeight="28" HorizontalContentAlignment="Center" />
+                                            <TextBox Text="{Binding Copies, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellBox}" HorizontalContentAlignment="Center" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>

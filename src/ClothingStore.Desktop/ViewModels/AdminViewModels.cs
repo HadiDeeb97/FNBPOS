@@ -165,8 +165,11 @@ public sealed record LanguageOption(string Code, string Name);
 public sealed record PrinterChoice(string Name, string Display);
 
 public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsService settings, BackupService backup, Session session, BrandingService branding,
-    PrintService print) : ViewModelBase(dialogs), IPageViewModel
+    PrintService print, OnlineReportsViewModel online) : ViewModelBase(dialogs), IPageViewModel
 {
+    /// <summary>The Online reports section.</summary>
+    public OnlineReportsViewModel Online { get; } = online;
+
     public string Title => Loc.T("Nav.Settings");
     public string DatabaseName => App.DatabaseName;
 
@@ -398,7 +401,30 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
         }
         OnTextSizeChanged();
         await ReloadAsync();
+        await Online.LoadAsync();
     }
+
+    // ---- Font of this PC ----
+
+    private List<FontChoice>? _fonts;
+
+    /// <summary>The app's own font, Windows' clearest fonts, then every installed font (each shown in itself).</summary>
+    public List<FontChoice> Fonts => _fonts ??= UiFont.Choices(Loc.T("Display.FontDefault"));
+
+    /// <summary>The chosen font; changing it changes every open screen at once.</summary>
+    public FontChoice? SelectedFont
+    {
+        get => Fonts.FirstOrDefault(f => f.Name == LocalPreferences.Current.UiFont) ?? Fonts[0];
+        set
+        {
+            if (value is null || value.Name == LocalPreferences.Current.UiFont) return;
+            UiFont.Set(value.Name);
+            OnPropertyChanged();
+        }
+    }
+
+    [RelayCommand]
+    private void FontReset() => SelectedFont = Fonts[0];
 
     // ---- Text size of this PC ----
 

@@ -1,5 +1,4 @@
 using ClothingStore.Core;
-using ClothingStore.Core.Entities;
 using ClothingStore.Data.Services;
 using Microsoft.EntityFrameworkCore;
 

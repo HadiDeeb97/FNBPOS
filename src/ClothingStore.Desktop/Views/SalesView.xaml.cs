@@ -87,6 +87,10 @@ public partial class SalesView : UserControl
                 FocusSearch();
                 e.Handled = true;
             }
+            else if (e.Key == Key.F3 && FocusPriceBox())
+            {
+                e.Handled = true;
+            }
         };
     }
 
@@ -225,8 +229,59 @@ public partial class SalesView : UserControl
     private void OnResultDoubleClick(object sender, MouseButtonEventArgs e) =>
         ViewModel?.AddResultCommand.Execute(ResultsGrid.SelectedItem);
 
+    /// <summary>F3: the selected line's price box, ready to type over.</summary>
+    private bool FocusPriceBox()
+    {
+        if (ViewModel?.SelectedItem is not { } item) return false;
+        CartGrid.ScrollIntoView(item);
+        CartGrid.UpdateLayout();
+        if (CartGrid.ItemContainerGenerator.ContainerFromItem(item) is not DataGridRow row) return false;
+        var box = FindChild<TextBox>(row, "PriceBox");
+        if (box is null) return false;
+        box.Focus();
+        Keyboard.Focus(box);
+        return true;
+    }
+
+    private static T? FindChild<T>(DependencyObject parent, string name) where T : FrameworkElement
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T match && match.Name == name) return match;
+            if (FindChild<T>(child, name) is { } found) return found;
+        }
+        return null;
+    }
+
+    private void OnPriceBoxFocused(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        // The line being edited is the selected one (the box's style selects the price, so typing replaces it).
+        if (sender is TextBox { DataContext: CartItemViewModel item } && ViewModel is { } vm) vm.SelectedItem = item;
+    }
+
+    private void OnPriceBoxKeyDown(object sender, KeyEventArgs e)
+    {
+        if (sender is not TextBox box) return;
+        switch (e.Key)
+        {
+            case Key.Enter:
+                box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                FocusSearch();
+                e.Handled = true;
+                break;
+            case Key.Escape:
+                box.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+                FocusSearch();
+                e.Handled = true;
+                break;
+        }
+    }
+
     private void OnCartKeyDown(object sender, KeyEventArgs e)
     {
+        // Delete in the price box deletes text, not the line.
+        if (e.OriginalSource is TextBox) return;
         if (ViewModel is not { } vm) return;
         if (e.Key == Key.Delete)
         {

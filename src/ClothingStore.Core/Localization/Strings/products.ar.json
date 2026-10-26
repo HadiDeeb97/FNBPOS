@@ -55,6 +55,8 @@
   "ProductEditor.AllExist": "كل تركيبات المقاس واللون هذه موجودة مسبقاً.",
   "ProductEditor.Auto": "تلقائي",
   "ProductEditor.CategoryRequired": "الفئة *",
+  "ProductEditor.ColourButtonTip": "يضيف هذا اللون إلى خانة الألوان أو يزيله منها",
+  "ProductEditor.ColourButtons": "ألوانك — اضغط للإضافة أو الإزالة",
   "ProductEditor.ColoursCsv": "الألوان (مفصولة بفواصل)",
   "ProductEditor.ColoursHint": "مثال: أسود، كحلي، زيتي",
   "ProductEditor.CostOverride": "كلفة خاصة",

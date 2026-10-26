@@ -48,6 +48,7 @@
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecPrinters}"><DockPanel><TextBlock Text="&#xE749;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Print.Section}" TextWrapping="Wrap" /></DockPanel></Button>
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecDisplay}"><DockPanel><TextBlock Text="&#xE7F4;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Display.Section}" TextWrapping="Wrap" /></DockPanel></Button>
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecScreen}"><DockPanel><TextBlock Text="&#xE8E9;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Display.ScreenSection}" TextWrapping="Wrap" /></DockPanel></Button>
+                    <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecOnline}"><DockPanel><TextBlock Text="&#xE774;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Online.Section}" TextWrapping="Wrap" /></DockPanel></Button>
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecData}"><DockPanel><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Settings.Data}" TextWrapping="Wrap" /></DockPanel></Button>
                 </StackPanel>
             </Border>
@@ -285,6 +286,87 @@
                                 <Button Content="{l:T Display.TextSizeReset}" Style="{StaticResource LinkButton}" Command="{Binding TextResetCommand}" Margin="16,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                             <TextBlock Text="{l:T Display.TextSizeHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,8,16,0" />
+
+                            <TextBlock Text="{l:T Display.Font}" Style="{StaticResource Label}" Margin="0,16,0,5" />
+                            <DockPanel Margin="0,0,16,0">
+                                <Button DockPanel.Dock="Right" Content="{l:T Display.FontReset}" Style="{StaticResource LinkButton}" Command="{Binding FontResetCommand}" Margin="16,0,0,0" VerticalAlignment="Center" />
+                                <ComboBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding SelectedFont}" MaxWidth="420" HorizontalAlignment="Left" MinWidth="260"
+                                          VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" MaxDropDownHeight="360">
+                                    <ComboBox.ItemsPanel>
+                                        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+                                    </ComboBox.ItemsPanel>
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Display}" FontFamily="{Binding Family}" FontSize="14" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DockPanel>
+                            <Border Style="{StaticResource InfoBanner}" Margin="0,10,16,0" HorizontalAlignment="Left">
+                                <TextBlock Text="{l:T Display.FontPreview}" FontSize="15" TextWrapping="Wrap" />
+                            </Border>
+                            <TextBlock Text="{l:T Display.FontHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,8,16,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Online reports: the shop's reports on the owners' phones -->
+                    <Border x:Name="SecOnline" Style="{StaticResource Section}" DataContext="{Binding Online}">
+                        <StackPanel>
+                            <TextBlock Text="{l:T Online.Section}" Style="{StaticResource SectionTitle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{l:T Online.Intro}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,16,12" />
+
+                            <StackPanel Visibility="{Binding IsSetUp, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+                                <Button Content="{l:T Online.SetUp}" Style="{StaticResource PrimaryButton}" Command="{Binding SetUpCommand}" HorizontalAlignment="Left" Margin="0" />
+                                <TextBlock Text="{l:T Online.SetUpHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,8,16,0" />
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding IsSetUp, Converter={StaticResource BoolToVis}}" IsEnabled="{Binding IsBusy, Converter={StaticResource Not}}">
+                                <TextBlock Text="{l:T Online.Link}" Style="{StaticResource Label}" />
+                                <DockPanel Margin="0,0,16,0">
+                                    <Button DockPanel.Dock="Right" Content="{l:T Online.Copy}" Command="{Binding CopyLinkCommand}" Margin="8,0,0,0" />
+                                    <Button DockPanel.Dock="Right" Content="{l:T Online.Open}" Command="{Binding OpenSiteCommand}" Margin="8,0,0,0" />
+                                    <TextBox Text="{Binding SiteUrl, Mode=OneWay}" IsReadOnly="True" FlowDirection="LeftToRight" />
+                                </DockPanel>
+                                <CheckBox IsChecked="{Binding IsEnabled}" Margin="0,14,0,0">
+                                    <TextBlock Text="{l:T Online.Enabled}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                                </CheckBox>
+                                <TextBlock Text="{l:T Online.Target}" Style="{StaticResource Label}" Margin="0,14,0,5" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBox Text="{Binding MonthlyTargetText, UpdateSourceTrigger=PropertyChanged}" MinWidth="140" />
+                                    <Button Content="{l:T Online.TargetSave}" Command="{Binding SaveTargetCommand}" Margin="8,0,0,0" />
+                                </StackPanel>
+                                <TextBlock Text="{l:T Online.TargetHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                <TextBlock Text="{l:T Online.Google}" Style="{StaticResource Label}" Margin="0,12,0,5" />
+                                <DockPanel Margin="0,0,16,0">
+                                    <Button DockPanel.Dock="Right" Content="{l:T Online.TargetSave}" Command="{Binding SaveTargetCommand}" Margin="8,0,0,0" />
+                                    <TextBox Text="{Binding GoogleCodeText, UpdateSourceTrigger=PropertyChanged}" FlowDirection="LeftToRight" />
+                                </DockPanel>
+                                <TextBlock Text="{l:T Online.GoogleHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,10,16,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasProblem}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{l:T Online.Working}" Style="{StaticResource MutedText}" Margin="0,4,0,0"
+                                           Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+                                <WrapPanel Margin="0,12,0,0">
+                                    <Button Content="{l:T Online.UploadNow}" Command="{Binding UploadNowCommand}" Margin="0,0,8,6" />
+                                    <Button Content="{l:T Online.UpdateWebsite}" Style="{StaticResource PrimaryButton}" Command="{Binding UpdateWebsiteCommand}" Margin="0,0,8,6"
+                                            Visibility="{Binding CanUpdateWebsite, Converter={StaticResource BoolToVis}}" />
+                                    <Button Content="{l:T Online.SignOutAll}" Command="{Binding SignOutAllCommand}" Margin="0,0,8,6" />
+                                    <Button Content="{l:T Online.SetUpAgain}" Style="{StaticResource LinkButton}" Command="{Binding SetUpCommand}" Margin="8,0,8,6" VerticalAlignment="Center" />
+                                    <Button Content="{l:T Online.Remove}" Style="{StaticResource LinkButton}" Command="{Binding RemoveCommand}" Margin="8,0,0,6" VerticalAlignment="Center" />
+                                </WrapPanel>
+                                <TextBlock Text="{l:T Online.WhoCanSignIn}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,8,16,0" />
+                                <TextBlock Text="{l:T Online.PasswordHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,4,16,0" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

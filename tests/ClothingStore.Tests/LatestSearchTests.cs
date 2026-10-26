@@ -1,5 +1,4 @@
 using ClothingStore.Desktop.Infrastructure;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClothingStore.Tests;

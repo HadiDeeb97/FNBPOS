@@ -79,6 +79,26 @@ public class ProductService(IDbContextFactory<PosDbContext> factory)
         return watch.Elapsed;
     }
 
+    /// <summary>
+    /// The colours the shop uses, most used first, each in its most common spelling ("Black" and "black " are one).
+    /// </summary>
+    public async Task<List<string>> GetColorsAsync(CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var used = await db.ProductVariants.AsNoTracking()
+            .Where(v => v.Color != "")
+            .GroupBy(v => v.Color)
+            .Select(g => new { Color = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+        return used
+            .GroupBy(x => SmartSearch.Fold(x.Color))
+            .Select(g => (Name: g.OrderByDescending(x => x.Count).First().Color.Trim(), Count: g.Sum(x => x.Count)))
+            .Where(x => x.Name.Length > 0)
+            .OrderByDescending(x => x.Count).ThenBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(x => x.Name)
+            .ToList();
+    }
+
     public async Task<List<ProductVariant>> GetVariantsAsync(IEnumerable<int> ids, CancellationToken ct = default)
     {
         var idList = ids.Distinct().ToList();

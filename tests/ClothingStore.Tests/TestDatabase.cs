@@ -1,6 +1,5 @@
 using ClothingStore.Core;
 using ClothingStore.Core.Entities;
-using ClothingStore.Core.Security;
 using ClothingStore.Data;
 using ClothingStore.Data.Seeding;
 using ClothingStore.Data.Services;

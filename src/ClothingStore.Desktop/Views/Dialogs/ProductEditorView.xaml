@@ -118,7 +118,9 @@
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="{l:T ProductEditor.ColoursCsv}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5" />
-                                <TextBox Text="{Binding ColorsText, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T ProductEditor.ColoursHint}" />
+                                <!-- Suggests the shop's colours while typing; Tab or Enter takes one -->
+                                <TextBox Text="{Binding ColorsText, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T ProductEditor.ColoursHint}"
+                                         infra:TypeAhead.Items="{Binding ColorSuggestions}" infra:TypeAhead.IsList="True" />
                             </StackPanel>
                             <StackPanel Grid.Column="4">
                                 <TextBlock Text="{l:T ProductEditor.OpeningStock}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5" />
@@ -157,6 +159,43 @@
                         </ScrollViewer>
                         <Button Content="{l:T ProductEditor.SavePresetButton}" Style="{StaticResource LinkButton}" Command="{Binding SavePresetCommand}"
                                 HorizontalAlignment="Left" Margin="0" ToolTip="{l:T ProductEditor.SavePresetTip}" />
+
+                        <!-- The shop's most used colours: a click adds one to the colours box, a second click takes it off -->
+                        <TextBlock Text="{l:T ProductEditor.ColourButtons}" Style="{StaticResource FieldLabel}" Margin="0,10,0,5" />
+                        <ScrollViewer MaxHeight="76" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                            <ItemsControl ItemsSource="{Binding ColorChoices}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Margin="0,0,6,6" ToolTip="{l:T ProductEditor.ColourButtonTip}"
+                                                Command="{Binding DataContext.ToggleColorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                                            <Setter Property="Foreground" Value="{StaticResource PrimaryDarkBrush}" />
+                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="10" Height="10" Margin="0,0,6,0" VerticalAlignment="Center" Fill="{Binding Swatch}"
+                                                         Stroke="{StaticResource InputBorderBrush}" StrokeThickness="1"
+                                                         Visibility="{Binding Swatch, Converter={StaticResource HasValueToVis}}" />
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
                     </StackPanel>
                 </Border>
 
@@ -168,7 +207,14 @@
                 <DataGrid x:Name="VariantsGrid" ItemsSource="{Binding Variants}" IsReadOnly="False" RowHeight="38" infra:LayoutMemory.Key="ProductEditor.Variants">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{l:T Common.Size}" Binding="{Binding Size, UpdateSourceTrigger=PropertyChanged}" Width="Auto" MinWidth="70" />
-                        <DataGridTextColumn Header="{l:T Common.Colour}" Binding="{Binding Color, UpdateSourceTrigger=PropertyChanged}" Width="*" MinWidth="110" />
+                        <DataGridTextColumn Header="{l:T Common.Colour}" Binding="{Binding Color, UpdateSourceTrigger=PropertyChanged}" Width="*" MinWidth="110">
+                            <DataGridTextColumn.EditingElementStyle>
+                                <!-- The same colour suggestions while typing in the table -->
+                                <Style TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
+                                    <Setter Property="infra:TypeAhead.Items" Value="{Binding DataContext.ColorSuggestions, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                </Style>
+                            </DataGridTextColumn.EditingElementStyle>
+                        </DataGridTextColumn>
                         <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku, UpdateSourceTrigger=PropertyChanged}" Width="*" MinWidth="130" />
                         <DataGridTextColumn Header="{l:T Common.Barcode}" Binding="{Binding Barcode, UpdateSourceTrigger=PropertyChanged}" Width="Auto" MinWidth="120" />
                         <DataGridTextColumn Header="{l:T ProductEditor.PriceOverride}" Binding="{Binding PriceOverride, TargetNullValue='', UpdateSourceTrigger=LostFocus}" Width="Auto" MinWidth="105" />
@@ -176,7 +222,7 @@
                         <DataGridTemplateColumn Header="{l:T Common.Stock}" Width="Auto" MinWidth="75">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBox Text="{Binding StockQuantity, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsNew}" Padding="6,2" MinHeight="28"
+                                    <TextBox Text="{Binding StockQuantity, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsNew}" Style="{StaticResource CellBox}"
                                              ToolTip="{l:T ProductEditor.OpeningStockTip}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

@@ -33,6 +33,7 @@
     <DataTemplate DataType="{x:Type dlg:DiscountViewModel}"><vd:DiscountView /></DataTemplate>
     <DataTemplate DataType="{x:Type dlg:PaymentViewModel}"><vd:PaymentView /></DataTemplate>
     <DataTemplate DataType="{x:Type dlg:ExchangeRateViewModel}"><vd:ExchangeRateView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:OnlineReportsSetupViewModel}"><vd:OnlineReportsSetupView /></DataTemplate>
     <DataTemplate DataType="{x:Type dlg:StoreLogoViewModel}"><vd:StoreLogoView /></DataTemplate>
     <DataTemplate DataType="{x:Type dlg:ActivationViewModel}"><vd:ActivationView /></DataTemplate>
     <DataTemplate DataType="{x:Type dlg:OnlineSaleViewModel}"><vd:OnlineSaleView /></DataTemplate>

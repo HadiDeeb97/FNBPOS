@@ -14,7 +14,10 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
     /// <summary>Most sales the history screen lists at once (newest first).</summary>
     public const int HistoryLimit = 1000;
 
-    public async Task<Sale> CompleteSaleAsync(CheckoutRequest request, CancellationToken ct = default)
+    public Task<Sale> CompleteSaleAsync(CheckoutRequest request, CancellationToken ct = default) =>
+        QueryHelpers.RetryOnTillConflictAsync(() => CompleteOnceAsync(request, ct), ct);
+
+    private async Task<Sale> CompleteOnceAsync(CheckoutRequest request, CancellationToken ct)
     {
         if (request.Lines.Count == 0) throw new BusinessRuleException(Loc.T("Err.CartEmpty"));
         if (request.Lines.Any(l => l.Quantity <= 0)) throw new BusinessRuleException(Loc.T("Err.QtyAtLeastOne"));
@@ -59,11 +62,16 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
                 throw new BusinessRuleException(Loc.T("Err.ItemUnavailable"));
         }
 
+        // The price charged: the shelf price, or one typed at the till (to the cent, and more than nothing).
+        if (request.Lines.Any(l => l.UnitPrice is { } typed && Money.Round(typed) <= 0))
+            throw new BusinessRuleException(Loc.T("Err.PriceMustBePositive"));
+        decimal PriceOf(CheckoutLine line) => line.UnitPrice is { } typed ? Money.Round(typed) : variants[line.VariantId].EffectivePrice;
+
         var totals = CartCalculator.Calculate(
-            request.Lines.Select(l => new CartLineInput(variants[l.VariantId].EffectivePrice, l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
+            request.Lines.Select(l => new CartLineInput(PriceOf(l), l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
             request.CartDiscountType, request.CartDiscountValue, settings.TaxRate, settings.PricesIncludeTax);
 
-        await EnforceDiscountLimitAsync(db, user, request, totals, settings, ct);
+        await EnforcePriceRulesAsync(db, user, request, totals, variants, settings, ct);
 
         // Payments.
         var sale = new Sale
@@ -103,7 +111,8 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
                 VariantDescription = v.Description,
                 Sku = v.Sku,
                 CategoryName = v.Product.Category?.Name,
-                UnitPrice = v.EffectivePrice,
+                UnitPrice = PriceOf(req),
+                ListPrice = PriceOf(req) != v.EffectivePrice ? v.EffectivePrice : null,
                 UnitCost = v.EffectiveCost,
                 Quantity = req.Quantity,
                 DiscountAmount = r.Discount,
@@ -115,17 +124,36 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
         }
 
         db.Sales.Add(sale);
-        await SaveAsync(db, ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new TillConflictException(Loc.T("Err.ConcurrentSale"));
+        }
+        catch (DbUpdateException ex) when (QueryHelpers.IsUniqueViolation(ex))
+        {
+            throw new TillConflictException(Loc.T("Err.ReceiptNumberTaken"));
+        }
         return (await GetAsync(sale.Id, ct))!;
     }
 
-    private static async Task EnforceDiscountLimitAsync(PosDbContext db, User user, CheckoutRequest request, CartTotals totals, StoreSettings settings, CancellationToken ct)
+    /// <summary>
+    /// A cashier needs a manager's approval to give more than the discount limit off the shelf prices (typed prices and
+    /// discounts together), or to sell anything below cost.
+    /// </summary>
+    private static async Task EnforcePriceRulesAsync(PosDbContext db, User user, CheckoutRequest request, CartTotals totals,
+        IReadOnlyDictionary<int, ProductVariant> variants, StoreSettings settings, CancellationToken ct)
     {
         if (Permissions.Has(user.Role, Permission.OverrideDiscountLimit)) return;
 
-        var worstLine = totals.Lines.Select(l => CartCalculator.DiscountPercent(l.Gross, l.Discount)).DefaultIfEmpty(0).Max();
-        var overall = CartCalculator.DiscountPercent(totals.Subtotal, totals.DiscountTotal);
-        if (Math.Max(worstLine, overall) <= settings.MaxCashierDiscountPercent) return;
+        var reduction = PriceRules.ReductionPercent(request.Lines.Select(l => (variants[l.VariantId].EffectivePrice, l.Quantity)).ToList(), totals);
+        var belowCost = request.Lines
+            .Where((l, i) => PriceRules.IsBelowCost(totals.Lines[i], l.Quantity, variants[l.VariantId].EffectiveCost))
+            .Select(l => variants[l.VariantId].DisplayName)
+            .ToList();
+        if (reduction <= settings.MaxCashierDiscountPercent && belowCost.Count == 0) return;
 
         if (request.ApprovedByUserId is { } approverId)
         {
@@ -133,7 +161,9 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
             if (approver is not null && Permissions.Has(approver.Role, Permission.OverrideDiscountLimit)) return;
         }
 
-        throw new BusinessRuleException(Loc.T("Err.DiscountNeedsApproval", settings.MaxCashierDiscountPercent));
+        throw new BusinessRuleException(belowCost.Count > 0
+            ? Loc.T("Err.BelowCostNeedsApproval", string.Join(", ", belowCost))
+            : Loc.T("Err.DiscountNeedsApproval", settings.MaxCashierDiscountPercent));
     }
 
     internal static void ApplyPayments(
@@ -237,10 +267,7 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
     internal static async Task<string> NextReceiptNumberAsync(PosDbContext db, string prefix, DateTime date, CancellationToken ct)
     {
         var stem = QueryHelpers.DayStem(prefix, date);
-        var last = await db.Sales
-            .Where(s => s.ReceiptNumber.StartsWith(stem))
-            .OrderByDescending(s => s.ReceiptNumber)
-            .Select(s => s.ReceiptNumber)
+        var last = await QueryHelpers.Highest(db.Sales.Where(s => s.ReceiptNumber.StartsWith(stem)).Select(s => s.ReceiptNumber))
             .FirstOrDefaultAsync(ct);
         return QueryHelpers.NextNumber(prefix, date, last);
     }
@@ -475,10 +502,11 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
         await db.HeldSales.Where(h => h.Id == heldSaleId).ExecuteDeleteAsync(ct);
     }
 
+    /// <summary>A sale with its lines and payments in the order they were added (the receipt's order).</summary>
     internal static IQueryable<Sale> SaleQuery(PosDbContext db) =>
         db.Sales.AsNoTracking()
-            .Include(s => s.Lines)
-            .Include(s => s.Payments)
+            .Include(s => s.Lines.OrderBy(l => l.Id))
+            .Include(s => s.Payments.OrderBy(p => p.Id))
             .Include(s => s.Customer)
             .Include(s => s.User)
             .AsSplitQuery();

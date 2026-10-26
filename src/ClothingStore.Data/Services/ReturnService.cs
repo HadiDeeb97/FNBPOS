@@ -43,7 +43,10 @@ public class ReturnService(IDbContextFactory<PosDbContext> factory)
         return RefundAllocator.InCurrency(shares, settings.ActiveLbpRate > 0 ? cashCurrency : CashCurrency.Usd);
     }
 
-    public async Task<SaleReturn> ProcessReturnAsync(ReturnRequest request, CancellationToken ct = default)
+    public Task<SaleReturn> ProcessReturnAsync(ReturnRequest request, CancellationToken ct = default) =>
+        QueryHelpers.RetryOnTillConflictAsync(() => ProcessOnceAsync(request, ct), ct);
+
+    private async Task<SaleReturn> ProcessOnceAsync(ReturnRequest request, CancellationToken ct)
     {
         var requested = Selected(request.Lines);
 
@@ -143,11 +146,11 @@ public class ReturnService(IDbContextFactory<PosDbContext> factory)
         }
         catch (DbUpdateConcurrencyException)
         {
-            throw new BusinessRuleException(Loc.T("Err.ConcurrentReturn"));
+            throw new TillConflictException(Loc.T("Err.ConcurrentReturn"));
         }
         catch (DbUpdateException ex) when (QueryHelpers.IsUniqueViolation(ex))
         {
-            throw new BusinessRuleException(Loc.T("Err.ReturnNumberTaken"));
+            throw new TillConflictException(Loc.T("Err.ReturnNumberTaken"));
         }
         return ret;
     }
@@ -295,10 +298,7 @@ public class ReturnService(IDbContextFactory<PosDbContext> factory)
     {
         const string prefix = "RT";
         var stem = QueryHelpers.DayStem(prefix, date);
-        var last = await db.Returns
-            .Where(r => r.ReturnNumber.StartsWith(stem))
-            .OrderByDescending(r => r.ReturnNumber)
-            .Select(r => r.ReturnNumber)
+        var last = await QueryHelpers.Highest(db.Returns.Where(r => r.ReturnNumber.StartsWith(stem)).Select(r => r.ReturnNumber))
             .FirstOrDefaultAsync(ct);
         return QueryHelpers.NextNumber(prefix, date, last);
     }

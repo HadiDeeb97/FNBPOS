@@ -19,6 +19,7 @@ A Windows desktop point-of-sale system for clothing and fashion retail, built wi
 | **Customers** | Profiles with address and state (Lebanon's governorates, more can be added), filter by state, total spent / visits / last purchase per customer, purchase history; loyalty points (earn and redeem); store credit |
 | **Cash drawer** | Open shift with float; pay-ins/pay-outs; X report; count and close with over/short; Z report; shift history. Dollars and pounds are counted separately |
 | **Reports** | Sales, net revenue, gross profit and margin, average basket; breakdowns by product, category, size, payment method, cashier and day; stock valuation; CSV export and printable summary |
+| **Online reports** | The owner and managers see sales, profit, drawers and stock on their phone from anywhere, even with the shop PC off. Free, on the shop's own Cloudflare account, set up from Settings with one API token; they sign in with their POS username and password (see INSTALL.md, section 5, and `cloud/reports-worker`) |
 | **Online orders** | On the register, mark a sale as an online order (button or F11): where it came from (WhatsApp, Instagram, Facebook, phone, website, other), an optional delivery fee added to the total, and an address/notes line printed on the receipt. Sales history shows the source of every sale (in store or which channel) and filters by it; reports break sales down by channel |
 | **Store logo** | Managers and admins pick the store logo (user menu → Store logo, or Settings); it becomes the icon of every window and on the taskbar, and appears on the sign-in screen and sidebar, on all tills. The desktop shortcut keeps the program's own icon, because Windows reads that from the .exe file |
 | **Admin** | Users with roles (Cashier / Manager / Admin), PBKDF2-hashed passwords, forced password change; admins manage every account (add, edit, reset password, deactivate, delete unused accounts), managers add and edit cashier accounts only; store, tax (inclusive or exclusive), receipt and loyalty settings; automatic, verified SQL Server backups (every app start, scheduled and at shift close) with a backup log |
@@ -30,7 +31,8 @@ ClothingStorePOS.sln
 ├── src/ClothingStore.Core      Domain entities, pricing engine, barcodes, receipt formatting, security (no dependencies)
 ├── src/ClothingStore.Data      EF Core DbContext, migrations, business services, demo seed data
 ├── src/ClothingStore.Desktop   WPF app (MVVM with CommunityToolkit.Mvvm, Microsoft.Extensions.Hosting for DI)
-└── tests/ClothingStore.Tests   xUnit tests for pricing, checkout, returns, inventory, purchasing, shifts and reports
+├── tests/ClothingStore.Tests   xUnit tests for pricing, checkout, returns, inventory, purchasing, shifts and reports
+└── cloud/reports-worker        The online reports website (Cloudflare Worker + D1), published by the POS for each shop
 ```
 
 All business rules (stock checks, discount limits, payment validation, refunds, shift cash) live in the
@@ -80,6 +82,8 @@ delete or deactivate the demo users once real accounts exist.
 Settings can also be overridden with environment variables, e.g. `ConnectionStrings__Pos=...`.
 
 ### Several tills
+
+Step-by-step instructions (where to click, the exact commands, and a troubleshooting table) are in INSTALL.md, section 6. In short:
 
 1. Install SQL Server Express on one PC (the "server", which can also be a till). In SQL Server Configuration Manager, enable
    TCP/IP for the instance, start the SQL Server Browser service and allow SQL Server through Windows Firewall.
