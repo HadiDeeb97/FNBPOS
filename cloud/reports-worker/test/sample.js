@@ -1,5 +1,5 @@
 // Made-up reports in the format the POS uploads, for trying the site locally (npm run seed), for the preview and for the
-// tests. The real ones are built by ClothingStore.Data's OnlineReportsBuilder. The numbers follow a seeded random walk,
+// tests. The real ones are built by UniPos.Data's OnlineReportsBuilder. The numbers follow a seeded random walk,
 // so they look like a real shop's week and are the same every run.
 
 const pad = (n) => String(n).padStart(2, "0");

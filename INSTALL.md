@@ -55,7 +55,7 @@ tills" in README.md).
 ## 1. Build a release (on your PC)
 
 **Once:** open **License Maker**, click **Copy public key for the app** and paste it into
-`src/ClothingStore.Desktop/licensing.json`, with your name, phone and email (customers see them on the license screens):
+`src/UniPos.Desktop/licensing.json`, with your name, phone and email (customers see them on the license screens):
 
 ```json
 {
@@ -75,7 +75,7 @@ Keep notes out of this file (put commands in this guide instead).
 3. In a terminal in the project folder (Visual Studio: **View → Terminal**):
 
 ```powershell
-dotnet publish src/ClothingStore.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+dotnet publish src/UniPos.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
 
 The `publish` folder holds `UniPOS.exe` and `appsettings.json` (the `.pdb` files are only for diagnosing

@@ -31,16 +31,16 @@ A Windows desktop point-of-sale system for clothing and fashion retail, built wi
 ## Solution layout
 
 ```
-ClothingStorePOS.sln
-├── src/ClothingStore.Core      Domain entities, pricing engine, barcodes, receipt formatting, security (no dependencies)
-├── src/ClothingStore.Data      EF Core DbContext, migrations, business services, demo seed data
-├── src/ClothingStore.Desktop   WPF app (MVVM with CommunityToolkit.Mvvm, Microsoft.Extensions.Hosting for DI)
-├── tests/ClothingStore.Tests   xUnit tests for pricing, checkout, returns, inventory, purchasing, shifts and reports
+UniPOS.sln
+├── src/UniPos.Core      Domain entities, pricing engine, barcodes, receipt formatting, security (no dependencies)
+├── src/UniPos.Data      EF Core DbContext, migrations, business services, demo seed data
+├── src/UniPos.Desktop   WPF app (MVVM with CommunityToolkit.Mvvm, Microsoft.Extensions.Hosting for DI)
+├── tests/UniPos.Tests   xUnit tests for pricing, checkout, returns, inventory, purchasing, shifts and reports
 └── cloud/reports-worker        The online reports website (Cloudflare Worker + D1), published by the POS for each shop
 ```
 
 All business rules (stock checks, discount limits, payment validation, refunds, shift cash) live in the
-`ClothingStore.Data` services and are covered by tests. The UI only orchestrates them.
+`UniPos.Data` services and are covered by tests. The UI only orchestrates them.
 
 ## Getting started
 
@@ -51,10 +51,10 @@ authentication.
 
 ```powershell
 cd FNBPOS
-dotnet run --project src/ClothingStore.Desktop
+dotnet run --project src/UniPos.Desktop
 ```
 
-Or open `ClothingStorePOS.sln` in Visual Studio 2026 (or Rider / VS Code with C# Dev Kit) and set **ClothingStore.Desktop** as the startup project.
+Or open `UniPOS.sln` in Visual Studio 2026 (or Rider / VS Code with C# Dev Kit) and set **UniPos.Desktop** as the startup project.
 
 On first launch the app creates the `UniPOS` database and its tables. The login it uses needs permission to create
 a database (or create the empty database yourself and make the login its `db_owner`). A sample catalogue is loaded too,
@@ -70,7 +70,7 @@ Demo data is loaded only by development (Debug) builds, or when `"SeedDemoData":
 the first run; a release build starts with an empty catalogue and only the `admin` account. If demo data was loaded,
 delete or deactivate the demo users once real accounts exist.
 
-### Configuration (`src/ClothingStore.Desktop/appsettings.json`)
+### Configuration (`src/UniPos.Desktop/appsettings.json`)
 
 ```jsonc
 {
@@ -105,22 +105,22 @@ follow the database's collation, which is case-insensitive in a default SQL Serv
 ### Publishing a self-contained build
 
 ```powershell
-dotnet publish src/ClothingStore.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+dotnet publish src/UniPos.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
 
 Copy the `publish` folder to the till PC. It does not need .NET installed.
 
-A release build needs your licensing public key in `src/ClothingStore.Desktop/licensing.json` (see **Licensing** below);
+A release build needs your licensing public key in `src/UniPos.Desktop/licensing.json` (see **Licensing** below);
 without it the build stops with an explanation. Add `-p:AllowUnlicensedBuild=true` to build one anyway (for testing).
 
 ### Licensing (selling the app)
 
 Each PC needs a license key signed by you. The key names the store, the PCs it is valid on and the last valid day.
 
-**License Maker** (`tools/ClothingStore.LicenseMaker`) is a small Windows app for you only (never give it to customers).
+**License Maker** (`tools/UniPos.LicenseMaker`) is a small Windows app for you only (never give it to customers).
 Build it once and keep the `publish` folder on your own PC:
 ```powershell
-dotnet publish tools/ClothingStore.LicenseMaker -c Release -r win-x64 --self-contained -o C:\LicenseMaker
+dotnet publish tools/UniPos.LicenseMaker -c Release -r win-x64 --self-contained -o C:\LicenseMaker
 ```
 
 1. **Once:** open License Maker, click **Create new keys…** and choose a folder (e.g. `Documents\UniPOS Licenses`; never the Clothing Store POS's key folder). Back
@@ -137,7 +137,7 @@ dotnet publish tools/ClothingStore.LicenseMaker -c Release -r win-x64 --self-con
    day, so no days are lost.
 
 Keys made earlier with the command-line tool can be added to the list with **Add old keys…**. The command line still
-works too (`pos-license issue`, see `dotnet run --project tools/ClothingStore.LicenseTool`) and records into the same
+works too (`pos-license issue`, see `dotnet run --project tools/UniPos.LicenseTool`) and records into the same
 customer list next to `private.pem`.
 
 **On the customer's PC:** from 30 days before the last day, a banner (and a daily message) says how many days are left
@@ -297,10 +297,10 @@ next to the payment in Sales history.
 ## Development
 
 ```bash
-dotnet build ClothingStorePOS.sln
+dotnet build UniPOS.sln
 dotnet test                                   # needs a SQL Server, see below
 dotnet tool restore
-dotnet ef migrations add <Name> --project src/ClothingStore.Data --startup-project src/ClothingStore.Data
+dotnet ef migrations add <Name> --project src/UniPos.Data --startup-project src/UniPos.Data
 ```
 
 Each test creates and drops its own database on a real SQL Server. On Windows the tests use LocalDB
