@@ -76,6 +76,7 @@ public sealed partial class NavigationService(IServiceProvider services) : Obser
         CurrentPage = null;
         _loadingVisit = 0;
         IsLoading = false;
+        foreach (var page in _pages.Values.OfType<IDisposable>()) page.Dispose(); // pages listening to app-wide events let go
         _pages.Clear();
     }
 }

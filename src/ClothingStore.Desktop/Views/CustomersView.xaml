@@ -33,7 +33,7 @@
                         <DataGridTextColumn Header="{l:T Customers.State}" Binding="{Binding Region.DisplayName}" Width="Auto" MinWidth="110" />
                         <DataGridTextColumn x:Name="TotalSpentColumn" Header="{l:T Customers.TotalSpent}" Binding="{Binding TotalSpent, Converter={StaticResource Money}}" Width="Auto" MinWidth="105" ElementStyle="{StaticResource StrongRightCell}" />
                         <DataGridTextColumn Header="{l:T Customers.Visits}" Binding="{Binding Visits}" Width="Auto" MinWidth="65" ElementStyle="{StaticResource RightCell}" />
-                        <DataGridTextColumn Header="{l:T Customers.LastVisit}" Binding="{Binding LastVisit, StringFormat={}{0:dd MMM yyyy}}" Width="Auto" MinWidth="105" />
+                        <DataGridTextColumn Header="{l:T Customers.LastVisit}" Binding="{Binding LastVisit, Converter={StaticResource DateText}, ConverterParameter=date}" Width="Auto" MinWidth="105" />
                         <DataGridTextColumn Header="{l:T Common.Points}" Binding="{Binding LoyaltyPoints}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
                         <DataGridTextColumn Header="{l:T Common.Credit}" Binding="{Binding StoreCredit, Converter={StaticResource Money}}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
                         <DataGridCheckBoxColumn Header="{l:T Common.Active}" Binding="{Binding IsActive}" Width="Auto" MinWidth="70" />
@@ -66,9 +66,9 @@
                                                Visibility="{Binding SelectedCustomer.FullAddress, Converter={StaticResource HasValueToVis}}" />
                                 </StackPanel>
                             </DockPanel>
-                            <TextBlock Text="{Binding SelectedCustomer.CreatedAt, StringFormat={l:T Customers.SinceFormat}}" Style="{StaticResource HintText}" Margin="0,10,0,0" />
+                            <TextBlock Text="{Binding SelectedCustomer.CreatedAt, Converter={StaticResource DateText}, ConverterParameter=month, StringFormat={l:T Customers.SinceFormat}}" Style="{StaticResource HintText}" Margin="0,10,0,0" />
                             <Border Style="{StaticResource InfoBanner}" Margin="0,10,0,0" Visibility="{Binding SelectedCustomer.Notes, Converter={StaticResource HasValueToVis}}">
-                                <TextBlock Text="{Binding SelectedCustomer.Notes}" TextWrapping="Wrap" />
+                                <TextBox Text="{Binding SelectedCustomer.Notes, Mode=OneWay}" Style="{StaticResource SelectableText}" MaxHeight="90" infra:WheelToParent.IsEnabled="True" />
                             </Border>
                             <UniformGrid Rows="1" Margin="0,16,0,16">
                                 <StackPanel>
@@ -92,11 +92,20 @@
                         </StackPanel>
                         <DataGrid ItemsSource="{Binding History}" Style="{StaticResource CardGrid}" infra:LayoutMemory.Key="Customers.History">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding CreatedAt, StringFormat={}{0:yyyy-MM-dd}}" Width="Auto" MinWidth="95" />
+                                <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding CreatedAt, Converter={StaticResource DateText}, ConverterParameter=date}" Width="Auto" MinWidth="95" />
                                 <DataGridTextColumn Header="{l:T Common.Receipt}" Binding="{Binding ReceiptNumber}" Width="*" MinWidth="140" />
                                 <DataGridTextColumn Header="{l:T Common.Items}" Binding="{Binding ItemCount}" Width="Auto" MinWidth="60" ElementStyle="{StaticResource RightCell}" />
                                 <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding Total, Converter={StaticResource Money}}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource RightCell}" />
+                                <DataGridTextColumn Header="{l:T Common.Payment}" Binding="{Binding Payments, Converter={StaticResource PaymentMethods}}" Width="Auto" MinWidth="90" CanUserSort="False" />
                                 <DataGridTextColumn Header="{l:T Common.Status}" Binding="{Binding Status, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="90" />
+                                <DataGridTemplateColumn Header="{l:T Common.Note}" Width="*" MinWidth="120" SortMemberPath="Notes">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Notes, Converter={StaticResource OneLine}}" ToolTip="{Binding Notes}"
+                                                       Style="{StaticResource MutedText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="8,0" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>

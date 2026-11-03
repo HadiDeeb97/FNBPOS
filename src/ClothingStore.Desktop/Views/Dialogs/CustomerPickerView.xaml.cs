@@ -1,3 +1,4 @@
+using ClothingStore.Desktop.Infrastructure;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ClothingStore.Desktop.ViewModels.Dialogs;
@@ -14,6 +15,6 @@ public partial class CustomerPickerView : UserControl
 
     private void OnDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is CustomerPickerViewModel vm && vm.SelectCommand.CanExecute(null)) vm.SelectCommand.Execute(null);
+        if (RowClick.IsOnRow(sender, e) && DataContext is CustomerPickerViewModel vm && vm.SelectCommand.CanExecute(null)) vm.SelectCommand.Execute(null);
     }
 }

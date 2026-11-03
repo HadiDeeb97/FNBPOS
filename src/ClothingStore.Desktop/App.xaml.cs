@@ -33,8 +33,16 @@ public partial class App : Application
     {
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        // Already running: that copy comes to the front instead of a second one starting.
+        if (!SingleInstance.IsFirst())
+        {
+            Shutdown();
+            return;
+        }
+        SingleInstance.WhenOpenedAgain(this, BringToFront);
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         HorizontalScrolling.Enable(); // touchpad swipes and Shift + wheel scroll tables sideways
+        SelectAllOnFocus.EnableForNumberBoxes(); // clicking a price, cost or quantity selects it, so typing replaces it
         Loc.SetLanguage(LocalPreferences.Current.Language);
         UiFont.Apply(); // this PC's font, before the first window
         _splash = new SplashWindow();
@@ -174,6 +182,15 @@ public partial class App : Application
     }
 
     private bool _watchingLogo;
+
+    /// <summary>The app was opened again: show the window in use (sign-in, the main window, or the splash while starting).</summary>
+    private void BringToFront()
+    {
+        var window = Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+                     ?? (MainWindow is { IsVisible: true } main ? main : null)
+                     ?? Windows.OfType<Window>().FirstOrDefault(w => w.IsVisible && w is not Views.CustomerDisplayWindow);
+        if (window is not null) SingleInstance.BringToFront(window);
+    }
 
     /// <summary>Puts the store logo (or the program's icon) on this PC's shortcuts now and whenever the logo changes.</summary>
     private void WatchLogoForShortcuts()

@@ -414,6 +414,24 @@
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="infra:SelectAllOnFocus.IsEnabled" Value="True" />
     </Style>
+    <!-- Text to read, select and copy (a sale's note): no box or focus border, wraps, scrolls when taller than its MaxHeight -->
+    <Style x:Key="SelectableText" TargetType="TextBox">
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <ScrollViewer x:Name="PART_ContentHost" Background="{TemplateBinding Background}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <Style x:Key="MultilineBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
         <Setter Property="AcceptsReturn" Value="True" />
         <Setter Property="TextWrapping" Value="Wrap" />
@@ -707,7 +725,8 @@
         <Setter Property="CanUserDeleteRows" Value="False" />
         <Setter Property="CanUserResizeRows" Value="False" />
         <Setter Property="CanUserResizeColumns" Value="True" />
-        <Setter Property="CanUserReorderColumns" Value="True" />
+        <!-- Off: dragging a header moved the whole column (a floating box and a drop line), often when a resize was meant -->
+        <Setter Property="CanUserReorderColumns" Value="False" />
         <Setter Property="CanUserSortColumns" Value="True" />
         <Setter Property="HeadersVisibility" Value="Column" />
         <Setter Property="GridLinesVisibility" Value="Horizontal" />
@@ -739,6 +758,30 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Background" Value="Transparent" />
     </Style>
+    <!-- A column's edge: the mouse turns into ↔ over it, and a line shows exactly where the column will be resized -->
+    <Style x:Key="ColumnGripper" TargetType="Thumb">
+        <Setter Property="Width" Value="9" />
+        <Setter Property="Cursor" Value="SizeWE" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="{TemplateBinding Background}">
+                        <Border x:Name="Line" Width="2" Margin="0,6" Background="{StaticResource PrimaryBrush}" Opacity="0"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Opacity" Value="1" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Opacity" Value="1" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <Style TargetType="DataGridColumnHeader">
         <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
         <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
@@ -747,8 +790,50 @@
         <Setter Property="Padding" Value="12,10" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
-        <Setter Property="SeparatorBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Grid>
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                            <DockPanel>
+                                <!-- Sorted by this column: ▲ or ▼ -->
+                                <TextBlock x:Name="SortArrow" DockPanel.Dock="Right" Style="{StaticResource Icon}" FontSize="9" Margin="6,0,0,0"
+                                           VerticalAlignment="Center" Foreground="{StaticResource PrimaryBrush}" Visibility="Collapsed" />
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  RecognizesAccessKey="True" SnapsToDevicePixels="True" />
+                            </DockPanel>
+                        </Border>
+                        <!-- A thin divider between headers shows where one column ends -->
+                        <Rectangle x:Name="Divider" Width="1" Margin="0,10" HorizontalAlignment="Right" Fill="{StaticResource BorderBrush}" />
+                        <Thumb x:Name="PART_LeftHeaderGripper" Style="{StaticResource ColumnGripper}" HorizontalAlignment="Left" HorizontalContentAlignment="Left" />
+                        <Thumb x:Name="PART_RightHeaderGripper" Style="{StaticResource ColumnGripper}" HorizontalAlignment="Right" HorizontalContentAlignment="Right" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="SortDirection" Value="Ascending">
+                            <Setter TargetName="SortArrow" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="SortArrow" Property="Text" Value="&#xE70E;" />
+                        </Trigger>
+                        <Trigger Property="SortDirection" Value="Descending">
+                            <Setter TargetName="SortArrow" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="SortArrow" Property="Text" Value="&#xE70D;" />
+                        </Trigger>
+                        <!-- A header that doesn't sort the table on a click shows no hand -->
+                        <DataTrigger Binding="{Binding Column.CanUserSort, RelativeSource={RelativeSource Self}}" Value="False">
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </DataTrigger>
+                        <!-- The empty space after the last column is not a column -->
+                        <DataTrigger Binding="{Binding Column, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                            <Setter TargetName="Divider" Property="Visibility" Value="Collapsed" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <Style TargetType="DataGridRow">
         <Setter Property="SnapsToDevicePixels" Value="True" />

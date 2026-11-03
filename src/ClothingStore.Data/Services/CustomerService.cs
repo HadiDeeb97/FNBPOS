@@ -140,6 +140,7 @@ public class CustomerService(IDbContextFactory<PosDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.Sales.AsNoTracking()
             .Include(s => s.Lines.OrderBy(l => l.Id))
+            .Include(s => s.Payments.OrderBy(p => p.Id))
             .Include(s => s.User)
             .Where(s => s.CustomerId == customerId)
             .OrderByDescending(s => s.CreatedAt)

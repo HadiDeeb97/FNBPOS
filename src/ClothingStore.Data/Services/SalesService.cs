@@ -269,8 +269,13 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
         var stem = QueryHelpers.DayStem(prefix, date);
         var last = await QueryHelpers.Highest(db.Sales.Where(s => s.ReceiptNumber.StartsWith(stem)).Select(s => s.ReceiptNumber))
             .FirstOrDefaultAsync(ct);
-        return QueryHelpers.NextNumber(prefix, date, last);
+        // A deleted sale's number is never given again: its paper receipt may still be out there.
+        var deleted = await db.AppState.AsNoTracking().Where(s => s.Key == DeletedReceiptKey + stem).Select(s => s.Value).FirstOrDefaultAsync(ct);
+        return QueryHelpers.NextNumber(prefix, date, QueryHelpers.Later(last, deleted));
     }
+
+    /// <summary>AppState key (plus the day's stem, "R20261026-") holding the highest receipt number deleted that day.</summary>
+    internal const string DeletedReceiptKey = "DeletedReceipt:";
 
     public async Task<Sale?> GetAsync(int id, CancellationToken ct = default)
     {
@@ -441,6 +446,80 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
         sale.VoidedByUserId = userId;
         sale.VoidReason = reason.Trim();
         await SaveAsync(db, ct);
+    }
+
+    /// <summary>
+    /// Erases a sale for good: its stock goes back on the shelf, store credit and points spent or earned on it are
+    /// reversed, and the sale, its lines and payments are removed, so it is gone from history, the shift and reports.
+    /// Only while its shift is open and nothing was returned or settled by a delivery company (as for a void). A sale
+    /// voided earlier just disappears (its stock and balances were put back by the void). The stock history keeps the
+    /// sale's movement and the one putting it back, so the stock still adds up; the receipt number is never reused.
+    /// </summary>
+    public Task DeleteSaleAsync(int saleId, int userId, CancellationToken ct = default) =>
+        QueryHelpers.RetryOnTillConflictAsync(async () =>
+        {
+            await DeleteOnceAsync(saleId, userId, ct);
+            return true;
+        }, ct);
+
+    private async Task DeleteOnceAsync(int saleId, int userId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, ct);
+        if (user is null || !Permissions.Has(user.Role, Permission.DeleteSales))
+            throw new BusinessRuleException(Loc.T("Err.OnlyManagersDelete"));
+
+        var sale = await db.Sales
+            .Include(s => s.Lines).ThenInclude(l => l.ProductVariant)
+            .Include(s => s.Payments)
+            .Include(s => s.Customer)
+            .Include(s => s.Shift)
+            .FirstOrDefaultAsync(s => s.Id == saleId, ct)
+            ?? throw new BusinessRuleException(Loc.T("Err.SaleNotFound"));
+
+        if (sale.Lines.Any(l => l.ReturnedQuantity > 0) || await db.Returns.AnyAsync(r => r.SaleId == saleId, ct))
+            throw new BusinessRuleException(Loc.T("Err.ReturnedCantDelete"));
+        if (sale.Shift is { Status: ShiftStatus.Closed })
+            throw new BusinessRuleException(Loc.T("Err.DeleteShiftClosed"));
+        if (sale.DeliverySettlementId is not null)
+            throw new BusinessRuleException(Loc.T("Err.DeleteSettledDelivery"));
+
+        if (sale.Status != SaleStatus.Voided)
+        {
+            foreach (var line in sale.Lines)
+                StockLedger.Apply(db, line.ProductVariant!, line.Quantity, StockMovementType.SaleDeleted, userId, sale.ReceiptNumber, "Sale deleted");
+            if (sale.Customer is { } customer)
+            {
+                customer.StoreCredit += sale.Payments.Where(p => p.Method == PaymentMethod.StoreCredit).Sum(p => p.Amount);
+                customer.LoyaltyPoints += sale.LoyaltyPointsRedeemed;
+                customer.LoyaltyPoints = Math.Max(0, customer.LoyaltyPoints - sale.LoyaltyPointsEarned);
+            }
+        }
+
+        // Keep the day's highest deleted number, so the next sale doesn't take this one.
+        var dash = sale.ReceiptNumber.LastIndexOf('-');
+        if (dash > 0)
+        {
+            var key = DeletedReceiptKey + sale.ReceiptNumber[..(dash + 1)];
+            var row = await db.AppState.FirstOrDefaultAsync(s => s.Key == key, ct);
+            if (row is null) db.AppState.Add(new AppState { Key = key, Value = sale.ReceiptNumber });
+            else row.Value = QueryHelpers.Later(row.Value, sale.ReceiptNumber)!;
+        }
+
+        db.Sales.Remove(sale); // its lines and payments go with it
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // A return, a settlement or another delete reached this sale first: look at it again from the start.
+            throw new TillConflictException(Loc.T("Err.ConcurrentSale"));
+        }
+        catch (DbUpdateException ex) when (QueryHelpers.IsUniqueViolation(ex))
+        {
+            throw new TillConflictException(Loc.T("Err.ConcurrentSale")); // another till deleted a sale of the same day
+        }
     }
 
     // ---- Held (parked) carts -------------------------------------------------------------

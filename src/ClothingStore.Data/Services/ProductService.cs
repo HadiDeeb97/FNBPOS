@@ -61,14 +61,26 @@ public class ProductService(IDbContextFactory<PosDbContext> factory)
         code = code.Trim();
         if (code.Length == 0) return null;
 
+        // A 12-digit UPC is the same code as the 13-digit EAN with a leading 0, and scanners send either form.
+        var other = SameCodeOtherForm(code) ?? code;
+
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.ProductVariants.AsNoTracking()
             .Include(v => v.Product).ThenInclude(p => p!.Category)
             // "Barcode != null" lets SQL Server use the barcode index (it only holds rows that have one), so a scan is
             // a quick lookup instead of reading every variant.
-            .Where(v => v.IsActive && v.Product!.IsActive && ((v.Barcode != null && v.Barcode == code) || v.Sku == code))
+            .Where(v => v.IsActive && v.Product!.IsActive && ((v.Barcode != null && (v.Barcode == code || v.Barcode == other)) || v.Sku == code))
+            .OrderByDescending(v => v.Barcode == code || v.Sku == code) // the code exactly as scanned first
             .FirstOrDefaultAsync(ct);
     }
+
+    /// <summary>"0012345678905" ↔ "012345678905": a UPC-A as EAN-13 and back; null for any other code.</summary>
+    internal static string? SameCodeOtherForm(string code) => code switch
+    {
+        { Length: 13 } when code[0] == '0' && code.All(char.IsAsciiDigit) => code[1..],
+        { Length: 12 } when code.All(char.IsAsciiDigit) => "0" + code,
+        _ => null,
+    };
 
     /// <summary>A trivial round trip to the database, to tell a slow server/PC apart from a slow search.</summary>
     public async Task<TimeSpan> PingAsync(CancellationToken ct = default)
@@ -186,6 +198,11 @@ public class ProductService(IDbContextFactory<PosDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         if (!await db.Categories.AnyAsync(c => c.Id == product.CategoryId, ct))
             throw new BusinessRuleException(Loc.T("Err.ChooseValidCategory"));
+
+        // A name already used by another product (any case, extra spaces ignored; deactivated ones too) is refused.
+        var name = product.Name.Trim();
+        if (await db.Products.AnyAsync(p => p.Id != product.Id && EF.Functions.Collate(p.Name, "Latin1_General_100_CI_AS") == name, ct))
+            throw new BusinessRuleException(Loc.T("Err.ProductNameTaken", name));
 
         Product entity;
         if (product.Id == 0)

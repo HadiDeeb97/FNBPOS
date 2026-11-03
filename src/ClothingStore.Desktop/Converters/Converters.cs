@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using ClothingStore.Core;
+using ClothingStore.Core.Entities;
 using ClothingStore.Core.Localization;
 
 namespace ClothingStore.Desktop.Converters;
@@ -147,4 +148,51 @@ public sealed class AllEqualConverter : IMultiValueConverter
 
     public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture) =>
         targetTypes.Select(_ => Binding.DoNothing).ToArray();
+}
+
+/// <summary>
+/// A date the way this PC writes it (see <see cref="Core.Text.DateText"/>). Parameter: "date", "time", "day" (weekday and
+/// date), "daytime" (weekday, date and time), "long", "month" (month and year); none gives date and time.
+/// </summary>
+public sealed class DateTextConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is DateTimeOffset offset) value = offset.LocalDateTime;
+        if (value is not DateTime date) return "";
+        return (parameter as string) switch
+        {
+            "date" => Core.Text.DateText.Date(date),
+            "time" => Core.Text.DateText.Time(date),
+            "day" => Core.Text.DateText.WithDay(date, Core.Text.DateText.Date(date)),
+            "daytime" => Core.Text.DateText.WithDay(date, Core.Text.DateText.DateTime(date)),
+            "long" => Core.Text.DateText.LongDate(date),
+            "month" => date.ToString("Y", CultureInfo.CurrentCulture),
+            _ => Core.Text.DateText.DateTime(date),
+        };
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+/// <summary>A sale's payment methods on one line: "Card + Cash".</summary>
+public sealed class PaymentMethodsConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is IEnumerable<Payment> payments
+            ? string.Join(" + ", payments.Where(p => p.Amount > 0).Select(p => p.Method).Distinct().Select(m => Loc.EnumText(m)))
+            : "";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+/// <summary>A note on one line for a table cell (its lines joined with " · "); the whole note goes in the tooltip.</summary>
+public sealed class OneLineConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is string text
+            ? string.Join(" · ", text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            : "";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
 }

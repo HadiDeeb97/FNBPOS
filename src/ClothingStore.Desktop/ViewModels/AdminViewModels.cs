@@ -1,3 +1,4 @@
+using ClothingStore.Core.Text;
 using ClothingStore.Core;
 using ClothingStore.Core.Entities;
 using ClothingStore.Core.Security;
@@ -165,7 +166,7 @@ public sealed record LanguageOption(string Code, string Name);
 public sealed record PrinterChoice(string Name, string Display);
 
 public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsService settings, BackupService backup, Session session, BrandingService branding,
-    PrintService print, OnlineReportsViewModel online) : ViewModelBase(dialogs), IPageViewModel
+    PrintService print, OnlineReportsViewModel online) : ViewModelBase(dialogs), IPageViewModel, IDisposable
 {
     /// <summary>The Online reports section.</summary>
     public OnlineReportsViewModel Online { get; } = online;
@@ -196,7 +197,7 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
         get
         {
             var last = Backups.FirstOrDefault(b => b.Succeeded);
-            var text = last is null ? Loc.T("Settings.NoGoodBackup") : Loc.T("Settings.LastGoodBackup", last.StartedAt.ToString("dd MMM yyyy HH:mm"));
+            var text = last is null ? Loc.T("Settings.NoGoodBackup") : Loc.T("Settings.LastGoodBackup", DateText.DateTime(last.StartedAt));
             var failed = Backups.Count(b => !b.Succeeded);
             return failed == 0 ? text : text + "  ·  " + Loc.T("Settings.FailedBackups", failed, Backups.Count);
         }
@@ -397,7 +398,7 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
         {
             // Also follows changes made from the user menu or with Ctrl +/−. The page is kept for the whole sign-in.
             _watchingTextSize = true;
-            UiScale.Changed += (_, _) => OnTextSizeChanged();
+            UiScale.Changed += OnUiScaleChanged;
         }
         OnTextSizeChanged();
         await ReloadAsync();
@@ -429,6 +430,11 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
     // ---- Text size of this PC ----
 
     private bool _watchingTextSize;
+
+    private void OnUiScaleChanged(object? sender, EventArgs e) => OnTextSizeChanged();
+
+    /// <summary>Signing out: stop following the text size, so this page can be let go.</summary>
+    public void Dispose() => UiScale.Changed -= OnUiScaleChanged;
 
     public string TextSizeText => $"{UiScale.Percent}%";
 

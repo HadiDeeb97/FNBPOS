@@ -41,8 +41,13 @@ public sealed partial class ColorChoice(string name) : ObservableObject
 {
     public string Name { get; } = name;
 
-    /// <summary>A dot in the colour for well-known names ("#111827" for Black); empty for the shop's own names.</summary>
+    /// <summary>A dot in the colour for well-known names ("#111827" for Black); null for the shop's own names.</summary>
     public string? Swatch { get; } = Core.Text.ColorNames.Swatch(name);
+
+    public bool HasSwatch => Swatch is not null;
+
+    /// <summary>The first letter, shown in the dot of a colour with no swatch ("R" for "Rami's special").</summary>
+    public string Initial { get; } = name.Trim() is { Length: > 0 } n ? n[..1].ToUpperInvariant() : "";
 
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
@@ -208,35 +213,96 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
     [ObservableProperty] public partial string SizesText { get; set; } = "S, M, L, XL";
     [ObservableProperty] public partial string ColorsText { get; set; } = "";
 
-    /// <summary>How many colour buttons are shown: the shop's most used ones.</summary>
-    private const int ColorButtons = 18;
+    /// <summary>Colour buttons shown before "Show all" (about two rows).</summary>
+    private const int ColorButtonsFolded = 14;
+
+    /// <summary>Colours used in this app run, newest first: shown first, also before they reach the database.</summary>
+    private static readonly List<string> RecentColors = [];
 
     /// <summary>The shop's colours, most used first, then the common ones (in the app's language): offered while typing.</summary>
     [ObservableProperty]
     public partial List<string> ColorSuggestions { get; private set; } = [.. ColorNames.All(Loc.IsRightToLeft)];
 
-    public ObservableCollection<ColorChoice> ColorChoices { get; } = [];
+    private IReadOnlyList<string> _shopColors = [];
+    private List<ColorChoice> _yourColors = [];
+    private List<ColorChoice> _commonColors = [];
+
+    /// <summary>The shop's own colours on show (all of them after "Show all").</summary>
+    public ObservableCollection<ColorChoice> YourColorChoices { get; } = [];
+
+    /// <summary>Common colours the shop hasn't used yet, on show.</summary>
+    public ObservableCollection<ColorChoice> CommonColorChoices { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowAllColorsText))]
+    public partial bool ShowAllColors { get; set; }
+
+    public bool HasYourColors => YourColorChoices.Count > 0;
+    public bool HasCommonColors => CommonColorChoices.Count > 0;
+    public bool CanShowAllColors => _yourColors.Count + _commonColors.Count > ColorButtonsFolded;
+    public string ShowAllColorsText => ShowAllColors ? Loc.T("ProductEditor.ColoursFewer") : Loc.T("ProductEditor.ColoursAll", _yourColors.Count + _commonColors.Count);
+
+    /// <summary>"3 selected" next to the colour buttons; empty when none.</summary>
+    public string SelectedColorsText => ColorNames.Split(ColorsText).Count is var n and > 0 ? Loc.T("ProductEditor.ColoursSelected", n) : "";
 
     private void ShowColors(IReadOnlyList<string> shopColors)
     {
-        var common = ColorNames.All(Loc.IsRightToLeft);
-        ColorSuggestions = shopColors.Concat(common).DistinctBy(SmartSearch.Fold).ToList();
-        // The shop's own colours; a shop with few of its own also gets the common ones.
-        var buttons = shopColors.Take(ColorButtons).ToList();
-        if (buttons.Count < 10)
-            buttons = buttons.Concat(ColorNames.Common(Loc.IsRightToLeft)).DistinctBy(SmartSearch.Fold).Take(ColorButtons).ToList();
-        ColorChoices.Clear();
-        foreach (var name in buttons) ColorChoices.Add(new ColorChoice(name));
+        _shopColors = shopColors;
+        ColorSuggestions = RecentColors.Concat(shopColors).Concat(ColorNames.All(Loc.IsRightToLeft)).DistinctBy(SmartSearch.Fold).ToList();
+        var (yours, common) = ColorNames.Buttons(shopColors, RecentColors, Loc.IsRightToLeft);
+        _yourColors = yours.Select(n => new ColorChoice(n)).ToList();
+        _commonColors = common.Select(n => new ColorChoice(n)).ToList();
+        FillColorButtons();
+    }
+
+    /// <summary>Remembers colours just used, so they come first and are offered at once (the next product included).</summary>
+    private void RememberColors(IEnumerable<string> colors)
+    {
+        foreach (var color in colors.Where(c => !string.IsNullOrWhiteSpace(c)).Reverse())
+        {
+            RecentColors.RemoveAll(c => SmartSearch.Fold(c) == SmartSearch.Fold(color));
+            RecentColors.Insert(0, color.Trim());
+        }
+        if (RecentColors.Count > 12) RecentColors.RemoveRange(12, RecentColors.Count - 12);
+        ShowColors(_shopColors);
+    }
+
+    partial void OnShowAllColorsChanged(bool value) => FillColorButtons();
+
+    /// <summary>Folded: the first buttons only, the shop's own first, topped up with common colours.</summary>
+    private void FillColorButtons()
+    {
+        var yours = ShowAllColors ? _yourColors : _yourColors.Take(ColorButtonsFolded).ToList();
+        var common = ShowAllColors ? _commonColors : _commonColors.Take(Math.Max(0, ColorButtonsFolded - yours.Count)).ToList();
+        YourColorChoices.Clear();
+        foreach (var c in yours) YourColorChoices.Add(c);
+        CommonColorChoices.Clear();
+        foreach (var c in common) CommonColorChoices.Add(c);
+        OnPropertyChanged(nameof(HasYourColors));
+        OnPropertyChanged(nameof(HasCommonColors));
+        OnPropertyChanged(nameof(CanShowAllColors));
+        OnPropertyChanged(nameof(ShowAllColorsText));
         MarkChosenColors();
     }
 
-    partial void OnColorsTextChanged(string value) => MarkChosenColors();
+    partial void OnColorsTextChanged(string value)
+    {
+        MarkChosenColors();
+        OnPropertyChanged(nameof(SelectedColorsText));
+    }
 
     private void MarkChosenColors()
     {
         var chosen = ColorNames.Split(ColorsText).Select(SmartSearch.Fold).ToHashSet();
-        foreach (var choice in ColorChoices) choice.IsSelected = chosen.Contains(SmartSearch.Fold(choice.Name));
+        foreach (var choice in _yourColors.Concat(_commonColors)) choice.IsSelected = chosen.Contains(SmartSearch.Fold(choice.Name));
     }
+
+    [RelayCommand]
+    private void ToggleShowAllColors() => ShowAllColors = !ShowAllColors;
+
+    /// <summary>Takes every colour off the colours box.</summary>
+    [RelayCommand]
+    private void ClearColors() => ColorsText = "";
 
     [RelayCommand]
     private void ToggleColor(ColorChoice choice)
@@ -283,6 +349,7 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
                 added++;
             }
         }
+        RememberColors(colors); // a colour typed for the first time gets its button now
         if (added == 0) Dialogs.Toast(Loc.T("ProductEditor.AllExist"), ToastKind.Info);
         else Dialogs.Toast(Loc.T("ProductEditor.VariantsAdded", added));
     }
@@ -355,6 +422,7 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
     {
         if (SelectedCategory is null) throw new BusinessRuleException(Loc.T("ProductEditor.NeedCategory"));
         foreach (var row in Variants) row.Color = Spelled(row.Color);
+        var used = Variants.Select(v => v.Color).ToList();
         var product = new Product
         {
             Id = _id,
@@ -373,6 +441,11 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
             Variants = Variants.Select(v => v.ToEntity()).ToList(),
         };
         await _products.SaveAsync(product, _session.User.Id);
+
+        // The colours just saved are the shop's now: buttons and suggestions for the next product include them.
+        try { _shopColors = await _products.GetColorsAsync(); }
+        catch { /* the recent colours below still give them their buttons */ }
+        RememberColors(used);
     }
 
     [RelayCommand]

@@ -88,10 +88,10 @@
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{l:T Common.Receipt}" Binding="{Binding Row.ReceiptNumber}" Width="Auto" MinWidth="130" />
                                 <DataGridTextColumn Header="{l:T Deliveries.Invoice}" Binding="{Binding Row.DeliveryReference}" Width="Auto" MinWidth="120" FontFamily="{StaticResource MonoFont}" />
-                                <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Row.CreatedAt, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="100" />
+                                <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Row.CreatedAt, Converter={StaticResource DateText}}" Width="Auto" MinWidth="100" />
                                 <DataGridTextColumn Header="{l:T Deliveries.Company}" Binding="{Binding Row.Courier}" Width="Auto" MinWidth="110" />
                                 <DataGridTextColumn Header="{l:T Common.Customer}" Binding="{Binding Row.Customer}" Width="*" MinWidth="140" />
-                                <DataGridTextColumn Header="{l:T Common.Notes}" Binding="{Binding Row.Notes}" Width="*" MinWidth="140" />
+                                <DataGridTextColumn Header="{l:T Common.Notes}" Binding="{Binding Row.Notes, Converter={StaticResource OneLine}}" Width="*" MinWidth="140" />
                                 <DataGridTextColumn Header="{l:T Deliveries.Owed}" Binding="{Binding Row.Owed, Converter={StaticResource Money}}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource StrongRightCell}" />
                                 <DataGridTemplateColumn Header="{l:T Common.Status}" Width="Auto" MinWidth="150">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -103,7 +103,7 @@
                                                 <DataTrigger Binding="{Binding Row.IsPaid}" Value="True">
                                                     <Setter TargetName="Pill" Property="Background" Value="{StaticResource SuccessLightBrush}" />
                                                     <Setter TargetName="PillText" Property="Foreground" Value="#166534" />
-                                                    <Setter TargetName="PillText" Property="Text" Value="{Binding Row.SettledAt, StringFormat={l:T Deliveries.PaidOn}}" />
+                                                    <Setter TargetName="PillText" Property="Text" Value="{Binding Row.SettledAt, Converter={StaticResource DateText}, ConverterParameter=date, StringFormat={l:T Deliveries.PaidOn}}" />
                                                 </DataTrigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>

@@ -293,6 +293,8 @@ public class ShopSimulationTests(ITestOutputHelper output)
                 case "lbp":
                     tenderLbp = Math.Ceiling(total * Rate / 100_000m) * 100_000m;
                     changeIn = _rng.Next(2) == 0 ? ChangeCurrency.Usd : ChangeCurrency.Lbp;
+                    // Dollar change only out of dollars the drawer has (the whole payment's worth covers any change).
+                    if (changeIn == ChangeCurrency.Usd && _drawers[till.Shift.Id].Usd < tenderLbp / Rate) changeIn = ChangeCurrency.Lbp;
                     break;
                 case "split":
                     var card = Math.Round(total * 0.4m, 2);
@@ -464,6 +466,9 @@ public class ShopSimulationTests(ITestOutputHelper output)
             if (open.Count == 0) return;
             var sale = await _db.Sales.GetAsync(open[_rng.Next(open.Count)]);
             if (sale is null || sale.Status != SaleStatus.Completed || sale.Lines.Any(l => l.ReturnedQuantity > 0) || sale.DeliverySettlementId is not null) return;
+            // Its cash goes back to the customer: only while the drawer still holds it (a pay-out may have taken it since).
+            var drawer = _drawers[_saleCash[sale.Id].ShiftId];
+            if (_saleCash[sale.Id].Usd > drawer.Usd || _saleCash[sale.Id].Lbp > drawer.Lbp) return;
             await _db.Sales.VoidSaleAsync(sale.Id, _db.Manager.Id, "Wrong item");
             Count("void");
             foreach (var l in sale.Lines) _stock[l.ProductVariantId] += l.Quantity;

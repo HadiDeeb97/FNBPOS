@@ -31,9 +31,16 @@ public sealed record ProductRow(Product Product)
     }
 }
 
+/// <summary>A page filtered by category (Products, Inventory).</summary>
+public interface ICategoryFilter
+{
+    List<Category> Categories { get; set; }
+    Category SelectedCategory { get; set; }
+}
+
 public sealed partial class ProductsViewModel(
     IDialogService dialogs, ProductService products, CategoryService categories, SupplierService suppliers,
-    Session session, PrintService print, SettingsService settings, SizePresetService sizePresets) : ViewModelBase(dialogs), IPageViewModel
+    Session session, PrintService print, SettingsService settings, SizePresetService sizePresets) : ViewModelBase(dialogs), IPageViewModel, ICategoryFilter
 {
     /// <summary>The "All categories" filter entry (one per language, so selecting it by reference keeps working).</summary>
     public static Category AllCategories =>
@@ -70,8 +77,24 @@ public sealed partial class ProductsViewModel(
 
     public async Task OnNavigatedToAsync()
     {
-        Categories = [AllCategories, .. await categories.GetAllAsync()];
-        await SearchAsync();
+        // The list and the category filter load side by side.
+        var fresh = categories.GetAllAsync();
+        var search = SearchAsync();
+        ShowCategories(this, await fresh);
+        await search;
+    }
+
+    /// <summary>
+    /// Puts a fresh category list in the filter box only when it changed, keeping the chosen category. (Replacing it
+    /// every visit emptied the box, which started a second search and forgot the category picked.)
+    /// </summary>
+    internal static void ShowCategories(ICategoryFilter page, List<Category> fresh)
+    {
+        var shown = page.Categories;
+        if (shown.Count == fresh.Count + 1 && shown.Skip(1).Zip(fresh).All(p => p.First.Id == p.Second.Id && p.First.Name == p.Second.Name)) return;
+        var keep = page.SelectedCategory?.Id ?? 0;
+        page.Categories = [AllCategories, .. fresh];
+        page.SelectedCategory = page.Categories.FirstOrDefault(c => c.Id == keep) ?? AllCategories;
     }
 
     private readonly LatestSearch _search = new();

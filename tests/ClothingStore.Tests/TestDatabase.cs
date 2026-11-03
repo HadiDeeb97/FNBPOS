@@ -80,12 +80,16 @@ public sealed class TestDatabase : IAsyncDisposable
     }
 
     /// <summary>Creates a T-shirt in S/M/L (Black) with the given stock per variant and price 20.00.</summary>
+    private int _tees;
+
     public async Task<Product> CreateTeeAsync(int stockEach = 10, decimal price = 20m, decimal cost = 8m)
     {
         var category = await Categories.SaveAsync(new Category { Name = "Tees " + Guid.NewGuid().ToString("N")[..6] });
+        // Product names are unique: the first is "Basic Tee", later ones in the same database "Basic Tee 2", "Basic Tee 3"...
+        _tees++;
         var product = new Product
         {
-            Name = "Basic Tee",
+            Name = _tees == 1 ? "Basic Tee" : $"Basic Tee {_tees}",
             CategoryId = category.Id,
             Price = price,
             Cost = cost,

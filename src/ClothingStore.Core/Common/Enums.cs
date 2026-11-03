@@ -95,6 +95,9 @@ public enum StockMovementType
 
     /// <summary>Put back when an order on the old online-orders screen was cancelled or removed.</summary>
     OnlineOrderCancelled = 9,
+
+    /// <summary>Put back when a sale was deleted for good.</summary>
+    SaleDeleted = 10,
 }
 
 public enum PurchaseOrderStatus

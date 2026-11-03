@@ -22,6 +22,12 @@ public class StoreSettings : Entity
     /// <summary>Print the store logo at the top of sale and return receipts.</summary>
     public bool PrintLogoOnReceipt { get; set; }
 
+    /// <summary>Print the sale's note (address, Instagram name...) on its receipt.</summary>
+    public bool PrintNoteOnReceipt { get; set; } = true;
+
+    /// <summary>Barcode printed on price labels: EAN-13 (scans most easily; codes that aren't EAN-13 still print as Code 128) or Code 128.</summary>
+    public Barcodes.BarcodeType LabelBarcode { get; set; } = Barcodes.BarcodeType.Ean13;
+
     /// <summary>Line shown under the logo on the customer display while no sale is going on (null = "Welcome").</summary>
     public string? CustomerDisplayMessage { get; set; }
 

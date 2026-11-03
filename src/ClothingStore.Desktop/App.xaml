@@ -19,6 +19,9 @@
             <conv:SignToBrushConverter x:Key="SignBrush" />
             <conv:InitialsConverter x:Key="Initials" />
             <conv:FileNameConverter x:Key="FileName" />
+            <conv:DateTextConverter x:Key="DateText" />
+            <conv:PaymentMethodsConverter x:Key="PaymentMethods" />
+            <conv:OneLineConverter x:Key="OneLine" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

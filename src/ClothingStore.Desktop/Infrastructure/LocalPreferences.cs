@@ -73,6 +73,14 @@ public sealed class LocalPreferences
     /// <summary>Day the license expiry warning was last shown here (shown once a day).</summary>
     public DateTime? LicenseWarnedOn { get; set; }
 
+    /// <summary>
+    /// Which column sizing the saved table widths come from. Widths saved before 1.3.3 may be squeezed (dragging one column
+    /// used to shrink the others), so they are forgotten once and every table starts fitted to the screen again.
+    /// </summary>
+    public int ColumnsVersion { get; set; }
+
+    private const int CurrentColumnsVersion = 2;
+
     public void Save()
     {
         try
@@ -91,11 +99,20 @@ public sealed class LocalPreferences
         try
         {
             if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<LocalPreferences>(File.ReadAllText(FilePath), Json) ?? new LocalPreferences();
+                return Upgrade(JsonSerializer.Deserialize<LocalPreferences>(File.ReadAllText(FilePath), Json) ?? new LocalPreferences());
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
         }
-        return new LocalPreferences();
+        return new LocalPreferences { ColumnsVersion = CurrentColumnsVersion };
+    }
+
+    private static LocalPreferences Upgrade(LocalPreferences prefs)
+    {
+        if (prefs.ColumnsVersion >= CurrentColumnsVersion) return prefs;
+        foreach (var key in prefs.Layout.Keys.Where(k => k.StartsWith("cols:", StringComparison.Ordinal)).ToList()) prefs.Layout.Remove(key);
+        prefs.ColumnsVersion = CurrentColumnsVersion;
+        prefs.Save();
+        return prefs;
     }
 }

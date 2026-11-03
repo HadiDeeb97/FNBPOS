@@ -98,6 +98,10 @@
                         <ContentControl x:Name="PreviewHost" Focusable="False" />
                     </Border>
 
+                    <!-- A ready-made look; the Look options below fine-tune it -->
+                    <TextBlock Text="{l:T Labels.Style}" Style="{StaticResource Caption}" Margin="0,16,0,4" />
+                    <ComboBox ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" DisplayMemberPath="Name" />
+
                     <TextBlock Text="{l:T Labels.Size}" Style="{StaticResource Caption}" Margin="0,16,0,4" />
                     <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name" />
 
@@ -116,11 +120,11 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="{l:T Labels.WidthMm}" Style="{StaticResource FieldLabel}" />
-                            <TextBox Style="{StaticResource MmBox}" Text="{Binding WidthMm, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Style="{StaticResource MmBox}" Text="{Binding WidthText, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="{l:T Labels.HeightMm}" Style="{StaticResource FieldLabel}" />
-                            <TextBox Style="{StaticResource MmBox}" Text="{Binding HeightMm, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Style="{StaticResource MmBox}" Text="{Binding HeightText, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                     </Grid>
 
@@ -138,19 +142,19 @@
                             </Grid.RowDefinitions>
                             <StackPanel>
                                 <TextBlock Text="{l:T Labels.MarginTop}" Style="{StaticResource FieldLabel}" />
-                                <TextBox Style="{StaticResource MmBox}" Text="{Binding MarginTopMm, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Style="{StaticResource MmBox}" Text="{Binding MarginTopText, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="{l:T Labels.MarginLeft}" Style="{StaticResource FieldLabel}" />
-                                <TextBox Style="{StaticResource MmBox}" Text="{Binding MarginLeftMm, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Style="{StaticResource MmBox}" Text="{Binding MarginLeftText, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                             <StackPanel Grid.Row="1">
                                 <TextBlock Text="{l:T Labels.GapX}" Style="{StaticResource FieldLabel}" />
-                                <TextBox Style="{StaticResource MmBox}" Text="{Binding GapXMm, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Style="{StaticResource MmBox}" Text="{Binding GapXText, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                             <StackPanel Grid.Row="1" Grid.Column="2">
                                 <TextBlock Text="{l:T Labels.GapY}" Style="{StaticResource FieldLabel}" />
-                                <TextBox Style="{StaticResource MmBox}" Text="{Binding GapYMm, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Style="{StaticResource MmBox}" Text="{Binding GapYText, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                             <StackPanel Grid.Row="2" Grid.ColumnSpan="3">
                                 <TextBlock Text="{l:T Labels.StartAt}" Style="{StaticResource FieldLabel}" />
@@ -167,13 +171,91 @@
                         <CheckBox Content="{l:T Labels.ShowPrice}" IsChecked="{Binding ShowPrice}" Margin="0,3" />
                         <CheckBox Content="{l:T Labels.ShowLbpPrice}" IsChecked="{Binding ShowLbpPrice}" IsEnabled="{Binding LbpAvailable}" Margin="0,3" />
                         <CheckBox Content="{l:T Labels.ShowBarcode}" IsChecked="{Binding ShowBarcode}" Margin="0,3" />
-                        <CheckBox Content="{l:T Labels.ShowBarcodeText}" IsChecked="{Binding ShowBarcodeText}" IsEnabled="{Binding ShowBarcode}" Margin="0,3" />
                         <CheckBox Content="{l:T Labels.ShowSku}" IsChecked="{Binding ShowSku}" Margin="0,3" />
                         <CheckBox Content="{l:T Labels.ShowStoreName}" IsChecked="{Binding ShowStoreName}" Margin="0,3" />
-                        <CheckBox Content="{l:T Labels.ShowBorder}" IsChecked="{Binding ShowBorder}" Margin="0,3" />
                     </UniformGrid>
 
-                    <TextBlock Text="{l:T Labels.TextSize}" Style="{StaticResource FieldLabel}" />
+                    <!-- How the label looks -->
+                    <TextBlock Text="{l:T Labels.Look}" Style="{StaticResource Caption}" Margin="0,16,0,0" />
+                    <TextBlock Text="{l:T Labels.BarcodePlace}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                        <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left" IsEnabled="{Binding ShowBarcode}">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Place" Content="{l:T Labels.Place.Stacked}"
+                                             IsChecked="{Binding Arrangement, Converter={StaticResource Equals}, ConverterParameter=Stacked}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Place" Content="{l:T Labels.Place.Beside}"
+                                             IsChecked="{Binding Arrangement, Converter={StaticResource Equals}, ConverterParameter=Beside}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Place" Content="{l:T Labels.Place.Upright}"
+                                             IsChecked="{Binding Arrangement, Converter={StaticResource Equals}, ConverterParameter=Upright}" />
+                            </StackPanel>
+                        </Border>
+                    <TextBlock Text="{l:T Labels.BarcodeSize}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                        <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left" IsEnabled="{Binding ShowBarcode}">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="BarSize" Content="{l:T Labels.Size.Small}"
+                                             IsChecked="{Binding BarcodeSize, Converter={StaticResource Equals}, ConverterParameter=Small}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="BarSize" Content="{l:T Labels.Size.Medium}"
+                                             IsChecked="{Binding BarcodeSize, Converter={StaticResource Equals}, ConverterParameter=Medium}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="BarSize" Content="{l:T Labels.Size.Large}"
+                                             IsChecked="{Binding BarcodeSize, Converter={StaticResource Equals}, ConverterParameter=Large}" />
+                            </StackPanel>
+                        </Border>
+                    <TextBlock Text="{l:T Labels.Digits}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                        <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left" IsEnabled="{Binding ShowBarcode}">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Digits" Content="{l:T Labels.Digits.Shop}"
+                                             IsChecked="{Binding Digits, Converter={StaticResource Equals}, ConverterParameter=Shop}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Digits" Content="{l:T Labels.Digits.Line}"
+                                             IsChecked="{Binding Digits, Converter={StaticResource Equals}, ConverterParameter=Line}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Digits" Content="{l:T Labels.Digits.Hidden}"
+                                             IsChecked="{Binding Digits, Converter={StaticResource Equals}, ConverterParameter=Hidden}" />
+                            </StackPanel>
+                        </Border>
+                    <TextBlock Text="{l:T Labels.Align}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                        <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Align" Content="{l:T Labels.Align.Left}"
+                                             IsChecked="{Binding Align, Converter={StaticResource Equals}, ConverterParameter=Left}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Align" Content="{l:T Labels.Align.Center}"
+                                             IsChecked="{Binding Align, Converter={StaticResource Equals}, ConverterParameter=Center}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Align" Content="{l:T Labels.Align.Right}"
+                                             IsChecked="{Binding Align, Converter={StaticResource Equals}, ConverterParameter=Right}" />
+                            </StackPanel>
+                        </Border>
+                    <TextBlock Text="{l:T Labels.PriceStyle}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                        <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Price" Content="{l:T Labels.Price.Normal}"
+                                             IsChecked="{Binding PriceStyle, Converter={StaticResource Equals}, ConverterParameter=Normal}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Price" Content="{l:T Labels.Price.Large}"
+                                             IsChecked="{Binding PriceStyle, Converter={StaticResource Equals}, ConverterParameter=Large}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Price" Content="{l:T Labels.Price.Inverted}"
+                                             IsChecked="{Binding PriceStyle, Converter={StaticResource Equals}, ConverterParameter=Inverted}" />
+                            </StackPanel>
+                        </Border>
+                    <TextBlock Text="{l:T Labels.VariantFormat}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                        <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="VariantFormat" Content="{Binding VariantSlashText}"
+                                             IsChecked="{Binding VariantFormat, Converter={StaticResource Equals}, ConverterParameter=Slash}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="VariantFormat" Content="{Binding VariantLabelledText}"
+                                             IsChecked="{Binding VariantFormat, Converter={StaticResource Equals}, ConverterParameter=Labelled}" />
+                            </StackPanel>
+                        </Border>
+                    <TextBlock Text="{l:T Labels.Border}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                        <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Border" Content="{l:T Labels.Border.None}"
+                                             IsChecked="{Binding Border, Converter={StaticResource Equals}, ConverterParameter=None}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Border" Content="{l:T Labels.Border.Line}"
+                                             IsChecked="{Binding Border, Converter={StaticResource Equals}, ConverterParameter=Line}" />
+                                <RadioButton Style="{StaticResource SegmentButton}" GroupName="Border" Content="{l:T Labels.Border.Rounded}"
+                                             IsChecked="{Binding Border, Converter={StaticResource Equals}, ConverterParameter=Rounded}" />
+                            </StackPanel>
+                        </Border>
+                    <CheckBox Content="{l:T Labels.NarrowFont}" IsChecked="{Binding NarrowFont}" Margin="0,12,0,3" />
+                    <CheckBox Content="{l:T Labels.HoleSpace}" IsChecked="{Binding HoleSpace}" Margin="0,3" />
+
+                    <TextBlock Text="{l:T Labels.TextSize}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
                     <Slider Minimum="0.6" Maximum="1.6" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding TextScale}" />
                 </StackPanel>
             </ScrollViewer>

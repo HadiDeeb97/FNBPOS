@@ -7,6 +7,17 @@ namespace ClothingStore.Tests;
 
 public class CoreUtilityTests
 {
+    [Fact]
+    public void A_note_typed_on_several_lines_prints_on_several_lines_within_the_receipt_width()
+    {
+        var lines = ReceiptFormatter.Wrap("Note: Hamra street, building 4\r\nInsta @rami_style\nGift wrap please, with a card saying happy birthday", 20).ToList();
+
+        Assert.All(lines, l => Assert.True(l.Length <= 20 && !l.Contains('\n') && !l.Contains('\r'), l));
+        Assert.Equal("Note: Hamra street,", lines[0]);
+        Assert.Contains("Insta @rami_style", lines);
+        Assert.Equal("Gift wrap please,", lines[lines.IndexOf("Insta @rami_style") + 1]);
+    }
+
     [Theory]
     [InlineData("400638133393", 1)] // 4006381333931 — common reference EAN
     [InlineData("590123412345", 7)] // 5901234123457

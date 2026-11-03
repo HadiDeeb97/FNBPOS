@@ -63,6 +63,7 @@
   "Enum.StockMovementType.PurchaseReceipt": "استلام بضاعة",
   "Enum.StockMovementType.Return": "إرجاع",
   "Enum.StockMovementType.Sale": "بيع",
+  "Enum.StockMovementType.SaleDeleted": "حذف بيع",
   "Enum.StockMovementType.StockCount": "جرد",
   "Enum.StockMovementType.Void": "إلغاء بيع",
   "Enum.UserRole.Admin": "مسؤول النظام",

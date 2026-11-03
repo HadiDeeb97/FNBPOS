@@ -16,7 +16,7 @@
   "Deliveries.Owed": "المستحق",
   "Deliveries.OwedCaption": "المستحق على شركات التوصيل",
   "Deliveries.OwedHint": "مبالغ حُصّلت من الزبائن ولم تصل إلى المتجر بعد. انقر شركة لعرض طلباتها.",
-  "Deliveries.PaidOn": "دُفعت {0:dd MMM}",
+  "Deliveries.PaidOn": "دُفعت {0}",
   "Deliveries.ReceiveButton": "تم استلام الدفعة…",
   "Deliveries.ReceiveSummary": "{0} طلب · {1} · المستحق {2}",
   "Deliveries.ReceiveTitle": "دفعة من شركة التوصيل",

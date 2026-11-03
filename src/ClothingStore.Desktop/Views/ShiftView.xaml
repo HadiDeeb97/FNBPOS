@@ -66,7 +66,7 @@
                             </StackPanel>
                             <StackPanel Margin="14,0,0,0" Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="{l:T Shift.FloatLbp}" Style="{StaticResource Caption}" />
-                                <TextBox Text="{Binding OpeningFloatLbpText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BigNumberBox}" Width="220" Tag="{l:T Currency.Lbp}" />
+                                <TextBox infra:GroupDigits.IsEnabled="True" Text="{Binding OpeningFloatLbpText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BigNumberBox}" Width="220" Tag="{l:T Currency.Lbp}" />
                             </StackPanel>
                         </StackPanel>
                         <Button Content="{l:T Shift.OpenShift}" Style="{StaticResource SuccessButton}" Command="{Binding OpenShiftCommand}" HorizontalAlignment="Left" Margin="0,16,0,0" MinHeight="44" Padding="22,7" />
@@ -86,7 +86,7 @@
                             <DockPanel Margin="0,0,0,12">
                                 <Button DockPanel.Dock="Right" Content="{l:T Shift.PrintX}" Command="{Binding PrintXReportCommand}" Margin="0" />
                                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"
-                                           Text="{Binding Summary.OpenedAt, StringFormat={l:T Shift.CurrentOpened}}" />
+                                           Text="{Binding Summary.OpenedAt, Converter={StaticResource DateText}, ConverterParameter=daytime, StringFormat={l:T Shift.CurrentOpened}}" />
                             </DockPanel>
                             <UniformGrid Columns="3" Margin="0,0,0,14">
                                 <StackPanel>
@@ -162,7 +162,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding MovementAmountText, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T Common.Amount}" />
+                                <TextBox infra:GroupDigits.IsEnabled="True" Text="{Binding MovementAmountText, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T Common.Amount}" />
                                 <TextBox Grid.Column="2" Text="{Binding MovementReason, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T Common.Reason}" Margin="0,0,8,0" />
                                 <Button Grid.Column="3" Content="{l:T Shift.Record}" Command="{Binding AddMovementCommand}" Margin="0" />
                             </Grid>
@@ -182,7 +182,7 @@
                                                     </Style>
                                                 </TextBlock.Style>
                                             </TextBlock>
-                                            <TextBlock Text="{Binding CreatedAt, StringFormat={}{0:HH:mm}}" Style="{StaticResource MutedText}" Margin="0,0,10,0" />
+                                            <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateText}, ConverterParameter=time}" Style="{StaticResource MutedText}" Margin="0,0,10,0" />
                                             <TextBlock Text="{Binding Type, Converter={StaticResource EnumDisplay}}" FontWeight="SemiBold" Margin="0,0,10,0" />
                                             <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" />
                                         </DockPanel>
@@ -204,7 +204,7 @@
                                 </StackPanel>
                                 <StackPanel Margin="14,0,0,0" Visibility="{Binding ShowLbp, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="{l:T Shift.CountedLbp}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5" />
-                                    <TextBox Text="{Binding CountedCashLbpText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BigNumberBox}" Width="220" Tag="{l:T Currency.Lbp}" />
+                                    <TextBox infra:GroupDigits.IsEnabled="True" Text="{Binding CountedCashLbpText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BigNumberBox}" Width="220" Tag="{l:T Currency.Lbp}" />
                                     <TextBlock Text="{Binding VariancePreviewLbp}" Margin="0,8,0,0" FontWeight="SemiBold" />
                                 </StackPanel>
                             </StackPanel>
@@ -233,8 +233,8 @@
                         <DataGridTextColumn Header="{l:T Common.Cashier}" Binding="{Binding User.FullName}" Width="*" MinWidth="140" />
                         <DataGridTextColumn Header="{l:T Shift.TillCol}" Binding="{Binding TillName}" Width="Auto" MinWidth="80" />
                         <DataGridTextColumn Header="{l:T Shift.RunningCol}" Binding="{Binding CurrentUser.FullName}" Width="Auto" MinWidth="100" />
-                        <DataGridTextColumn Header="{l:T Shift.OpenedCol}" Binding="{Binding OpenedAt, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="110" />
-                        <DataGridTextColumn Header="{l:T Shift.ClosedCol}" Binding="{Binding ClosedAt, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="110" />
+                        <DataGridTextColumn Header="{l:T Shift.OpenedCol}" Binding="{Binding OpenedAt, Converter={StaticResource DateText}}" Width="Auto" MinWidth="110" />
+                        <DataGridTextColumn Header="{l:T Shift.ClosedCol}" Binding="{Binding ClosedAt, Converter={StaticResource DateText}}" Width="Auto" MinWidth="110" />
                         <DataGridTextColumn Header="{l:T Shift.ExpectedCol}" Binding="{Binding ExpectedCash, Converter={StaticResource Money}}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource RightCell}" />
                         <DataGridTextColumn Header="{l:T Shift.CountedCol}" Binding="{Binding CountedCash, Converter={StaticResource Money}}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource RightCell}" />
                         <DataGridTemplateColumn Header="{l:T Shift.VarianceCol}" Width="Auto" MinWidth="95">

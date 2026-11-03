@@ -27,7 +27,7 @@
   "Customers.SelectButton": "اختيار",
   "Customers.SelectHint": "اختر زبوناً لعرض سجله.",
   "Customers.Since": "منذ",
-  "Customers.SinceFormat": "زبون منذ {0:MMM yyyy}",
+  "Customers.SinceFormat": "زبون منذ {0}",
   "Customers.State": "المحافظة",
   "Customers.StoreCredit": "رصيد المتجر",
   "Customers.TotalSpent": "إجمالي المشتريات",

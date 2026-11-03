@@ -28,6 +28,22 @@ public static class ColorNames
     /// <summary>Every colour name known here, in the app's language (for suggestions after the shop's own).</summary>
     public static IReadOnlyList<string> All(bool arabic) => Known.Select(k => arabic ? k.Ar : k.En).ToList();
 
+    /// <summary>
+    /// The colour buttons of the product editor: the shop's own colours (those used last first, then A–Z) and, under them,
+    /// the common colours it hasn't used yet (A–Z), in the app's language.
+    /// </summary>
+    public static (IReadOnlyList<string> Yours, IReadOnlyList<string> Common) Buttons(IEnumerable<string> shopColors, IEnumerable<string> recent, bool arabic)
+    {
+        var shop = shopColors.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).DistinctBy(SmartSearch.Fold).ToList();
+        var latest = recent.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => Canonical(c, shop)).DistinctBy(SmartSearch.Fold).ToList();
+        var order = StringComparer.Create(arabic ? new System.Globalization.CultureInfo("ar") : System.Globalization.CultureInfo.CurrentCulture, ignoreCase: true);
+        var latestKeys = latest.Select(SmartSearch.Fold).ToHashSet();
+        var yours = latest.Concat(shop.Where(c => !latestKeys.Contains(SmartSearch.Fold(c))).Order(order)).ToList();
+        var taken = yours.Select(SmartSearch.Fold).ToHashSet();
+        var common = All(arabic).Where(c => !taken.Contains(SmartSearch.Fold(c))).DistinctBy(Swatch).Order(order).ToList();
+        return (yours, common);
+    }
+
     /// <summary>A swatch for a well-known colour name, in English or Arabic ("#111827" for "black" or "أسود"); null otherwise.</summary>
     public static string? Swatch(string? name)
     {

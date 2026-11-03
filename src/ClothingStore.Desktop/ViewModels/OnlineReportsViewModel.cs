@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows;
+using ClothingStore.Core.Text;
 using ClothingStore.Core.Localization;
 using ClothingStore.Data.OnlineReports;
 using ClothingStore.Data.Services;
@@ -122,7 +123,7 @@ public sealed partial class OnlineReportsViewModel(
     private static string When(DateTime utc)
     {
         var local = utc.ToLocalTime();
-        return local.Date == DateTime.Today ? local.ToString("HH:mm") : local.ToString("dd MMM HH:mm");
+        return local.Date == DateTime.Today ? DateText.Time(local) : DateText.DateTime(local);
     }
 
     public async Task LoadAsync()

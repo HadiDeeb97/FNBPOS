@@ -84,7 +84,7 @@
   "Reports.Stock": "المخزون",
   "Reports.StockAtCost": "المخزون بالكلفة",
   "Reports.StockByCategory": "المخزون حسب الفئة",
-  "Reports.SummaryHeader": "ملخص المبيعات من {0:yyyy-MM-dd} إلى {1:yyyy-MM-dd}",
+  "Reports.SummaryHeader": "ملخص المبيعات من {0:d} إلى {1:d}",
   "Reports.TaxCollected": "الضريبة المحصّلة",
   "Reports.TaxFormat": "الضريبة {0}",
   "Reports.ThisWeek": "هذا الأسبوع",

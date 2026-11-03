@@ -1,3 +1,4 @@
+using ClothingStore.Desktop.Infrastructure;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,6 +18,6 @@ public partial class CustomersView : UserControl
 
     private void OnDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is CustomersViewModel vm && vm.EditCommand.CanExecute(null)) vm.EditCommand.Execute(null);
+        if (RowClick.IsOnRow(sender, e) && DataContext is CustomersViewModel vm && vm.EditCommand.CanExecute(null)) vm.EditCommand.Execute(null);
     }
 }

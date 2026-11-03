@@ -1,7 +1,7 @@
 namespace ClothingStore.Core.Barcodes;
 
 /// <summary>
-/// Code 128 (subset B) encoder. Produces alternating bar/space module widths that any
+/// Code 128 encoder (subsets B and C). Produces alternating bar/space module widths that any
 /// renderer (WPF, PDF, thermal printer) can draw. Used for price tags / shelf labels.
 /// </summary>
 public static class Code128
@@ -24,24 +24,69 @@ public static class Code128
         "114131", "311141", "411131", "211412", "211214", "211232", "2331112",
     ];
 
-    /// <summary>Symbol values (start, data, checksum, stop) for the given text.</summary>
+    public const int StartC = 105;
+    private const int SwitchToB = 100;
+    private const int SwitchToC = 99;
+
+    /// <summary>
+    /// Symbol values (start, data, checksum, stop) for the given text. Runs of digits are packed two per symbol
+    /// (subset C), so a 13-digit barcode is about a third narrower than in subset B and its bars can be printed wider,
+    /// which is what makes it easy to scan; everything else is subset B.
+    /// </summary>
     public static IReadOnlyList<int> EncodeValues(string text)
     {
         ArgumentException.ThrowIfNullOrEmpty(text);
-        var values = new List<int>(text.Length + 3) { StartB };
-        var checksum = StartB;
-        for (var i = 0; i < text.Length; i++)
-        {
-            var c = text[i];
+        foreach (var c in text)
             if (c < 32 || c > 127)
-                throw new ArgumentException($"Character '{c}' cannot be encoded in Code 128-B.", nameof(text));
-            var value = c - 32;
-            values.Add(value);
-            checksum += value * (i + 1);
+                throw new ArgumentException($"Character '{c}' cannot be encoded in Code 128.", nameof(text));
+
+        var values = new List<int>(text.Length + 4);
+        var i = 0;
+        var inC = DigitRun(text, 0) >= 4 || (DigitRun(text, 0) == text.Length && text.Length is 2);
+        values.Add(inC ? StartC : StartB);
+        while (i < text.Length)
+        {
+            var run = DigitRun(text, i);
+            if (inC)
+            {
+                if (run >= 2)
+                {
+                    values.Add((text[i] - '0') * 10 + (text[i + 1] - '0'));
+                    i += 2;
+                    continue;
+                }
+                values.Add(SwitchToB);
+                inC = false;
+                continue;
+            }
+            // Worth switching to C for a run of 4+ digits (6+ in the middle of text), taking an even number of them.
+            if (run >= 4 && (i + run == text.Length || run >= 6))
+            {
+                if (run % 2 == 1)
+                {
+                    values.Add(text[i] - 32); // the odd digit goes in subset B first
+                    i++;
+                }
+                values.Add(SwitchToC);
+                inC = true;
+                continue;
+            }
+            values.Add(text[i] - 32);
+            i++;
         }
+
+        var checksum = values[0];
+        for (var k = 1; k < values.Count; k++) checksum += values[k] * k;
         values.Add(checksum % 103);
         values.Add(Stop);
         return values;
+    }
+
+    private static int DigitRun(string text, int from)
+    {
+        var n = 0;
+        while (from + n < text.Length && char.IsAsciiDigit(text[from + n])) n++;
+        return n;
     }
 
     /// <summary>

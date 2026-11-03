@@ -136,10 +136,11 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         OnPropertyChanged(nameof(HasCashDrawer)); // may have been switched on in Settings since
 
         FocusSearchRequested?.Invoke(this, EventArgs.Empty);
-        await RefreshHeldCountAsync();
+        var held = RefreshHeldCountAsync(); // alongside the product list
         // The register keeps its state between visits: show the product list at once and refresh it in the background.
         if (BrowseCategories.Count == 0) await LoadCategoriesAsync();
         else _ = LoadCategoriesAsync();
+        await held;
     }
 
     // ---- Browse panel (pick items without scanning) -------------------------------------------
@@ -531,7 +532,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
 
         var cart = new HeldCart(
             Items.Select(i => new HeldCartLine(i.VariantId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null)).ToList(),
-            CartDiscountType, CartDiscountValue, Customer?.Id, Channel, IsOnline ? DeliveryFee : 0, IsOnline ? OrderNotes : null, IsOnline ? Courier : null, IsOnline ? DeliveryReference : null);
+            CartDiscountType, CartDiscountValue, Customer?.Id, Channel, IsOnline ? DeliveryFee : 0, OrderNotes, IsOnline ? Courier : null, IsOnline ? DeliveryReference : null);
         await _sales.HoldAsync(label, Session.User.Id, cart);
         ResetSale();
         Dialogs.Toast(Loc.T("Register.Held", label));
@@ -604,7 +605,11 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     [NotifyPropertyChangedFor(nameof(GrandTotal), nameof(TotalLbp))]
     public partial decimal DeliveryFee { get; set; }
 
-    /// <summary>Address, Instagram name or anything else about the order (saved with the sale, printed on the receipt).</summary>
+    /// <summary>
+    /// The sale's note, typed in the register's note box (or the online order window): an address, an Instagram name, "gift
+    /// wrap"... Saved with the sale and held carts, printed on the receipt, and shown in sales history, returns and the
+    /// customer's purchases.
+    /// </summary>
     [ObservableProperty]
     public partial string? OrderNotes { get; set; }
 
@@ -659,7 +664,8 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     {
         Channel = SalesChannel.InStore;
         DeliveryFee = 0;
-        OrderNotes = null;
+        // The note stays (it is the sale's), unless it is only the customer's address put there for the delivery.
+        if (Customer?.FullAddress is { } address && OrderNotes?.Trim() == address.Trim()) OrderNotes = null;
         Courier = null;
         DeliveryReference = null;
     }
@@ -783,7 +789,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
                 ApprovedByUserId = _approvedByUserId,
                 Channel = Channel,
                 DeliveryFee = IsOnline ? DeliveryFee : 0,
-                Notes = IsOnline ? OrderNotes : null,
+                Notes = OrderNotes,
                 Courier = IsOnline ? Courier : null,
                 DeliveryReference = IsOnline ? DeliveryReference : null,
             });

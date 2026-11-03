@@ -16,7 +16,12 @@ public static class ShortcutIcons
     private static readonly string Folder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClothingStorePOS");
 
-    private static readonly string IconPath = Path.Combine(Folder, "store-logo.ico");
+    /// <summary>
+    /// Each logo gets its own icon file ("store-logo-1a2b3c4d.ico"): Windows remembers icons by file name, so a new logo
+    /// written over the old file kept showing the old picture.
+    /// </summary>
+    private static string IconPathFor(byte[] logo) =>
+        Path.Combine(Folder, $"store-logo-{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(logo))[..8].ToLowerInvariant()}.ico");
 
     /// <summary>Applies the logo (PNG) to the shortcuts, or the program's icon when null. Runs in the background.</summary>
     public static void Update(byte[]? logo, string shortcutName)
@@ -37,11 +42,13 @@ public static class ShortcutIcons
         if (string.IsNullOrEmpty(exe) || !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return;
 
         string iconLocation;
+        string? iconFile = null;
         if (logo is { Length: > 0 })
         {
             Directory.CreateDirectory(Folder);
-            File.WriteAllBytes(IconPath, ToIco(logo));
-            iconLocation = IconPath + ",0";
+            iconFile = IconPathFor(logo);
+            if (!File.Exists(iconFile)) File.WriteAllBytes(iconFile, ToIco(logo));
+            iconLocation = iconFile + ",0";
         }
         else
         {
@@ -66,6 +73,7 @@ public static class ShortcutIcons
                 if (string.Equals((string)shortcut.IconLocation, iconLocation, StringComparison.OrdinalIgnoreCase)) continue;
                 shortcut.IconLocation = iconLocation;
                 shortcut.Save();
+                SHChangeNotify(0x00002000 /* SHCNE_UPDATEITEM */, 0x0005 /* SHCNF_PATHW */, path, null); // this shortcut's icon
                 changed = true;
             }
             catch (Exception)
@@ -73,7 +81,14 @@ public static class ShortcutIcons
                 // e.g. a shortcut for all users without permission to change it
             }
         }
-        if (changed) SHChangeNotify(0x08000000 /* SHCNE_ASSOCCHANGED */, 0, IntPtr.Zero, IntPtr.Zero); // refresh shown icons
+        if (changed) SHChangeNotify(0x08000000 /* SHCNE_ASSOCCHANGED */, 0, null, null); // and every icon shown
+
+        // Icon files of earlier logos are no longer used (one Windows still has open is left for next time).
+        foreach (var old in Directory.Exists(Folder) ? Directory.GetFiles(Folder, "store-logo*.ico") : [])
+        {
+            if (string.Equals(old, iconFile, StringComparison.OrdinalIgnoreCase)) continue;
+            try { File.Delete(old); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
     }
 
     /// <summary>An installed copy puts a shortcut on the desktop the first time (once: a deleted shortcut stays deleted).</summary>
@@ -160,6 +175,6 @@ public static class ShortcutIcons
         return output.ToArray();
     }
 
-    [DllImport("shell32.dll")]
-    private static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, IntPtr item2);
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern void SHChangeNotify(int eventId, uint flags, string? item1, string? item2);
 }

@@ -226,8 +226,10 @@ public partial class SalesView : UserControl
         }
     }
 
-    private void OnResultDoubleClick(object sender, MouseButtonEventArgs e) =>
-        ViewModel?.AddResultCommand.Execute(ResultsGrid.SelectedItem);
+    private void OnResultDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (RowClick.IsOnRow(sender, e)) ViewModel?.AddResultCommand.Execute(ResultsGrid.SelectedItem);
+    }
 
     /// <summary>F3: the selected line's price box, ready to type over.</summary>
     private bool FocusPriceBox()

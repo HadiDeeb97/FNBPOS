@@ -1,6 +1,9 @@
 {
   "History.AlreadyVoided": "This sale is already voided.",
   "History.Capped": "Showing the newest {0:N0} sales only (totals too): narrow the dates or search to see the rest.",
+  "History.DeleteConfirm": "Delete sale {0} for good?\n\nIts items go back into stock, store credit and points are reversed, and the sale disappears from sales history, the shift and reports. This can't be undone.",
+  "History.DeleteSale": "Delete sale",
+  "History.Deleted": "Sale {0} has been deleted.",
   "History.DeliveryFee": "Delivery fee",
   "History.ExportTitle": "Export sales",
   "History.FilterAll": "All",

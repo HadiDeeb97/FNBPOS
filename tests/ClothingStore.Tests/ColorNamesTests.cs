@@ -53,6 +53,26 @@ public class ColorNamesTests
     }
 
     [Fact]
+    public void Colour_buttons_put_the_latest_first_then_the_shops_own_A_to_Z_then_the_common_ones()
+    {
+        var (yours, common) = ColorNames.Buttons(["Navy", "Black", "Teal", "olive"], recent: ["Rami's special", "black"], arabic: false);
+
+        Assert.Equal(["Rami's special", "Black", "Navy", "olive", "Teal"], yours); // a just-used colour, in the shop's spelling
+        Assert.DoesNotContain(common, c => c is "Black" or "Navy" or "Olive");   // already the shop's
+        Assert.Equal(common.Order(StringComparer.CurrentCultureIgnoreCase), common);
+        Assert.Contains("White", common);
+        Assert.False(common.Contains("Grey") && common.Contains("Gray"));        // one name per swatch
+    }
+
+    [Fact]
+    public void A_new_shop_gets_only_common_colour_buttons()
+    {
+        var (yours, common) = ColorNames.Buttons([], [], arabic: true);
+        Assert.Empty(yours);
+        Assert.Contains("أسود", common);
+    }
+
+    [Fact]
     public async Task The_shops_colours_come_most_used_first_in_their_usual_spelling()
     {
         await using var db = await TestDatabase.CreateAsync();

@@ -35,6 +35,9 @@ public enum Permission
 
     /// <summary>Mark delivery-company money as received by bank transfer (no cash in the drawer).</summary>
     SettleByTransfer,
+
+    /// <summary>Erase a sale for good (stock back, balances reversed, the sale gone from history and reports).</summary>
+    DeleteSales,
 }
 
 public static class Permissions
@@ -64,6 +67,7 @@ public static class Permissions
         Permission.ManageCashiers,
         Permission.ViewCustomerSpending,
         Permission.SettleByTransfer,
+        Permission.DeleteSales,
     ];
 
     public static bool Has(UserRole role, Permission permission) => role switch

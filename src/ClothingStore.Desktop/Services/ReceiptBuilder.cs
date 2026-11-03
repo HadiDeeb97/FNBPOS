@@ -1,3 +1,4 @@
+using ClothingStore.Core.Text;
 using ClothingStore.Core;
 using ClothingStore.Core.Entities;
 using ClothingStore.Core.Localization;
@@ -31,7 +32,7 @@ public static class ReceiptBuilder
         if (sale.Channel != SalesChannel.InStore) extra.Add(R("Receipt.Channel", Loc.Get(lang, $"Enum.SalesChannel.{sale.Channel}")));
         if (!string.IsNullOrWhiteSpace(sale.Courier)) extra.Add(R("Receipt.Courier", sale.Courier));
         if (!string.IsNullOrWhiteSpace(sale.DeliveryReference)) extra.Add(R("Receipt.DeliveryRef", sale.DeliveryReference));
-        if (!string.IsNullOrWhiteSpace(sale.Notes)) extra.Add(R("Receipt.Note", sale.Notes));
+        if (s.PrintNoteOnReceipt && !string.IsNullOrWhiteSpace(sale.Notes)) extra.Add(R("Receipt.Note", sale.Notes));
 
         // Cash is printed as handed over (before change), in each currency.
         var payments = sale.Payments
@@ -150,12 +151,12 @@ public static class ReceiptBuilder
             rule,
             Row(Loc.T("Report.Shift"), sum.ShiftId.ToString()),
             Row(Loc.T("Common.Cashier"), sum.Cashier),
-            Row(Loc.T("Report.Opened"), sum.OpenedAt.ToString("yyyy-MM-dd HH:mm")),
-            Row(Loc.T("Report.Closed"), sum.ClosedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-"),
+            Row(Loc.T("Report.Opened"), DateText.DateTime(sum.OpenedAt)),
+            Row(Loc.T("Report.Closed"), (sum.ClosedAt is { } closed ? DateText.DateTime(closed) : "-")),
         };
         if (!string.IsNullOrWhiteSpace(sum.Till)) lines.Insert(lines.Count - 2, Row(Loc.T("Report.Till"), sum.Till));
         foreach (var h in sum.Handovers)
-            lines.Add(Row("  " + Loc.T("Report.HandedOver", h.To), h.At.ToString("HH:mm")));
+            lines.Add(Row("  " + Loc.T("Report.HandedOver", h.To), DateText.Time(h.At)));
         if (sum.ClosedBy is not null) lines.Add(Row(Loc.T("Report.ClosedBy"), sum.ClosedBy));
         lines.AddRange(
         [
@@ -222,7 +223,7 @@ public static class ReceiptBuilder
             foreach (var m in sum.CashMovements)
             {
                 var signed = m.Type == CashMovementType.PayIn ? m.Amount : -m.Amount;
-                lines.Add(Row($"  {m.CreatedAt:HH:mm} {m.Reason}", m.Currency == CashCurrency.Lbp ? Lbp.Format(signed) : M(signed)));
+                lines.Add(Row($"  {DateText.Time(m.CreatedAt)} {m.Reason}", m.Currency == CashCurrency.Lbp ? Lbp.Format(signed) : M(signed)));
             }
         }
 

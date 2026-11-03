@@ -12,7 +12,7 @@ namespace ClothingStore.Desktop.ViewModels;
 
 public sealed partial class InventoryViewModel(
     IDialogService dialogs, InventoryService inventory, CategoryService categories, ReportService reports,
-    Session session, PrintService print, ProductService products, SettingsService settings) : ViewModelBase(dialogs), IPageViewModel
+    Session session, PrintService print, ProductService products, SettingsService settings) : ViewModelBase(dialogs), IPageViewModel, ICategoryFilter
 {
     public string Title => Loc.T("Nav.Inventory");
 
@@ -43,8 +43,11 @@ public sealed partial class InventoryViewModel(
 
     public async Task OnNavigatedToAsync()
     {
-        Categories = [ProductsViewModel.AllCategories, .. await categories.GetAllAsync()];
-        await RefreshAsync();
+        // The stock list, its value and the category filter load side by side.
+        var fresh = categories.GetAllAsync();
+        var refresh = RefreshAsync();
+        ProductsViewModel.ShowCategories(this, await fresh);
+        await refresh;
     }
 
     private readonly LatestSearch _search = new();
@@ -69,10 +72,11 @@ public sealed partial class InventoryViewModel(
     [RelayCommand]
     private async Task RefreshAsync()
     {
+        var valuation = reports.GetInventoryValuationAsync(); // alongside the list
         await LoadItemsAsync();
         try
         {
-            Valuation = await reports.GetInventoryValuationAsync();
+            Valuation = await valuation;
         }
         catch (Exception ex)
         {

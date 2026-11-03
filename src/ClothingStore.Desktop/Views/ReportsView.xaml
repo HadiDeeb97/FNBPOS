@@ -344,7 +344,7 @@
                             <Border Style="{StaticResource TableCard}">
                                 <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.Settlements}" infra:LayoutMemory.Key="Reports.Settlements">
                                     <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="100" />
+                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, Converter={StaticResource DateText}}" Width="Auto" MinWidth="100" />
                                     <DataGridTextColumn Header="{l:T Deliveries.Company}" Binding="{Binding Courier}" Width="*" MinWidth="140" />
                                     <DataGridTextColumn Header="{l:T Reports.Method}" Binding="{Binding Method, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="110" />
                                     <DataGridTextColumn Header="{l:T Reports.Orders}" Binding="{Binding Orders}" Width="Auto" MinWidth="60" ElementStyle="{StaticResource RightCell}" />
@@ -438,7 +438,7 @@
                             <Border Style="{StaticResource TableCard}">
                                 <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ShiftCloses}" infra:LayoutMemory.Key="Reports.ShiftCloses">
                                     <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{l:T Shift.ClosedCol}" Binding="{Binding ClosedAt, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="110" />
+                                    <DataGridTextColumn Header="{l:T Shift.ClosedCol}" Binding="{Binding ClosedAt, Converter={StaticResource DateText}}" Width="Auto" MinWidth="110" />
                                     <DataGridTextColumn Header="{l:T Common.Cashier}" Binding="{Binding Cashier}" Width="*" MinWidth="140" />
                                     <DataGridTextColumn Header="{l:T Shift.ExpectedCol}" Binding="{Binding Expected, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
                                     <DataGridTextColumn Header="{l:T Shift.CountedCol}" Binding="{Binding Counted, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
@@ -453,7 +453,7 @@
                             <Border Style="{StaticResource TableCard}">
                                 <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.CashMovements}" infra:LayoutMemory.Key="Reports.CashMovements">
                                     <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, StringFormat={}{0:dd MMM HH:mm}}" Width="Auto" MinWidth="100" />
+                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, Converter={StaticResource DateText}}" Width="Auto" MinWidth="100" />
                                     <DataGridTextColumn Header="{l:T Reports.Type}" Binding="{Binding Type, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="80" />
                                     <DataGridTextColumn Header="{l:T Reports.Currency}" Binding="{Binding Currency, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="60" />
                                     <DataGridTemplateColumn Header="{l:T Common.Amount}" Width="Auto" MinWidth="110">
@@ -486,7 +486,7 @@
                         <Border Style="{StaticResource TableCard}">
                             <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ByDay}" infra:LayoutMemory.Key="Reports.Daily">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, StringFormat={}{0:ddd yyyy-MM-dd}}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding Date, Converter={StaticResource DateText}, ConverterParameter=day}" Width="*" MinWidth="140" />
                                     <DataGridTextColumn Header="{l:T Reports.Transactions}" Binding="{Binding Transactions}" Width="Auto" MinWidth="130" ElementStyle="{StaticResource RightCell}" />
                                     <DataGridTextColumn Header="{l:T Common.Total}" Binding="{Binding Total, Converter={StaticResource Money}}" Width="Auto" MinWidth="150" ElementStyle="{StaticResource StrongRightCell}" />
                                 </DataGrid.Columns>
@@ -509,7 +509,7 @@
                                     <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku}" Width="Auto" MinWidth="130" />
                                     <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding Stock}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource StrongRightCell}" />
                                     <DataGridTextColumn Header="{l:T Reports.ReorderAt}" Binding="{Binding ReorderLevel}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
-                                    <DataGridTextColumn Header="{l:T Reports.LastSold}" Binding="{Binding LastSold, StringFormat={}{0:dd MMM yyyy}}" Width="Auto" MinWidth="110" />
+                                    <DataGridTextColumn Header="{l:T Reports.LastSold}" Binding="{Binding LastSold, Converter={StaticResource DateText}, ConverterParameter=date}" Width="Auto" MinWidth="110" />
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Border>
@@ -523,7 +523,7 @@
                                     <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku}" Width="Auto" MinWidth="130" />
                                     <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding Stock}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />
                                     <DataGridTextColumn Header="{l:T Reports.ValueAtCost}" Binding="{Binding CostValue, Converter={StaticResource Money}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource StrongRightCell}" />
-                                    <DataGridTextColumn Header="{l:T Reports.LastSold}" Binding="{Binding LastSold, StringFormat={}{0:dd MMM yyyy}}" Width="Auto" MinWidth="110" />
+                                    <DataGridTextColumn Header="{l:T Reports.LastSold}" Binding="{Binding LastSold, Converter={StaticResource DateText}, ConverterParameter=date}" Width="Auto" MinWidth="110" />
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Border>

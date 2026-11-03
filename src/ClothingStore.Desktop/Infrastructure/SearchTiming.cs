@@ -42,6 +42,7 @@ public static class SearchTiming
             catch (Exception ex) { ping = "failed: " + ex.GetBaseException().Message; }
 
             var memory = MemoryLoad();
+            var screen = await ScreenDelayAsync();
             var line = string.Join(" | ",
                 DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
                 where,
@@ -50,6 +51,9 @@ public static class SearchTiming
                 $"{results} result(s)",
                 $"database round trip after: {ping}",
                 memory is { } m ? $"memory {m.LoadPercent}% used, {m.AvailableMb:N0} MB free" : "memory ?",
+                $"this app {AppMemoryMb():N0} MB",
+                SqlServerMemoryMb() is { } sql ? $"SQL Server {sql:N0} MB" : "SQL Server elsewhere",
+                $"screen busy {screen.TotalMilliseconds:0} ms",
                 idle is { } i ? $"idle before: {i.TotalSeconds:0} s" : "first search since start");
 
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
@@ -60,6 +64,43 @@ public static class SearchTiming
         {
             // Diagnostics only: never disturb the till.
         }
+    }
+
+    /// <summary>Memory this app holds (private bytes): a figure that keeps growing during the day points at the app.</summary>
+    private static long AppMemoryMb()
+    {
+        using var self = Process.GetCurrentProcess();
+        return self.PrivateMemorySize64 / (1024 * 1024);
+    }
+
+    /// <summary>Memory SQL Server uses on this PC (it can take most of it and leave the rest of the PC starved); null when it runs on another PC.</summary>
+    private static long? SqlServerMemoryMb()
+    {
+        try
+        {
+            var processes = Process.GetProcessesByName("sqlservr");
+            try
+            {
+                return processes.Length == 0 ? null : processes.Sum(p => p.WorkingSet64) / (1024 * 1024);
+            }
+            finally
+            {
+                foreach (var p in processes) p.Dispose();
+            }
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>How long the screen takes to get round to a small job: long means it was busy (drawing, or the PC was swapping).</summary>
+    private static async Task<TimeSpan> ScreenDelayAsync()
+    {
+        if (System.Windows.Application.Current?.Dispatcher is not { } dispatcher) return TimeSpan.Zero;
+        var watch = Stopwatch.StartNew();
+        await dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+        return watch.Elapsed;
     }
 
     private static (uint LoadPercent, ulong AvailableMb)? MemoryLoad()

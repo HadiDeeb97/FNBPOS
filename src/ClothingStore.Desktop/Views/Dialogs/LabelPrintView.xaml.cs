@@ -37,14 +37,14 @@ public partial class LabelPrintView : UserControl
             return;
         }
         var o = _vm.Options;
-        var label = PrintService.CreateLabel(_vm.PreviewLabel, o, o.WidthPx, o.HeightPx);
+        var label = PrintService.CreateLabel(_vm.PreviewLabel, o, o.WidthPx, o.HeightPx, _vm.BarcodeType);
         PreviewHost.Content = new Viewbox
         {
             Stretch = Stretch.Uniform,
             Child = new Border
             {
                 BorderBrush = Brushes.Silver,
-                BorderThickness = new Thickness(o.ShowBorder ? 0 : 0.5),
+                BorderThickness = new Thickness(o.Border == LabelBorder.None ? 0.5 : 0),
                 Child = label,
             },
         };

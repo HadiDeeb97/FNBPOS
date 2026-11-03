@@ -26,6 +26,7 @@ public sealed partial class SalesHistoryViewModel(
 {
     public string Title => Loc.T("Nav.SalesHistory");
     public bool CanVoid => session.Can(Permission.VoidSales);
+    public bool CanDelete => session.Can(Permission.DeleteSales);
     public bool CanReturn => session.Can(Permission.ProcessReturns);
 
     [ObservableProperty]
@@ -60,7 +61,7 @@ public sealed partial class SalesHistoryViewModel(
     public string CappedText => Loc.T("History.Capped", SalesService.HistoryLimit);
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ReprintCommand), nameof(VoidCommand), nameof(ReturnCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ReprintCommand), nameof(VoidCommand), nameof(DeleteCommand), nameof(ReturnCommand))]
     public partial Sale? SelectedSale { get; set; }
 
     /// <summary>Shown over the list while the latest sales are being fetched (changing dates, search or filters).</summary>
@@ -207,6 +208,26 @@ public sealed partial class SalesHistoryViewModel(
         if (await RunAsync(() => sales.VoidSaleAsync(sale.Id, session.User.Id, reason)))
         {
             Dialogs.Toast(Loc.T("History.Voided", sale.ReceiptNumber));
+            await SearchAsync();
+        }
+    }
+
+    /// <summary>Erases the sale for good (admins and managers), after a clear warning.</summary>
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task DeleteAsync()
+    {
+        if (SelectedSale is not { } sale) return;
+        if (!CanDelete)
+        {
+            Dialogs.Warning(Loc.T("Err.OnlyManagersDelete"));
+            return;
+        }
+        if (!Dialogs.Confirm(Loc.T("History.DeleteConfirm", sale.ReceiptNumber), Loc.T("History.DeleteSale"))) return;
+
+        if (await RunAsync(() => sales.DeleteSaleAsync(sale.Id, session.User.Id)))
+        {
+            Dialogs.Toast(Loc.T("History.Deleted", sale.ReceiptNumber));
+            SelectedSale = null;
             await SearchAsync();
         }
     }

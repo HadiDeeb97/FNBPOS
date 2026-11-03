@@ -52,6 +52,14 @@ internal static class QueryHelpers
 
     public static string DayStem(string prefix, DateTime date) => $"{prefix}{date:yyyyMMdd}-";
 
+    /// <summary>The later of two of the day's numbers ("-0010" after "-0009", "-10000" after "-9999"); null when both are.</summary>
+    public static string? Later(string? a, string? b)
+    {
+        if (a is null || b is null) return a ?? b;
+        var order = a.Length != b.Length ? a.Length.CompareTo(b.Length) : string.CompareOrdinal(a, b);
+        return order >= 0 ? a : b;
+    }
+
     /// <summary>The highest of the day's numbers: longest first, as "-10000" sorts before "-9999" as text.</summary>
     public static IQueryable<string> Highest(IQueryable<string> numbers) =>
         numbers.OrderByDescending(n => n.Length).ThenByDescending(n => n);

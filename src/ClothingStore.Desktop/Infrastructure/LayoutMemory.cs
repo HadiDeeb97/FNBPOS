@@ -97,6 +97,7 @@ public static class LayoutMemory
     private static void OnDataGridLoaded(object sender, RoutedEventArgs e)
     {
         var grid = (DataGrid)sender;
+        ColumnSizing.RememberOriginal(grid); // the screen's own widths, before saved ones replace them
         // "cols" (not the older "columns"): widths saved before columns sized themselves to their content are ignored.
         if (!TryGet(grid, "cols", out var saved)) return;
         var columns = saved.Split(';');
@@ -112,14 +113,23 @@ public static class LayoutMemory
             if (grid.Columns[i].CanUserResize
                 && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var width) && width > 10)
             {
-                ColumnSizing.Release(grid.Columns[i]);
+                ColumnSizing.AllowWidth(grid.Columns[i], width); // only a column dragged narrower than its minimum
+                ColumnSizing.MarkUserSized(grid); // the user's own sizes: not fitted to the screen
                 grid.Columns[i].Width = new DataGridLength(Math.Max(width, ColumnSizing.Floor));
             }
-            if (int.TryParse(parts[1], out var index) && index >= 0 && index < grid.Columns.Count)
+            // Columns can't be moved any more; an order saved back when they could (often by accident) is not used.
+            if (grid.CanUserReorderColumns && int.TryParse(parts[1], out var index) && index >= 0 && index < grid.Columns.Count)
                 order.Add((grid.Columns[i], index));
         }
         // Apply positions from left to right so moving one column doesn't undo another.
         foreach (var (column, index) in order.OrderBy(o => o.Index)) column.DisplayIndex = index;
+    }
+
+    /// <summary>Forgets a table's remembered column widths (it goes back to the screen's own).</summary>
+    public static void Forget(DataGrid grid)
+    {
+        if (GetKey(grid) is not { Length: > 0 } key) return;
+        if (LocalPreferences.Current.Layout.Remove("cols:" + key)) LocalPreferences.Current.Save();
     }
 
     private static void OnDataGridUnloaded(object sender, RoutedEventArgs e)

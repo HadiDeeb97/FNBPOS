@@ -84,7 +84,7 @@
   "Reports.Stock": "Stock",
   "Reports.StockAtCost": "Stock at cost",
   "Reports.StockByCategory": "Stock by category",
-  "Reports.SummaryHeader": "SALES SUMMARY {0:yyyy-MM-dd} to {1:yyyy-MM-dd}",
+  "Reports.SummaryHeader": "SALES SUMMARY {0:d} to {1:d}",
   "Reports.TaxCollected": "Tax collected",
   "Reports.TaxFormat": "tax {0}",
   "Reports.ThisWeek": "This week",

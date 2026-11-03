@@ -16,7 +16,7 @@
   "Deliveries.Owed": "Owed",
   "Deliveries.OwedCaption": "OWED BY DELIVERY COMPANIES",
   "Deliveries.OwedHint": "Money collected from customers that hasn't reached the store yet. Click a company to see its orders.",
-  "Deliveries.PaidOn": "Paid {0:dd MMM}",
+  "Deliveries.PaidOn": "Paid {0}",
   "Deliveries.ReceiveButton": "Payment received…",
   "Deliveries.ReceiveSummary": "{0} order(s) · {1} · owed {2}",
   "Deliveries.ReceiveTitle": "Payment from delivery company",

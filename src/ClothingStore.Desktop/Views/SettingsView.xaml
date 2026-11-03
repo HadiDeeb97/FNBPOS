@@ -118,6 +118,21 @@
                                 <TextBlock Text="{l:T Settings.PrintLogoOnReceipt}" TextWrapping="Wrap" />
                             </CheckBox>
                             <TextBlock Text="{l:T Settings.PrintLogoOnReceiptHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="24,2,16,0" />
+                            <CheckBox IsChecked="{Binding Settings.PrintNoteOnReceipt}" Margin="0,12,0,0">
+                                <TextBlock Text="{l:T Settings.PrintNoteOnReceipt}" TextWrapping="Wrap" />
+                            </CheckBox>
+
+                            <!-- The kind of barcode on price labels -->
+                            <TextBlock Text="{l:T Settings.LabelBarcode}" Style="{StaticResource Label}" Margin="0,16,0,6" />
+                            <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Style="{StaticResource SegmentButton}" GroupName="LabelBarcode" Content="{l:T Settings.LabelBarcodeEan13}"
+                                                 IsChecked="{Binding Settings.LabelBarcode, Converter={StaticResource Equals}, ConverterParameter=Ean13}" />
+                                    <RadioButton Style="{StaticResource SegmentButton}" GroupName="LabelBarcode" Content="{l:T Settings.LabelBarcodeCode128}"
+                                                 IsChecked="{Binding Settings.LabelBarcode, Converter={StaticResource Equals}, ConverterParameter=Code128}" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="{l:T Settings.LabelBarcodeHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,6,16,0" />
                         </StackPanel>
                     </Border>
 
@@ -420,7 +435,7 @@
                                     <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Backups}" infra:LayoutMemory.Key="Settings.Backups"
                                               MouseDoubleClick="OnBackupDoubleClick">
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding StartedAt, StringFormat={}{0:dd MMM yyyy HH:mm}}" Width="Auto" MinWidth="130" />
+                                            <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding StartedAt, Converter={StaticResource DateText}}" Width="Auto" MinWidth="130" />
                                             <DataGridTextColumn Header="{l:T Settings.BackupType}" Binding="{Binding Kind, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="110" />
                                             <DataGridTemplateColumn Header="{l:T Common.Status}" Width="Auto" MinWidth="80">
                                                 <DataGridTemplateColumn.CellTemplate>

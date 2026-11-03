@@ -16,7 +16,7 @@
             <TextBlock Text="{Binding CurrentRateText}" FontSize="18" FontWeight="SemiBold" />
 
             <TextBlock Text="{l:T Rate.New}" Style="{StaticResource FieldLabel}" Margin="0,18,0,5" />
-            <TextBox x:Name="RateBox" Style="{StaticResource BigNumberBox}" Tag="{l:T Currency.Lbp}"
+            <TextBox infra:GroupDigits.IsEnabled="True" x:Name="RateBox" Style="{StaticResource BigNumberBox}" Tag="{l:T Currency.Lbp}"
                      Text="{Binding NewRateText, UpdateSourceTrigger=PropertyChanged}" />
             <TextBlock Text="{Binding Preview}" Style="{StaticResource HintText}" Foreground="{StaticResource PrimaryDarkBrush}" />
             <TextBlock Text="{l:T Rate.Hint}" Style="{StaticResource HintText}" />

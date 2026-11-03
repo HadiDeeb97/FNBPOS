@@ -63,6 +63,7 @@
   "Enum.StockMovementType.PurchaseReceipt": "Stock received",
   "Enum.StockMovementType.Return": "Return",
   "Enum.StockMovementType.Sale": "Sale",
+  "Enum.StockMovementType.SaleDeleted": "Sale deleted",
   "Enum.StockMovementType.StockCount": "Stock count",
   "Enum.StockMovementType.Void": "Sale voided",
   "Enum.UserRole.Admin": "Admin",

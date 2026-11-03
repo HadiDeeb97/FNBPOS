@@ -74,7 +74,14 @@ public sealed partial class TenderViewModel(PaymentMethod method, decimal amount
 {
     public PaymentMethod Method { get; } = method;
     public decimal Amount { get; } = amount;
-    public string? Reference { get; } = reference;
+
+    /// <summary>Card / wallet slip number or the delivery invoice; it can still be typed or corrected in the list until the sale is done.</summary>
+    [ObservableProperty]
+    public partial string? Reference { get; set; } = reference;
+
+    public bool TakesReference => Takes(Method);
+
+    public static bool Takes(PaymentMethod method) => method is PaymentMethod.Card or PaymentMethod.MobileWallet or PaymentMethod.Delivery;
 }
 
 public sealed record QuickCash(string Label, decimal Amount);
@@ -259,7 +266,7 @@ public sealed partial class PaymentViewModel : DialogViewModelBase
     {
         get
         {
-            var list = Tenders.Select(t => new PaymentInput(t.Method, t.Amount, t.Reference)).ToList();
+            var list = Tenders.Select(t => new PaymentInput(t.Method, t.Amount, Clean(t.Reference))).ToList();
             if (TenderedUsd > 0) list.Add(new PaymentInput(PaymentMethod.Cash, Money.Round(TenderedUsd)));
             if (TenderedLbp > 0) list.Add(new PaymentInput(PaymentMethod.CashLbp, TenderedLbp));
             return list;
@@ -296,8 +303,9 @@ public sealed partial class PaymentViewModel : DialogViewModelBase
         }
 
         if (method == PaymentMethod.Delivery && !AllowDelivery) return;
-        Tenders.Add(new TenderViewModel(method, Money.Round(amount), method is PaymentMethod.Card or PaymentMethod.MobileWallet or PaymentMethod.Delivery ? Reference : null));
-        Reference = null;
+        var takesReference = TenderViewModel.Takes(method);
+        Tenders.Add(new TenderViewModel(method, Money.Round(amount), takesReference ? Clean(Reference) : null));
+        if (takesReference) Reference = null;
     }
 
     [RelayCommand]
@@ -330,6 +338,12 @@ public sealed partial class PaymentViewModel : DialogViewModelBase
             Dialogs.Warning(SplitError);
             return;
         }
+        // A reference typed after pressing Card (or Wallet / Delivery) belongs to that payment, not to a next one.
+        if (Clean(Reference) is { } pending && Tenders.LastOrDefault(t => t.TakesReference && Clean(t.Reference) is null) is { } open)
+        {
+            open.Reference = pending;
+            Reference = null;
+        }
         if (CashDue == 0 && (TenderedUsd > 0 || TenderedLbp > 0))
         {
             // Card, wallet or delivery already cover everything: this cash would all be "change" and is refused.
@@ -342,6 +356,8 @@ public sealed partial class PaymentViewModel : DialogViewModelBase
 
     [RelayCommand]
     private void Cancel() => Close(false);
+
+    private static string? Clean(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
     private decimal Used(PaymentMethod method) => Tenders.Where(t => t.Method == method).Sum(t => t.Amount);
 

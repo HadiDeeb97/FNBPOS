@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:core="clr-namespace:ClothingStore.Core;assembly=ClothingStore.Core"
              xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
+             xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure"
              Width="880">
     <UserControl.Resources>
         <!-- Quick amount buttons under each cash box: each as wide as its amount (10,000,000 LBP needs more room than
@@ -39,7 +40,7 @@
 
                 <StackPanel Margin="8,0,0,0" Visibility="{Binding LbpEnabled, Converter={StaticResource BoolToVis}}">
                     <TextBlock Text="{l:T Payment.PoundsReceived}" Style="{StaticResource FieldLabel}" Margin="0,4,0,5" />
-                    <TextBox x:Name="LbpBox" Style="{StaticResource BigNumberBox}" Tag="{l:T Currency.Lbp}"
+                    <TextBox infra:GroupDigits.IsEnabled="True" x:Name="LbpBox" Style="{StaticResource BigNumberBox}" Tag="{l:T Currency.Lbp}"
                              Text="{Binding LbpText, UpdateSourceTrigger=PropertyChanged}" />
                     <TextBlock Text="{Binding LbpWorth}" Style="{StaticResource HintText}" Margin="2,4,0,0" />
                     <ItemsControl ItemsSource="{Binding QuickLbp}" ItemsPanel="{StaticResource QuickPanel}" Margin="0,4,0,0">
@@ -159,7 +160,7 @@
                                         </StackPanel>
                                         <StackPanel Margin="4,0,0,0">
                                             <TextBlock Text="{l:T Payment.GiveLbp}" Style="{StaticResource FieldLabel}" Margin="0,0,0,3" />
-                                            <TextBox Text="{Binding GiveLbpText, UpdateSourceTrigger=PropertyChanged}" Tag="{Binding GiveLbpHint}" FontSize="15" />
+                                            <TextBox infra:GroupDigits.IsEnabled="True" Text="{Binding GiveLbpText, UpdateSourceTrigger=PropertyChanged}" Tag="{Binding GiveLbpHint}" FontSize="15" />
                                         </StackPanel>
                                     </UniformGrid>
                                     <TextBlock Text="{Binding SplitError}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
@@ -176,14 +177,19 @@
                         <ItemsControl ItemsSource="{Binding Tenders}" Margin="0,4,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <DockPanel Margin="0,3">
-                                        <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Foreground="{StaticResource DangerBrush}"
-                                                Command="{Binding DataContext.RemoveTenderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                            <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="10" />
-                                        </Button>
-                                        <TextBlock Text="{Binding Amount, Converter={StaticResource Money}}" DockPanel.Dock="Right" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding Method, Converter={StaticResource EnumDisplay}}" VerticalAlignment="Center" />
-                                    </DockPanel>
+                                    <StackPanel Margin="0,3">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Foreground="{StaticResource DangerBrush}"
+                                                    Command="{Binding DataContext.RemoveTenderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="10" />
+                                            </Button>
+                                            <TextBlock Text="{Binding Amount, Converter={StaticResource Money}}" DockPanel.Dock="Right" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Method, Converter={StaticResource EnumDisplay}}" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                        <!-- Its own reference: typed here, or the reference box filled after pressing the button -->
+                                        <TextBox Text="{Binding Reference, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T Payment.ReferenceHint}" FontSize="12.5" Margin="0,4,0,2"
+                                                 Visibility="{Binding TakesReference, Converter={StaticResource BoolToVis}}" />
+                                    </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

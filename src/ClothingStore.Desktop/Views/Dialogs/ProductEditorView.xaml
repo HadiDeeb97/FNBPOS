@@ -3,6 +3,45 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="clr-namespace:ClothingStore.Desktop.Localization"
              xmlns:infra="clr-namespace:ClothingStore.Desktop.Infrastructure">
+    <UserControl.Resources>
+        <!-- One colour button: the same size for every colour, a dot (the colour, or its first letter), ✓ when chosen -->
+        <DataTemplate x:Key="ColorChip">
+            <Button Margin="0,0,6,6" ToolTip="{l:T ProductEditor.ColourButtonTip}" Height="30" MinWidth="96" Padding="8,0,10,0" HorizontalContentAlignment="Left"
+                    Focusable="False" FocusVisualStyle="{x:Null}"
+                    Command="{Binding DataContext.ToggleColorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource PrimaryDarkBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <StackPanel Orientation="Horizontal">
+                    <Grid Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center">
+                        <Ellipse Fill="{Binding Swatch}" Stroke="{StaticResource InputBorderBrush}" StrokeThickness="1"
+                                 Visibility="{Binding HasSwatch, Converter={StaticResource BoolToVis}}" />
+                        <Grid Visibility="{Binding HasSwatch, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+                            <Ellipse Fill="{StaticResource HoverBrush}" Stroke="{StaticResource InputBorderBrush}" StrokeThickness="1" />
+                            <TextBlock Text="{Binding Initial}" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource MutedTextBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </Grid>
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="Tick" Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="11" Margin="7,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
+                </StackPanel>
+            </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
     <DockPanel>
         <DockPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -160,41 +199,41 @@
                         <Button Content="{l:T ProductEditor.SavePresetButton}" Style="{StaticResource LinkButton}" Command="{Binding SavePresetCommand}"
                                 HorizontalAlignment="Left" Margin="0" ToolTip="{l:T ProductEditor.SavePresetTip}" />
 
-                        <!-- The shop's most used colours: a click adds one to the colours box, a second click takes it off -->
-                        <TextBlock Text="{l:T ProductEditor.ColourButtons}" Style="{StaticResource FieldLabel}" Margin="0,10,0,5" />
-                        <ScrollViewer MaxHeight="76" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                            <ItemsControl ItemsSource="{Binding ColorChoices}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Margin="0,0,6,6" ToolTip="{l:T ProductEditor.ColourButtonTip}"
-                                                Command="{Binding DataContext.ToggleColorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource SmallButton}">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                            <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
-                                                            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
-                                                            <Setter Property="Foreground" Value="{StaticResource PrimaryDarkBrush}" />
-                                                            <Setter Property="FontWeight" Value="SemiBold" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Ellipse Width="10" Height="10" Margin="0,0,6,0" VerticalAlignment="Center" Fill="{Binding Swatch}"
-                                                         Stroke="{StaticResource InputBorderBrush}" StrokeThickness="1"
-                                                         Visibility="{Binding Swatch, Converter={StaticResource HasValueToVis}}" />
-                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                                            </StackPanel>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                        <!-- Colour buttons: the shop's own (used last first, then A–Z) and common ones; a click adds or takes off -->
+                        <DockPanel Margin="0,12,0,6">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SelectedColorsText}" Style="{StaticResource HintText}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                           Visibility="{Binding SelectedColorsText, Converter={StaticResource HasValueToVis}}" />
+                                <Button Content="{l:T ProductEditor.ColoursClear}" Style="{StaticResource LinkButton}" Command="{Binding ClearColorsCommand}" Margin="0,0,12,0"
+                                        Visibility="{Binding SelectedColorsText, Converter={StaticResource HasValueToVis}}" />
+                                <Button Content="{Binding ShowAllColorsText}" Style="{StaticResource LinkButton}" Margin="0"
+                                        Command="{Binding ToggleShowAllColorsCommand}"
+                                        Visibility="{Binding CanShowAllColors, Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
+                            <TextBlock Text="{l:T ProductEditor.ColourButtons}" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0" />
+                        </DockPanel>
+                        <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                            <!-- A little room on every side, so a chip's border is never cut by the scroll area -->
+                            <StackPanel Margin="2">
+                                <ItemsControl ItemsSource="{Binding YourColorChoices}" ItemTemplate="{StaticResource ColorChip}"
+                                              Visibility="{Binding HasYourColors, Converter={StaticResource BoolToVis}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <TextBlock Text="{l:T ProductEditor.CommonColours}" Style="{StaticResource Caption}" Margin="0,4,0,6"
+                                           Visibility="{Binding HasCommonColors, Converter={StaticResource BoolToVis}}" />
+                                <ItemsControl ItemsSource="{Binding CommonColorChoices}" ItemTemplate="{StaticResource ColorChip}"
+                                              Visibility="{Binding HasCommonColors, Converter={StaticResource BoolToVis}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </StackPanel>
                         </ScrollViewer>
                     </StackPanel>
                 </Border>

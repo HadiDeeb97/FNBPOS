@@ -94,7 +94,7 @@
                     <TextBlock DockPanel.Dock="Top" Text="{l:T Inventory.MovementHistory}" Style="{StaticResource SectionTitle}" Margin="16,14,16,10" />
                     <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Movements}" infra:LayoutMemory.Key="Inventory.Movements">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding CreatedAt, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Width="Auto" MinWidth="140" />
+                            <DataGridTextColumn Header="{l:T Common.Date}" Binding="{Binding CreatedAt, Converter={StaticResource DateText}}" Width="Auto" MinWidth="140" />
                             <DataGridTextColumn Header="{l:T Common.Type}" Binding="{Binding Type, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="140" />
                             <DataGridTextColumn Header="{l:T Inventory.Change}" Binding="{Binding QuantityChange, StringFormat={}{0:+#;-#;0}}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource StrongRightCell}" />
                             <DataGridTextColumn Header="{l:T Inventory.After}" Binding="{Binding QuantityAfter}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />

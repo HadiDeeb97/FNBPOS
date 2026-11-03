@@ -5,6 +5,7 @@ using ClothingStore.Desktop.Services;
 using ClothingStore.Desktop.ViewModels.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ClothingStore.Core.Text;
 using ClothingStore.Core.Localization;
 
 namespace ClothingStore.Desktop.ViewModels;
@@ -45,7 +46,7 @@ public sealed partial class ReportsViewModel(
 
     private const double ChartHeight = 150;
 
-    public List<ChartBar> DailyBars => Bars(Report?.ByDay.Select(d => (d.Date.ToString("dd/MM"), d.Total, $"{d.Date:ddd d MMM}: {CurrencyFormat.Format(d.Total)} · {d.Transactions}")));
+    public List<ChartBar> DailyBars => Bars(Report?.ByDay.Select(d => (DateText.DayMonth(d.Date), d.Total, $"{DateText.WithDay(d.Date, DateText.Date(d.Date))}: {CurrencyFormat.Format(d.Total)} · {d.Transactions}")));
 
     public List<ChartBar> HourlyBars => Bars(Report?.ByHour.Select(h => ($"{h.Hour:00}", h.Total, $"{h.Hour:00}:00–{h.Hour + 1:00}:00: {CurrencyFormat.Format(h.Total)} · {h.Transactions}")));
 
@@ -123,8 +124,8 @@ public sealed partial class ReportsViewModel(
                 Alerts = alerts.Result;
                 DeliveryBalances = balances.Result;
                 PeriodText = from == to
-                    ? Loc.T("Reports.PeriodDay", from.ToString("dddd d MMMM yyyy"))
-                    : Loc.T("Reports.PeriodRange", from.ToString("d MMM yyyy"), to.ToString("d MMM yyyy"));
+                    ? Loc.T("Reports.PeriodDay", DateText.LongDate(from))
+                    : Loc.T("Reports.PeriodRange", DateText.Date(from), DateText.Date(to));
             });
         }
         while (_reloadPending);

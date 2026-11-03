@@ -92,8 +92,9 @@ public sealed partial class Branding : ObservableObject
     /// <summary>Applies a PNG/JPEG logo (null removes it) to the open windows too.</summary>
     public void SetLogo(byte[]? image)
     {
-        Icon = image is { Length: > 0 } ? Decode(image) : null;
-        LogoImage = Icon is null ? null : image;
+        var icon = image is { Length: > 0 } ? Decode(image) : null;
+        LogoImage = icon is null ? null : image; // before Icon: whoever reacts to the change (the shortcuts) reads the new logo
+        Icon = icon;
         foreach (System.Windows.Window window in System.Windows.Application.Current.Windows)
             window.Icon = Icon;
     }

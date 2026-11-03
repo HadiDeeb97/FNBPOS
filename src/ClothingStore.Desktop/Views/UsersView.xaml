@@ -29,7 +29,7 @@
                     <DataGridTextColumn Header="{l:T Common.FullName}" Binding="{Binding FullName}" Width="*" MinWidth="140" />
                     <DataGridTextColumn Header="{l:T Common.Role}" Binding="{Binding Role, Converter={StaticResource EnumDisplay}}" Width="Auto" MinWidth="120" />
                     <DataGridCheckBoxColumn Header="{l:T Common.Active}" Binding="{Binding IsActive}" Width="Auto" MinWidth="70" />
-                    <DataGridTextColumn Header="{l:T Users.LastSignIn}" Binding="{Binding LastLoginAt, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Width="Auto" MinWidth="160" />
+                    <DataGridTextColumn Header="{l:T Users.LastSignIn}" Binding="{Binding LastLoginAt, Converter={StaticResource DateText}}" Width="Auto" MinWidth="160" />
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
