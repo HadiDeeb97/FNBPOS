@@ -1,5 +1,5 @@
 {
-  "name": "clothingpos-reports-worker",
+  "name": "unipos-reports-worker",
   "private": true,
   "type": "module",
   "scripts": {

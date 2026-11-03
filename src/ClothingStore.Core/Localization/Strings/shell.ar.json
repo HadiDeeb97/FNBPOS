@@ -30,7 +30,7 @@
   "Nav.Settings": "الإعدادات",
   "Nav.Suppliers": "المورّدون",
   "Nav.Users": "المستخدمون",
-  "Shell.AppName": "نظام نقاط البيع للألبسة",
+  "Shell.AppName": "UniPOS",
   "Shell.ChangePassword": "تغيير كلمة المرور",
   "Shell.CloseConfirmCart": "هناك عملية بيع جارية تحتوي على {0} صنف/أصناف. هل تريد إغلاق البرنامج ومسحها؟",
   "Shell.CloseDrawerNow": "أغلقه الآن",

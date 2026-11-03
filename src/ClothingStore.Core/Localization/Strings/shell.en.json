@@ -30,7 +30,7 @@
   "Nav.Settings": "Settings",
   "Nav.Suppliers": "Suppliers",
   "Nav.Users": "Users",
-  "Shell.AppName": "Clothing Store POS",
+  "Shell.AppName": "UniPOS",
   "Shell.ChangePassword": "Change password",
   "Shell.CloseConfirmCart": "There is a sale in progress with {0} item(s). Close the app and clear it?",
   "Shell.CloseDrawerNow": "Close it now",

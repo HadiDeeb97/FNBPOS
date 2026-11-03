@@ -14,7 +14,7 @@ public sealed record OnlineReportsConfig
 {
     public bool Enabled { get; init; } = true;
 
-    /// <summary>The website, e.g. https://pos-reports.rami.workers.dev</summary>
+    /// <summary>The website, e.g. https://unipos-reports.rami.workers.dev</summary>
     public string SiteUrl { get; init; } = "";
 
     /// <summary>The secret the website checks on every upload.</summary>

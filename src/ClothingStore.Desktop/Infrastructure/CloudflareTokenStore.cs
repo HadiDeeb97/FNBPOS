@@ -1,6 +1,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using ClothingStore.Core;
 
 namespace ClothingStore.Desktop.Infrastructure;
 
@@ -10,10 +11,9 @@ namespace ClothingStore.Desktop.Infrastructure;
 /// </summary>
 public static class CloudflareTokenStore
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClothingStorePOS", "cloudflare.token");
+    private static readonly string FilePath = Path.Combine(AppIdentity.LocalFolder, "cloudflare.token");
 
-    private static readonly byte[] Entropy = "ClothingStorePOS.OnlineReports"u8.ToArray();
+    private static readonly byte[] Entropy = "UniPOS.OnlineReports"u8.ToArray();
 
     public static string? Load()
     {

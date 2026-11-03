@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using ClothingStore.Core;
 
 namespace ClothingStore.Desktop.Infrastructure;
 
@@ -11,7 +12,7 @@ namespace ClothingStore.Desktop.Infrastructure;
 /// </summary>
 public static class SingleInstance
 {
-    private const string Name = @"Local\ClothingStorePOS";
+    private const string Name = @"Local\" + AppIdentity.Name;
 
     // Kept for the app's lifetime: Windows releases them when the app ends, however it ends.
     private static Mutex? _running;

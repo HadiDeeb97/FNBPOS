@@ -32,7 +32,7 @@ public class BackupServiceTests
         var record = await backups.BackupAsync(BackupKind.Manual, db.Admin.Id);
 
         Assert.True(record.Succeeded);
-        Assert.Matches(@"ClothingStorePOS_Test_\w+_\d{8}-\d{6}-\d{3}\.bak$", record.FilePath);
+        Assert.Matches(@"UniPOS_Test_\w+_\d{8}-\d{6}-\d{3}\.bak$", record.FilePath);
         var logged = Assert.Single(await backups.GetRecentAsync());
         Assert.Equal((record.FilePath, BackupKind.Manual, db.Admin.Id), (logged.FilePath, logged.Kind, logged.UserId));
     }
@@ -153,7 +153,7 @@ public class BackupServiceTests
         {
             await otherTill.OpenAsync();
             await using var cmd = new SqlCommand(
-                "EXEC sp_getapplock @Resource = 'ClothingStorePOS.Backup', @LockMode = 'Exclusive', @LockOwner = 'Session';", otherTill);
+                "EXEC sp_getapplock @Resource = 'UniPOS.Backup', @LockMode = 'Exclusive', @LockOwner = 'Session';", otherTill);
             await cmd.ExecuteNonQueryAsync();
 
             var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => backups.BackupAsync(BackupKind.Manual, db.Admin.Id));

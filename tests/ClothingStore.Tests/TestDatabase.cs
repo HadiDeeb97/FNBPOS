@@ -140,7 +140,7 @@ public sealed class TestDatabase : IAsyncDisposable
 
         return new SqlConnectionStringBuilder(server)
         {
-            InitialCatalog = $"ClothingStorePOS_Test_{Guid.NewGuid():N}",
+            InitialCatalog = $"UniPOS_Test_{Guid.NewGuid():N}",
         }.ConnectionString;
     }
 

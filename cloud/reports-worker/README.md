@@ -85,10 +85,10 @@ The POS does this for each shop. To test it by hand:
 
 ```
 npx wrangler login
-npx wrangler d1 create pos-reports            # copy the database_id it prints into wrangler.toml
+npx wrangler d1 create unipos-reports            # copy the database_id it prints into wrangler.toml
 npx wrangler secret put UPLOAD_KEY            # type a long random key
-npx wrangler deploy                           # prints https://pos-reports.<your-subdomain>.workers.dev
-npm run seed -- https://pos-reports.<your-subdomain>.workers.dev <the same key>
+npx wrangler deploy                           # prints https://unipos-reports.<your-subdomain>.workers.dev
+npm run seed -- https://unipos-reports.<your-subdomain>.workers.dev <the same key>
 ```
 
 ## Staying within the free plan

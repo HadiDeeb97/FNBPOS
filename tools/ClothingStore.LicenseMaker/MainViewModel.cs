@@ -355,7 +355,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (GeneratedKey is null || _renewing is null) return;
         var until = LicenseIssuer.IsLifetime(_renewing.ExpiresOn) ? "with no expiry date" : $"until {_renewing.ExpiresOn:d MMMM yyyy}";
         Clipboard.SetText(
-            $"Hello {_renewing.Licensee}, here is your Clothing Store POS license, valid {until}.\n\n" +
+            $"Hello {_renewing.Licensee}, here is your UniPOS license, valid {until}.\n\n" +
             "Open the app, copy everything below, and paste it on the activation screen (or user menu → License…):\n\n" + GeneratedKey);
         Status = "Message copied. Paste it into WhatsApp or an email.";
     }

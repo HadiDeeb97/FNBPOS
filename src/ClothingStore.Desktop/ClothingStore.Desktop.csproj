@@ -5,7 +5,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <RootNamespace>ClothingStore.Desktop</RootNamespace>
-    <AssemblyName>ClothingStorePOS</AssemblyName>
+    <AssemblyName>UniPOS</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- Default icon of the program file and its shortcuts; a store's own logo replaces it on its shortcuts (ShortcutIcons). -->
     <ApplicationIcon>app.ico</ApplicationIcon>

@@ -1,4 +1,8 @@
-# Clothing Store POS
+# UniPOS
+
+> UniPOS is being turned from the Clothing Store POS into a point-of-sale system for any food & beverage venue
+> (crepe shop, café, restaurant, bar...). It has its own program name, database and folders, so it never touches a
+> Clothing Store POS on the same PC. Until that work is done, the features below are still the clothing store's.
 
 A Windows desktop point-of-sale system for clothing and fashion retail, built with **C# / .NET 10 (LTS) / WPF**, using MVVM with
 **Entity Framework Core + SQL Server**, so several tills can share one database.
@@ -46,13 +50,13 @@ The default connection string expects an Express instance named `SQLEXPRESS` on 
 authentication.
 
 ```powershell
-cd ClothingStorePOS
+cd FNBPOS
 dotnet run --project src/ClothingStore.Desktop
 ```
 
 Or open `ClothingStorePOS.sln` in Visual Studio 2026 (or Rider / VS Code with C# Dev Kit) and set **ClothingStore.Desktop** as the startup project.
 
-On first launch the app creates the `ClothingStorePOS` database and its tables. The login it uses needs permission to create
+On first launch the app creates the `UniPOS` database and its tables. The login it uses needs permission to create
 a database (or create the empty database yourself and make the login its `db_owner`). A sample catalogue is loaded too,
 with 15 styles, 125 size/colour variants, customers and suppliers.
 
@@ -71,7 +75,7 @@ delete or deactivate the demo users once real accounts exist.
 ```jsonc
 {
   "ConnectionStrings": {
-    "Pos": "Server=.\\SQLEXPRESS;Database=ClothingStorePOS;Trusted_Connection=True;TrustServerCertificate=True"
+    "Pos": "Server=.\\SQLEXPRESS;Database=UniPOS;Trusted_Connection=True;TrustServerCertificate=True"
   },
   "Pos": {
     "SeedDemoData": true // optional: demo catalogue and users on first run (default: Debug builds only)
@@ -88,9 +92,9 @@ Step-by-step instructions (where to click, the exact commands, and a troubleshoo
 1. Install SQL Server Express on one PC (the "server", which can also be a till). In SQL Server Configuration Manager, enable
    TCP/IP for the instance, start the SQL Server Browser service and allow SQL Server through Windows Firewall.
 2. In a shop without a Windows domain, Windows authentication doesn't work between PCs, so enable mixed-mode authentication
-   and create a SQL login for the app (for example `pos`) that owns the `ClothingStorePOS` database.
+   and create a SQL login for the app (for example `pos`) that owns the `UniPOS` database.
 3. On every till, set `ConnectionStrings:Pos` in `appsettings.json` to point at that PC:
-   `Server=SHOP-PC\\SQLEXPRESS;Database=ClothingStorePOS;User Id=pos;Password=...;TrustServerCertificate=True`.
+   `Server=SHOP-PC\\SQLEXPRESS;Database=UniPOS;User Id=pos;Password=...;TrustServerCertificate=True`.
 
 Stock levels and customer balances use optimistic concurrency, so two tills selling the last unit at the same moment can't
 both succeed. The second gets a "please try again" message.
@@ -119,7 +123,7 @@ Build it once and keep the `publish` folder on your own PC:
 dotnet publish tools/ClothingStore.LicenseMaker -c Release -r win-x64 --self-contained -o C:\LicenseMaker
 ```
 
-1. **Once:** open License Maker, click **Create new keys…** and choose a folder (e.g. `Documents\POS Licenses`). Back
+1. **Once:** open License Maker, click **Create new keys…** and choose a folder (e.g. `Documents\UniPOS Licenses`; never the Clothing Store POS's key folder). Back
    that folder up: it holds `private.pem` (without it you can't renew anyone) and the customer list. Click **Copy public
    key for the app**, paste it into `licensing.json` (`"publicKey"`) with your name, phone and email so customers see
    how to reach you, then publish the POS.
@@ -261,8 +265,8 @@ next to the payment in Sales history.
   fails, the app says so and still opens.
 * If SQL Server isn't ready yet when the app starts (just after Windows starts), the app waits for it (up to about a
   minute and a half, showing "Waiting for SQL Server…") instead of failing.
-* Every backup gets its own file named with the date and time (`ClothingStorePOS_startup_20261007-091502-317.bak`,
-  `_shift_...`, `_auto_...`, and `ClothingStorePOS_20261007-...bak` for **Back up now**), so none replaces another.
+* Every backup gets its own file named with the date and time (`UniPOS_startup_20261007-091502-317.bak`,
+  `_shift_...`, `_auto_...`, and `UniPOS_20261007-...bak` for **Back up now**), so none replaces another.
   Automatic backups older than 30 days are deleted (the newest 10 always stay); **Back up now** files are never deleted.
   Deleting needs SQL Server administrator rights (the default with Windows sign-in on SQL Express); without them old
   files are simply kept.

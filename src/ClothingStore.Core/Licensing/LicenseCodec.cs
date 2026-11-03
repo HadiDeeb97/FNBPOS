@@ -114,10 +114,14 @@ public static class MachineIdentity
 {
     private const string Alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I
 
-    /// <summary>"7KQ2-M9XD-..." (4 groups of 4) from a hash of the raw identifier, so the raw value never leaves the PC.</summary>
+    /// <summary>
+    /// "7KQ2-M9XD-..." (4 groups of 4) from a hash of the raw identifier, so the raw value never leaves the PC. The hash
+    /// is salted with this program's name: the same PC shows another ID in the Clothing Store POS, so a key made for
+    /// one program never fits the other.
+    /// </summary>
     public static string FromRaw(string raw)
     {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes("ClothingStorePOS|" + raw.Trim().ToUpperInvariant()));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes("UniPOS|" + raw.Trim().ToUpperInvariant()));
         var sb = new StringBuilder();
         for (var i = 0; i < 16; i++)
         {

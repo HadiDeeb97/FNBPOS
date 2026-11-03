@@ -1,6 +1,6 @@
 # The shop's online reports website. Deployed by the POS itself (Settings → Online reports), or by hand with
 # `npx wrangler deploy` for testing (see README.md).
-name = "pos-reports"
+name = "unipos-reports"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
 workers_dev = true
@@ -17,10 +17,10 @@ type = "Data"
 globs = ["**/ui/fonts/*.woff2"]
 fallthrough = false
 
-# Replace database_id with the id printed by `npx wrangler d1 create pos-reports`.
+# Replace database_id with the id printed by `npx wrangler d1 create unipos-reports`.
 [[d1_databases]]
 binding = "DB"
-database_name = "pos-reports"
+database_name = "unipos-reports"
 database_id = "00000000-0000-0000-0000-000000000000"
 
 # The POS's upload key is a secret: `npx wrangler secret put UPLOAD_KEY` (and in .dev.vars for `wrangler dev`).

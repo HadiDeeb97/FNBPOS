@@ -50,11 +50,11 @@ public class CloudflareDeployerTests
                     var name = JsonNode.Parse(body)!["name"]!.GetValue<string>();
                     Databases.Add(name);
                     return Ok(new JsonObject { ["name"] = name, ["uuid"] = $"uuid-{name}" });
-                case ("PUT", "/accounts/acc1/workers/scripts/pos-reports"):
+                case ("PUT", "/accounts/acc1/workers/scripts/unipos-reports"):
                     UploadText = body;
                     UploadBoundary = request.Content!.Headers.ContentType!.Parameters.Single(p => p.Name == "boundary").Value!.Trim('"');
-                    return Ok(new JsonObject { ["id"] = "pos-reports" });
-                case ("POST", "/accounts/acc1/workers/scripts/pos-reports/subdomain"):
+                    return Ok(new JsonObject { ["id"] = "unipos-reports" });
+                case ("POST", "/accounts/acc1/workers/scripts/unipos-reports/subdomain"):
                     return Ok(new JsonObject { ["enabled"] = true });
                 default:
                     return Fail(HttpStatusCode.NotFound, 7003, $"No route for {request.Method} {path}");
@@ -84,11 +84,11 @@ public class CloudflareDeployerTests
 
         // A workers.dev name made from the shop's name, the database, the website, then its address switched on.
         Assert.Matches(@"^ramis-boutique-\d{4}$", cloudflare.Subdomain);
-        Assert.Equal($"https://pos-reports.{cloudflare.Subdomain}.workers.dev", url);
-        Assert.Equal(new CloudflareSite("acc1", "pos-reports", "uuid-pos-reports", cloudflare.Subdomain!, CloudflareDeployer.CurrentBuild), site);
-        Assert.Equal(["pos-reports"], cloudflare.Databases);
+        Assert.Equal($"https://unipos-reports.{cloudflare.Subdomain}.workers.dev", url);
+        Assert.Equal(new CloudflareSite("acc1", "unipos-reports", "uuid-unipos-reports", cloudflare.Subdomain!, CloudflareDeployer.CurrentBuild), site);
+        Assert.Equal(["unipos-reports"], cloudflare.Databases);
         Assert.Equal(["account", "subdomain", "database", "upload", "address"], steps);
-        var enable = cloudflare.Calls.Single(c => c.Path.EndsWith("/scripts/pos-reports/subdomain"));
+        var enable = cloudflare.Calls.Single(c => c.Path.EndsWith("/scripts/unipos-reports/subdomain"));
         Assert.True(JsonNode.Parse(enable.Body)!["enabled"]!.GetValue<bool>());
 
         // The upload: metadata with the database and the upload key, the code as modules and the pages as text.
@@ -97,7 +97,7 @@ public class CloudflareDeployerTests
         var metadata = JsonNode.Parse(parts["metadata"].Body)!;
         Assert.Equal("index.js", metadata["main_module"]!.GetValue<string>());
         var bindings = metadata["bindings"]!.AsArray();
-        Assert.Contains(bindings, b => b!["type"]!.GetValue<string>() == "d1" && b["name"]!.GetValue<string>() == "DB" && b["id"]!.GetValue<string>() == "uuid-pos-reports");
+        Assert.Contains(bindings, b => b!["type"]!.GetValue<string>() == "d1" && b["name"]!.GetValue<string>() == "DB" && b["id"]!.GetValue<string>() == "uuid-unipos-reports");
         Assert.Contains(bindings, b => b!["type"]!.GetValue<string>() == "secret_text" && b["name"]!.GetValue<string>() == "UPLOAD_KEY" && b["text"]!.GetValue<string>() == "upload-key-abc");
         Assert.Equal("application/javascript+module", parts["index.js"].Type);
         Assert.Equal("application/javascript+module", parts["db.js"].Type);
@@ -110,13 +110,13 @@ public class CloudflareDeployerTests
     public async Task Setting_up_again_reuses_the_address_and_database()
     {
         var cloudflare = new FakeCloudflare { Subdomain = "rami" };
-        cloudflare.Databases.Add("pos-reports");
+        cloudflare.Databases.Add("unipos-reports");
         var deployer = new CloudflareDeployer(new HttpClient(cloudflare));
 
         var (site, url) = await deployer.DeployAsync(Token, "k", "Shop");
 
-        Assert.Equal("https://pos-reports.rami.workers.dev", url);
-        Assert.Equal("uuid-pos-reports", site.DatabaseId);
+        Assert.Equal("https://unipos-reports.rami.workers.dev", url);
+        Assert.Equal("uuid-unipos-reports", site.DatabaseId);
         Assert.DoesNotContain(cloudflare.Calls, c => c.Method != "GET" && (c.Path.EndsWith("/workers/subdomain") || c.Path.EndsWith("/d1/database")));
     }
 

@@ -1,18 +1,19 @@
 using System.IO;
 using System.Text.Json;
+using ClothingStore.Core;
 
 namespace ClothingStore.LicenseMaker;
 
 /// <summary>Which folder holds the signing keys and customer list (remembered on this computer only).</summary>
 public sealed class MakerSettings
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClothingStorePOS", "license-maker.json");
+    private static readonly string FilePath = Path.Combine(AppIdentity.LocalFolder, "license-maker.json");
 
     public string? KeysFolder { get; set; }
 
+    /// <summary>Not the Clothing Store POS's "POS Licenses": this program has its own keys and customer list.</summary>
     public static string DefaultFolder =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "POS Licenses");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), AppIdentity.Name + " Licenses");
 
     public static MakerSettings Load()
     {

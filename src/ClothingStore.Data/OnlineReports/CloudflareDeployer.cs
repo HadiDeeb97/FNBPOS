@@ -23,8 +23,8 @@ public sealed class CloudflareException(string step, string message, int? code =
 public class CloudflareDeployer(HttpClient http)
 {
     public const string ApiBase = "https://api.cloudflare.com/client/v4";
-    public const string ScriptName = "pos-reports";
-    public const string DatabaseName = "pos-reports";
+    public const string ScriptName = "unipos-reports";
+    public const string DatabaseName = "unipos-reports";
     private const string CompatibilityDate = "2026-09-01"; // as in wrangler.toml
     private const string ResourcePrefix = "ReportsWorker/";
 

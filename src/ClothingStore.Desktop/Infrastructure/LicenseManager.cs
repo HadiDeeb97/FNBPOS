@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using ClothingStore.Core;
 using ClothingStore.Core.Licensing;
 using ClothingStore.Core.Localization;
 using ClothingStore.Data.Services;
@@ -187,10 +188,10 @@ public sealed partial class LicenseManager : ObservableObject
     }
 
     // Same on every till (the database copy is shared), different for every vendor key.
-    private byte[] SeenKey() => SHA256.HashData(Encoding.UTF8.GetBytes("ClothingStorePOS.seen|" + (Config.PublicKey ?? "")));
+    private byte[] SeenKey() => SHA256.HashData(Encoding.UTF8.GetBytes("UniPOS.seen|" + (Config.PublicKey ?? "")));
 
     // A separate key, so a "last seen" record (a later date) can't be passed off as the trial start.
-    private byte[] TrialKey() => SHA256.HashData(Encoding.UTF8.GetBytes("ClothingStorePOS.trial|" + (Config.PublicKey ?? "")));
+    private byte[] TrialKey() => SHA256.HashData(Encoding.UTF8.GetBytes("UniPOS.trial|" + (Config.PublicKey ?? "")));
 
     private static string? TryRead(string path)
     {
@@ -220,7 +221,7 @@ public sealed partial class LicenseManager : ObservableObject
 
     private static string PickFolder()
     {
-        var common = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ClothingStorePOS");
+        var common = AppIdentity.CommonFolder;
         try
         {
             Directory.CreateDirectory(common);
@@ -231,7 +232,7 @@ public sealed partial class LicenseManager : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClothingStorePOS");
+            return AppIdentity.LocalFolder;
         }
     }
 

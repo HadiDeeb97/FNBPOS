@@ -29,7 +29,7 @@ public class StartupBackupTests
     [Fact]
     public async Task No_database_yet_means_nothing_to_back_up()
     {
-        var factory = Factory($"ClothingStorePOS_Test_{Guid.NewGuid():N}");
+        var factory = Factory($"UniPOS_Test_{Guid.NewGuid():N}");
         Assert.Null(await new BackupService(factory).BackupOnStartupAsync());
     }
 
@@ -37,7 +37,7 @@ public class StartupBackupTests
     public async Task Works_on_a_database_from_an_older_version_before_it_is_upgraded()
     {
         // Only the tables every version has, without the columns this version added.
-        var name = $"ClothingStorePOS_Test_{Guid.NewGuid():N}";
+        var name = $"UniPOS_Test_{Guid.NewGuid():N}";
         await ExecuteAsync("master", $"CREATE DATABASE [{name}]");
         try
         {

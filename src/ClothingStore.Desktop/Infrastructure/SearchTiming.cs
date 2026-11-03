@@ -2,13 +2,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using ClothingStore.Core;
 using ClothingStore.Data.Services;
 
 namespace ClothingStore.Desktop.Infrastructure;
 
 /// <summary>
 /// Times product searches. One that takes over a second is written to
-/// %LocalAppData%\ClothingStorePOS\slow-searches.log with what was going on: how long a bare round trip to the database
+/// %LocalAppData%\UniPOS\slow-searches.log with what was going on: how long a bare round trip to the database
 /// takes right after it (slow too: the PC or SQL Server is struggling; fast: the search itself), how full the PC's
 /// memory is, and how long the till had been idle (the first search after a pause is slower).
 /// </summary>
@@ -16,8 +17,7 @@ public static class SearchTiming
 {
     public static readonly TimeSpan SlowAfter = TimeSpan.FromSeconds(1);
 
-    private static readonly string LogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClothingStorePOS", "slow-searches.log");
+    private static readonly string LogPath = Path.Combine(AppIdentity.LocalFolder, "slow-searches.log");
 
     private static DateTime _lastSearch = DateTime.MinValue;
 

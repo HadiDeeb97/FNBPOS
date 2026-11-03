@@ -1,16 +1,16 @@
 using System.IO;
 using System.Text.Json;
+using ClothingStore.Core;
 
 namespace ClothingStore.Desktop.Infrastructure;
 
 /// <summary>
 /// Per-PC preferences (language on the sign-in screen, sidebar, panel sizes and column widths, printers), kept in
-/// %LocalAppData%\ClothingStorePOS\preferences.json. Losing the file only resets the layout.
+/// %LocalAppData%\UniPOS\preferences.json. Losing the file only resets the layout.
 /// </summary>
 public sealed class LocalPreferences
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClothingStorePOS", "preferences.json");
+    private static readonly string FilePath = Path.Combine(AppIdentity.LocalFolder, "preferences.json");
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 

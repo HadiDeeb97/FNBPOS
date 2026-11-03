@@ -12,7 +12,7 @@ namespace ClothingStore.Tests;
 
 public class OnlineReportsTests
 {
-    private const string Site = "https://pos-reports.example.workers.dev";
+    private const string Site = "https://unipos-reports.example.workers.dev";
 
     /// <summary>The keys the website accepts (cloud/reports-worker/src/index.js, DOC_KEY).</summary>
     private static readonly Regex DocKey = new(@"^(store|live|stock|catalog:\d|period:(today|yesterday|week|lastweek|month|lastmonth|year)|day:\d{4}-\d{2}-\d{2}|month:\d{4}-\d{2})$");
@@ -498,8 +498,8 @@ public class OnlineReportsTests
     }
 
     [Theory]
-    [InlineData("pos-reports.rami.workers.dev", "https://pos-reports.rami.workers.dev")]
-    [InlineData(" https://pos-reports.rami.workers.dev/ ", "https://pos-reports.rami.workers.dev")]
+    [InlineData("unipos-reports.rami.workers.dev", "https://unipos-reports.rami.workers.dev")]
+    [InlineData(" https://unipos-reports.rami.workers.dev/ ", "https://unipos-reports.rami.workers.dev")]
     [InlineData("https://x.workers.dev/some/page", "https://x.workers.dev")]
     [InlineData("http://localhost:8787", "http://localhost:8787")]
     [InlineData("http://example.com", null)] // only https on the internet

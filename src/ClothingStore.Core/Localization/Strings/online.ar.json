@@ -1,6 +1,6 @@
 {
   "Online.Address": "عنوان الموقع",
-  "Online.BadAddress": "اكتب عنوان الموقع، مثل https://pos-reports.yourshop.workers.dev",
+  "Online.BadAddress": "اكتب عنوان الموقع، مثل https://unipos-reports.yourshop.workers.dev",
   "Online.CloudflareFailed": "توقّف Cloudflare عند \"{0}\": {1}",
   "Online.Copy": "نسخ",
   "Online.Enabled": "إرسال التقارير إلى الموقع (كل 5 دقائق، من أي صندوق يعمل)",

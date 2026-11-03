@@ -2,6 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ClothingStore.Core;
 
 namespace ClothingStore.Desktop.Infrastructure;
 
@@ -13,8 +14,7 @@ namespace ClothingStore.Desktop.Infrastructure;
 /// </summary>
 public static class ShortcutIcons
 {
-    private static readonly string Folder = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClothingStorePOS");
+    private static readonly string Folder = AppIdentity.LocalFolder;
 
     /// <summary>
     /// Each logo gets its own icon file ("store-logo-1a2b3c4d.ico"): Windows remembers icons by file name, so a new logo

@@ -1,4 +1,5 @@
 using System.IO;
+using ClothingStore.Core;
 
 namespace ClothingStore.Desktop.Infrastructure;
 
@@ -10,8 +11,7 @@ public static class StartupLog
 {
     private const long MaxBytes = 1024 * 1024;
 
-    public static string Path { get; } = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClothingStorePOS", "startup-errors.log");
+    public static string Path { get; } = System.IO.Path.Combine(AppIdentity.LocalFolder, "startup-errors.log");
 
     /// <summary>Appends the error with the time; returns the log's path, or null when it couldn't be written.</summary>
     public static string? Write(Exception ex)

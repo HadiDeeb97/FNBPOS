@@ -31,7 +31,7 @@ public class BackupService(IDbContextFactory<PosDbContext> factory)
     public const int KeepAutomaticAtLeast = 10;
 
     /// <summary>Held while a backup runs so two tills never back up at the same time.</summary>
-    private const string LockResource = "ClothingStorePOS.Backup";
+    private const string LockResource = AppIdentity.Name + ".Backup";
 
     /// <summary>
     /// Backs up now to the folder set in Settings. Throws <see cref="BusinessRuleException"/> if the backup fails
@@ -322,7 +322,7 @@ public class BackupService(IDbContextFactory<PosDbContext> factory)
             BACKUP DATABASE @db TO DISK = @path WITH COPY_ONLY, INIT, FORMAT, CHECKSUM, NAME = @name;
             RESTORE VERIFYONLY FROM DISK = @path WITH CHECKSUM;
             """,
-            [new SqlParameter("@path", path), new SqlParameter("@name", "Clothing Store POS backup")],
+            [new SqlParameter("@path", path), new SqlParameter("@name", AppIdentity.Name + " backup")],
             ct);
 
     /// <summary>Joins a folder and file name using the server's path style (Windows or Linux).</summary>

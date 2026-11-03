@@ -118,7 +118,7 @@ public sealed class InitialsConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
-/// <summary>"D:\\Backups\\ClothingStorePOS_20261014-180000.bak" -> just the file name (the full path goes in a tooltip).</summary>
+/// <summary>"D:\\Backups\\UniPOS_20261014-180000.bak" -> just the file name (the full path goes in a tooltip).</summary>
 public sealed class FileNameConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>

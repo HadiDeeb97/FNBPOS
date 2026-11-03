@@ -7,5 +7,5 @@ namespace ClothingStore.Data;
 public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<PosDbContext>
 {
     public PosDbContext CreateDbContext(string[] args) =>
-        new(new DbContextOptionsBuilder<PosDbContext>().UseSqlServer(@"Server=(localdb)\MSSQLLocalDB;Database=ClothingStorePOS_Design;Trusted_Connection=True").Options);
+        new(new DbContextOptionsBuilder<PosDbContext>().UseSqlServer(@"Server=(localdb)\MSSQLLocalDB;Database=UniPOS_Design;Trusted_Connection=True").Options);
 }

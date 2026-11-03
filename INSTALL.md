@@ -1,4 +1,4 @@
-# Installing Clothing Store POS for a customer
+# Installing UniPOS for a customer
 
 ## 0. System requirements
 
@@ -70,7 +70,7 @@ Keep notes out of this file (put commands in this guide instead).
 
 **Every release:**
 1. Pull `main`.
-2. Raise `<Version>` in `Directory.Build.props` (e.g. `1.0.0` → `1.1.0`). On any PC, right-click `ClothingStorePOS.exe`
+2. Raise `<Version>` in `Directory.Build.props` (e.g. `1.0.0` → `1.1.0`). On any PC, right-click `UniPOS.exe`
    → **Properties → Details** shows it, so you can check every till runs the same version.
 3. In a terminal in the project folder (Visual Studio: **View → Terminal**):
 
@@ -78,7 +78,7 @@ Keep notes out of this file (put commands in this guide instead).
 dotnet publish src/ClothingStore.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
 
-The `publish` folder holds `ClothingStorePOS.exe` and `appsettings.json` (the `.pdb` files are only for diagnosing
+The `publish` folder holds `UniPOS.exe` and `appsettings.json` (the `.pdb` files are only for diagnosing
 crashes; they can be left out). The customer's PC doesn't need .NET.
 
 A release build starts a **new customer with an empty database** (no demo products, customers or demo users). For a
@@ -90,9 +90,9 @@ Before giving a new version to shops, install it once on a spare PC and go throu
 
 1. Install **SQL Server 2022 Express** (free; 2016 or newer is required, 2008/2012/2014 don't work). Choose **Basic**,
    keep the instance name `SQLEXPRESS`.
-2. Copy the `publish` folder to e.g. `C:\ClothingStorePOS\` and start `ClothingStorePOS.exe` (the first start puts a
+2. Copy the `publish` folder to e.g. `C:\UniPOS\` and start `UniPOS.exe` (the first start puts a
    shortcut on the desktop by itself).
-3. Start it. The first start creates the empty `ClothingStorePOS` database with one user: `admin` / `admin123`
+3. Start it. The first start creates the empty `UniPOS` database with one user: `admin` / `admin123`
    (a new password is required at first sign-in).
 4. **License:** without a key the app runs a **7-day free trial** (orange banner with the days left and your contact).
    To license it, the customer clicks **Enter new license key**, copies **this PC's ID** and sends it to you; make the
@@ -106,7 +106,7 @@ Before giving a new version to shops, install it once on a spare PC and go throu
 ## 3. Updating a customer
 
 Build a new `publish` folder and replace every file on the customer's PC **except `appsettings.json`**. On the next
-start the app backs up the database and upgrades it. The license stays (it's kept in `C:\ProgramData\ClothingStorePOS`).
+start the app backs up the database and upgrades it. The license stays (it's kept in `C:\ProgramData\UniPOS`).
 
 ## 4. Check before handing over (about 10 minutes per shop)
 
@@ -128,8 +128,8 @@ What depends on the shop's own PC and devices can only be tested there. Sign in 
 10. The test sales stay in the history and today's report. To leave fewer, void the card sale in **Sales history**
     *before* step 8 (a sale can only be voided while its shift is open, and not once items were returned).
 
-If anything fails, `%LocalAppData%\ClothingStorePOS\startup-errors.log` (start-up problems) and `slow-searches.log`
-(slow searches) in the same folder help find out why (type `%LocalAppData%\ClothingStorePOS` in Explorer's address bar).
+If anything fails, `%LocalAppData%\UniPOS\startup-errors.log` (start-up problems) and `slow-searches.log`
+(slow searches) in the same folder help find out why (type `%LocalAppData%\UniPOS` in Explorer's address bar).
 
 ## 5. Online reports (optional, about 5 minutes)
 
@@ -150,7 +150,7 @@ account. Only licensed shops can turn it on.
    **Set up**. The POS:
    - creates the database
    - publishes the website
-   - shows its link, like `https://pos-reports.rami-boutique-4821.workers.dev`
+   - shows its link, like `https://unipos-reports.rami-boutique-4821.workers.dev`
 
    A brand-new address can take a few minutes to start working.
 4. **On the owner's phone:** open the link and sign in with their **POS username and password**. In the browser menu,
@@ -169,7 +169,7 @@ Good to know:
 - **The token** is remembered (encrypted) only on the PC where it was pasted. That PC updates the website by itself when
   a POS update changes it. If that PC is replaced, use **Update website** or **Set up again** with a new token.
 - **To stop:** untick *Send reports to the website*, or **Remove**. To delete the website itself, delete the
-  `pos-reports` Worker and D1 database in the Cloudflare dashboard.
+  `unipos-reports` Worker and D1 database in the Cloudflare dashboard.
 - **If Chrome says the site is dangerous:** this is a known false alarm for new free `workers.dev` sites with a password
   box. Report it as a mistake, then use the Google verification code box in Settings → Online reports to verify the site
   in Google Search Console and request a review. The steps are in that box's hint and in `cloud/reports-worker/README.md`.
@@ -202,7 +202,7 @@ main PC over the shop's network. All tills share products, stock, sales, custome
    4. Click **New Query** and run this, with your own strong password:
       ```sql
       CREATE LOGIN pos WITH PASSWORD = 'Shop#Strong2026', CHECK_POLICY = OFF;
-      USE ClothingStorePOS;
+      USE UniPOS;
       CREATE USER pos FOR LOGIN pos;
       ALTER ROLE db_owner ADD MEMBER pos;
       ```
@@ -212,12 +212,12 @@ main PC over the shop's network. All tills share products, stock, sales, custome
 
 ### On each extra till
 
-1. **Don't install SQL Server.** Copy the `publish` folder to `C:\ClothingStorePOS\`.
+1. **Don't install SQL Server.** Copy the `publish` folder to `C:\UniPOS\`.
 2. Open `appsettings.json` in Notepad and set the `"Pos"` connection to the main PC:
    ```json
-   "Pos": "Server=192.168.1.10,1433;Database=ClothingStorePOS;User Id=pos;Password=Shop#Strong2026;TrustServerCertificate=True"
+   "Pos": "Server=192.168.1.10,1433;Database=UniPOS;User Id=pos;Password=Shop#Strong2026;TrustServerCertificate=True"
    ```
-3. Start `ClothingStorePOS.exe` and sign in with the **same users** as on the main PC.
+3. Start `UniPOS.exe` and sign in with the **same users** as on the main PC.
 4. **License the till:** each PC needs its own key, because keys are tied to the PC. It starts a trial; send yourself its PC ID and make a key in License Maker.
 5. **Set the till's own settings** in Settings: receipt and label printers, cash drawer, customer display, text size and font.
 

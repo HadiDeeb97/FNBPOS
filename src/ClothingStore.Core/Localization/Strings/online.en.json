@@ -1,6 +1,6 @@
 {
   "Online.Address": "Website address",
-  "Online.BadAddress": "Type the website address, like https://pos-reports.yourshop.workers.dev",
+  "Online.BadAddress": "Type the website address, like https://unipos-reports.yourshop.workers.dev",
   "Online.CloudflareFailed": "Cloudflare stopped at \"{0}\": {1}",
   "Online.Copy": "Copy",
   "Online.Enabled": "Send reports to the website (every 5 minutes, from whichever till is on)",
