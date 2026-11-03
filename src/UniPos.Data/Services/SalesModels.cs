@@ -13,6 +13,10 @@ public sealed record CheckoutRequest
 {
     public required int UserId { get; init; }
     public int? ShiftId { get; init; }
+
+    /// <summary>The till (PC ID) selling, for the features switched on there; null: the store's.</summary>
+    public string? TillId { get; init; }
+
     public int? CustomerId { get; init; }
     public required IReadOnlyList<CheckoutLine> Lines { get; init; }
     public DiscountType CartDiscountType { get; init; }

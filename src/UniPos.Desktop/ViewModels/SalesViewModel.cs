@@ -57,6 +57,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         session.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(Session.CurrentUser)) ResetSale();
+            else if (e.PropertyName == nameof(Session.Features)) OnPropertyChanged(nameof(ShowOrderSource));
         };
     }
 
@@ -598,7 +599,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
 
     /// <summary>In store, or the channel of an online order (WhatsApp, Instagram...).</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOnline), nameof(GrandTotal), nameof(TotalLbp))]
+    [NotifyPropertyChangedFor(nameof(IsOnline), nameof(ShowOrderSource), nameof(GrandTotal), nameof(TotalLbp))]
     public partial SalesChannel Channel { get; set; } = SalesChannel.InStore;
 
     [ObservableProperty]
@@ -623,6 +624,12 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
 
     public bool IsOnline => Channel != SalesChannel.InStore;
 
+    /// <summary>
+    /// The in store / online order bar: only where online orders are switched on, or for an online order already in
+    /// the cart (resumed from hold), so it can still be finished or turned back into an in-store sale.
+    /// </summary>
+    public bool ShowOrderSource => Session.Features.Delivery || IsOnline;
+
     /// <summary>Items plus the delivery fee of an online order.</summary>
     public decimal GrandTotal => Totals.Total + (IsOnline ? DeliveryFee : 0);
 
@@ -630,6 +637,8 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     [RelayCommand]
     private async Task OnlineOrderAsync()
     {
+        if (!ShowOrderSource) return; // F11 where online orders are switched off
+
         // An online order is always for someone: pick (or add) the customer first.
         if (Customer is null)
         {
@@ -777,6 +786,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
             {
                 UserId = Session.User.Id,
                 ShiftId = Session.CurrentShift?.Id,
+                TillId = Session.TillId,
                 CustomerId = Customer?.Id,
                 Lines = Items.Select(i => new CheckoutLine(i.VariantId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null)).ToList(),
                 CartDiscountType = CartDiscountType,

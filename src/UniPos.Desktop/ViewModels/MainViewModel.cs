@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
+using UniPos.Core.Features;
 using UniPos.Core.Localization;
 using UniPos.Core.Security;
 using UniPos.Data.Services;
@@ -37,13 +38,14 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     private readonly SettingsService _settings;
     private readonly UserService _users;
     private readonly BrandingService _branding;
+    private readonly FeatureService _features;
     private readonly DispatcherTimer _clock;
 
     private readonly SalesViewModel _register;
 
     public MainViewModel(
         IDialogService dialogs, NavigationService navigation, Session session, SettingsService settings, UserService users,
-        BrandingService branding, LicenseManager license, SalesViewModel register)
+        BrandingService branding, LicenseManager license, SalesViewModel register, FeatureService features)
         : base(dialogs)
     {
         _register = register;
@@ -52,34 +54,17 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         _settings = settings;
         _users = users;
         _branding = branding;
+        _features = features;
         Session = session;
         IsSidebarCollapsed = LocalPreferences.Current.SidebarCollapsed;
         UiScale.Changed += OnUiScaleChanged;
 
-        AddGroup("Nav.Group.Sell",
-            Nav<SalesViewModel>("Nav.Register", "", Permission.Sell),
-            Nav<ReturnsViewModel>("Nav.Returns", "", Permission.ProcessReturns),
-            Nav<SalesHistoryViewModel>("Nav.SalesHistory", "", Permission.Sell),
-            Nav<DeliveriesViewModel>("Nav.Deliveries", "\uE7B8", Permission.Sell),
-            Nav<ShiftViewModel>("Nav.CashDrawer", "", Permission.Sell));
-        AddGroup("Nav.Group.People",
-            Nav<CustomersViewModel>("Nav.Customers", "", Permission.ManageCustomers));
-        AddGroup("Nav.Group.Catalog",
-            Nav<ProductsViewModel>("Nav.Products", "", Permission.ViewProducts),
-            Nav<InventoryViewModel>("Nav.Inventory", "", Permission.ManageInventory),
-            Nav<CategoriesViewModel>("Nav.Categories", "", Permission.ManageProducts));
-        AddGroup("Nav.Group.Purchasing",
-            Nav<PurchaseOrdersViewModel>("Nav.PurchaseOrders", "", Permission.ManagePurchasing),
-            Nav<SuppliersViewModel>("Nav.Suppliers", "", Permission.ManagePurchasing));
-        AddGroup("Nav.Group.Insights",
-            Nav<ReportsViewModel>("Nav.Reports", "", Permission.ViewReports));
-        AddGroup("Nav.Group.Admin",
-            Nav<UsersViewModel>("Nav.Users", "", Permission.ManageCashiers),
-            Nav<SettingsViewModel>("Nav.Settings", "", Permission.ManageSettings));
+        BuildNav();
 
         _navigation.Navigated += OnNavigated;
         _navigation.PropertyChanged += OnNavigationPropertyChanged;
         _settings.SettingsChanged += OnSettingsChanged;
+        Session.PropertyChanged += OnSessionPropertyChanged;
 
         _clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
         _clock.Tick += OnClockTick;
@@ -134,8 +119,46 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         await OfferOtherDrawerAsync();
     }
 
-    private NavItem? Nav<TPage>(string titleKey, string glyph, Permission permission) where TPage : IPageViewModel =>
-        Session.Can(permission) ? new NavItem(Loc.T(titleKey), glyph, typeof(TPage), () => _navigation.NavigateToAsync<TPage>()) : null;
+    /// <summary>The menu: what this user may open, among the features switched on at this till.</summary>
+    private void BuildNav()
+    {
+        NavGroups.Clear();
+        AddGroup("Nav.Group.Sell",
+            Nav<SalesViewModel>("Nav.Register", "", Permission.Sell),
+            Nav<ReturnsViewModel>("Nav.Returns", "", Permission.ProcessReturns),
+            Nav<SalesHistoryViewModel>("Nav.SalesHistory", "", Permission.Sell),
+            Nav<DeliveriesViewModel>("Nav.Deliveries", "\uE7B8", Permission.Sell, Feature.Delivery),
+            Nav<ShiftViewModel>("Nav.CashDrawer", "", Permission.Sell));
+        AddGroup("Nav.Group.People",
+            Nav<CustomersViewModel>("Nav.Customers", "", Permission.ManageCustomers));
+        AddGroup("Nav.Group.Catalog",
+            Nav<ProductsViewModel>("Nav.Products", "", Permission.ViewProducts),
+            Nav<InventoryViewModel>("Nav.Inventory", "", Permission.ManageInventory),
+            Nav<CategoriesViewModel>("Nav.Categories", "", Permission.ManageProducts));
+        AddGroup("Nav.Group.Purchasing",
+            Nav<PurchaseOrdersViewModel>("Nav.PurchaseOrders", "", Permission.ManagePurchasing, Feature.Purchasing),
+            Nav<SuppliersViewModel>("Nav.Suppliers", "", Permission.ManagePurchasing, Feature.Purchasing));
+        AddGroup("Nav.Group.Insights",
+            Nav<ReportsViewModel>("Nav.Reports", "", Permission.ViewReports));
+        AddGroup("Nav.Group.Admin",
+            Nav<UsersViewModel>("Nav.Users", "", Permission.ManageCashiers),
+            Nav<SettingsViewModel>("Nav.Settings", "", Permission.ManageSettings));
+    }
+
+    private NavItem? Nav<TPage>(string titleKey, string glyph, Permission permission, Feature? feature = null) where TPage : IPageViewModel =>
+        Session.Can(permission) && (feature is not { } f || Session.Features.IsOn(f))
+            ? new NavItem(Loc.T(titleKey), glyph, typeof(TPage), () => _navigation.NavigateToAsync<TPage>())
+            : null;
+
+    /// <summary>Features changed (here or on another till): the menu follows, and a page switched off is left.</summary>
+    private void OnSessionPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(Session.Features)) return;
+        BuildNav();
+        OnNavigated(this, EventArgs.Empty);
+        if (_navigation.CurrentPage is { } page && NavItems.All(i => i.PageType != page.GetType()))
+            _ = NavItems.FirstOrDefault()?.NavigateCommand.ExecuteAsync(null);
+    }
 
     private void AddGroup(string titleKey, params NavItem?[] items)
     {
@@ -172,13 +195,15 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         // Every hour, re-check the license (the app may stay open for days).
         if (++_ticks % 240 == 0) await RecheckLicenseAsync();
 
-        // Every minute, pick up a rate or logo changed on another till.
+        // Every minute, pick up a rate, logo or features changed on another till.
         if (_ticks % 4 != 0) return;
         try
         {
             if (await _settings.RefreshCurrencyAsync())
                 Dialogs.Toast(Loc.T("Rate.ChangedElsewhere", _settings.Current.LbpRate.ToString("N0")));
             await Branding.Instance.RefreshAsync(_branding, onlyIfChanged: true);
+            var features = await _features.GetAsync(Session.TillId);
+            if (!features.Equals(Session.Features)) Session.Features = features;
         }
         catch
         {
@@ -350,6 +375,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         _navigation.Navigated -= OnNavigated;
         _navigation.PropertyChanged -= OnNavigationPropertyChanged;
         _settings.SettingsChanged -= OnSettingsChanged;
+        Session.PropertyChanged -= OnSessionPropertyChanged;
         UiScale.Changed -= OnUiScaleChanged;
     }
 }

@@ -1,6 +1,7 @@
 using UniPos.Core.Text;
 using UniPos.Core;
 using UniPos.Core.Entities;
+using UniPos.Core.Features;
 using UniPos.Core.Security;
 using UniPos.Data.Services;
 using UniPos.Desktop.Infrastructure;
@@ -166,10 +167,61 @@ public sealed record LanguageOption(string Code, string Name);
 public sealed record PrinterChoice(string Name, string Display);
 
 public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsService settings, BackupService backup, Session session, BrandingService branding,
-    PrintService print, OnlineReportsViewModel online) : ViewModelBase(dialogs), IPageViewModel, IDisposable
+    PrintService print, OnlineReportsViewModel online, FeatureService features) : ViewModelBase(dialogs), IPageViewModel, IDisposable
 {
     /// <summary>The Online reports section.</summary>
     public OnlineReportsViewModel Online { get; } = online;
+
+    // ---- Features (for the store, and this till's own) ----
+
+    public IReadOnlyList<Venue> Venues => Presets.All;
+
+    [ObservableProperty]
+    public partial Venue Venue { get; set; }
+
+    [ObservableProperty]
+    public partial List<FeatureRow> FeatureRows { get; set; } = [];
+
+    public string ThisTillText => Loc.T("Features.ThisTill", session.TillName);
+
+    private bool _loadingFeatures;
+
+    // Another kind of place: its defaults, which the manager can then change one by one.
+    partial void OnVenueChanged(Venue value)
+    {
+        if (!_loadingFeatures) ResetToVenue();
+    }
+
+    [RelayCommand]
+    private void ResetToVenue()
+    {
+        foreach (var row in FeatureRows) row.StoreOn = Presets.IsOn(Venue, row.Feature);
+    }
+
+    private async Task LoadFeaturesAsync()
+    {
+        var overview = await features.GetOverviewAsync(session.TillId);
+        _loadingFeatures = true;
+        try
+        {
+            Venue = overview.Venue ?? Venue.Custom;
+            FeatureRows = overview.Features.Select(f => new FeatureRow(f)).ToList();
+        }
+        finally
+        {
+            _loadingFeatures = false;
+        }
+    }
+
+    private async Task SaveFeaturesAsync()
+    {
+        await features.SaveAsync(new FeatureChoices(
+            Venue,
+            FeatureRows.ToDictionary(r => r.Feature, r => (bool?)r.StoreOn),
+            session.TillId,
+            FeatureRows.Where(r => r.CanVaryByTill).ToDictionary(r => r.Feature, r => r.TillValue)), session.User.Id);
+        session.Features = await features.GetAsync(session.TillId);
+    }
 
     public string Title => Loc.T("Nav.Settings");
     public string DatabaseName => App.DatabaseName;
@@ -462,6 +514,7 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
     {
         RefreshPrinters();
         Settings = (await settings.GetAsync()).Clone();
+        await LoadFeaturesAsync();
         Backups = await backup.GetRecentAsync(BackupsShown);
     });
 
@@ -469,6 +522,8 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
     private Task SaveAsync() => RunAsync(async () =>
     {
         SavePrinters();
+        // Features first: switching one off can be refused (work still waiting), and then nothing else is saved either.
+        await SaveFeaturesAsync();
         await settings.SaveAsync(Settings.Clone());
         Settings = (await settings.GetAsync()).Clone();
         Dialogs.Toast(Loc.T("Settings.Saved"));

@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
         // Services are stateless (each call opens its own short-lived DbContext) so singletons are safe.
         services.AddSingleton<DatabaseInitializer>();
         services.AddSingleton<SettingsService>();
+        services.AddSingleton<FeatureService>();
         services.AddSingleton<UserService>();
         services.AddSingleton<CategoryService>();
         services.AddSingleton<SupplierService>();

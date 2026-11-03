@@ -54,6 +54,7 @@ public class SettingsService(IDbContextFactory<PosDbContext> factory)
             // screen never puts back a rate someone changed while it was open.
             settings.Id = existing.Id;
             settings.LbpRate = existing.LbpRate;
+            settings.Venue = existing.Venue; // likewise, FeatureService sets it
             db.Entry(existing).CurrentValues.SetValues(settings);
         }
         await db.SaveChangesAsync(ct);

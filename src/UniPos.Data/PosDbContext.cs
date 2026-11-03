@@ -32,6 +32,7 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
     public DbSet<DeliverySettlement> DeliverySettlements => Set<DeliverySettlement>();
     public DbSet<Region> Regions => Set<Region>();
     public DbSet<DeliveryPartner> DeliveryPartners => Set<DeliveryPartner>();
+    public DbSet<FeatureSwitch> FeatureSwitches => Set<FeatureSwitch>();
 
     /// <summary>
     /// Usernames, SKUs and category/supplier names are unique regardless of case, even if the
@@ -260,7 +261,20 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
             e.Property(x => x.LoyaltyPointValue).HasPrecision(18, 4);
             e.Property(x => x.ReceiptLanguage).HasMaxLength(10);
             e.Property(x => x.CustomerDisplayMessage).HasMaxLength(200);
+            e.Property(x => x.Venue).HasConversion<string>().HasMaxLength(30);
             e.Ignore(x => x.ActiveLbpRate);
+        });
+
+        b.Entity<FeatureSwitch>(e =>
+        {
+            // By name, so features can be added anywhere in the list without changing what is stored.
+            e.Property(x => x.Feature).HasConversion<string>().HasMaxLength(50);
+            e.Property(x => x.TillId).HasMaxLength(40);
+            e.Property(x => x.Value).HasMaxLength(30).IsRequired();
+            // One row per feature for the store (no till) and per till: no filter, so the store's row is unique too.
+            e.HasIndex(x => new { x.Feature, x.TillId }).IsUnique().HasFilter(null);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ChangedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.Ignore(x => x.IsOn);
         });
 
         b.Entity<Region>(e =>

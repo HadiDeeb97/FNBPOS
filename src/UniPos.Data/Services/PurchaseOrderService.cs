@@ -43,6 +43,7 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
         PurchaseOrder entity;
         if (order.Id == 0)
         {
+            await EnsurePurchasingOnAsync(db, ct);
             var now = DateTime.Now;
             var stem = QueryHelpers.DayStem("PO", now);
             var last = await QueryHelpers.Highest(db.PurchaseOrders.Where(p => p.OrderNumber.StartsWith(stem)).Select(p => p.OrderNumber))
@@ -95,11 +96,21 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
         return (await GetAsync(entity.Id, ct))!;
     }
 
+    /// <summary>
+    /// New orders need purchasing switched on; orders already placed can still be received or cancelled, so switching it
+    /// off never strands goods on the way.
+    /// </summary>
+    private static async Task EnsurePurchasingOnAsync(PosDbContext db, CancellationToken ct)
+    {
+        if (!(await FeatureService.ReadAsync(db, null, ct)).Purchasing) throw new BusinessRuleException(Loc.T("Err.PurchasingOff"));
+    }
+
     public async Task MarkOrderedAsync(int id, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         var po = await db.PurchaseOrders.FindAsync([id], ct) ?? throw new BusinessRuleException(Loc.T("Err.PoNotFound"));
         if (po.Status != PurchaseOrderStatus.Draft) throw new BusinessRuleException(Loc.T("Err.PoOnlyDraftOrdered"));
+        await EnsurePurchasingOnAsync(db, ct);
         po.Status = PurchaseOrderStatus.Ordered;
         po.OrderedAt = DateTime.Now;
         try

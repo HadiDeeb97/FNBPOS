@@ -3,7 +3,13 @@ namespace UniPos.Core.Entities;
 /// <summary>Single-row table holding store-wide configuration.</summary>
 public class StoreSettings : Entity
 {
-    public string StoreName { get; set; } = "My Clothing Store";
+    public string StoreName { get; set; } = "My Store";
+
+    /// <summary>
+    /// The kind of place, chosen on the first-run setup screen; null until then. It decides which features are on until a
+    /// admin changes them. Changed only through <c>FeatureService</c>, never by saving this screen.
+    /// </summary>
+    public Features.Venue? Venue { get; set; }
     public string? Address { get; set; }
     public string? Phone { get; set; }
     public string? Email { get; set; }
@@ -16,7 +22,7 @@ public class StoreSettings : Entity
     public bool PricesIncludeTax { get; set; } = true;
 
     public string CurrencySymbol { get; set; } = "$";
-    public string ReceiptFooter { get; set; } = "Thank you for shopping with us!\nExchanges within 30 days with receipt.";
+    public string ReceiptFooter { get; set; } = "Thank you for your visit!";
     public int ReceiptWidth { get; set; } = 42;
 
     /// <summary>Print the store logo at the top of sale and return receipts.</summary>

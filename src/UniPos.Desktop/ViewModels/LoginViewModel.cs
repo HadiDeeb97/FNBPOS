@@ -7,7 +7,8 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace UniPos.Desktop.ViewModels;
 
-public sealed partial class LoginViewModel(IDialogService dialogs, UserService users, ShiftService shifts, SettingsService settings, Session session)
+public sealed partial class LoginViewModel(IDialogService dialogs, UserService users, ShiftService shifts, SettingsService settings,
+    FeatureService features, Session session)
     : ViewModelBase(dialogs)
 {
     public event EventHandler? SignedIn;
@@ -68,6 +69,7 @@ public sealed partial class LoginViewModel(IDialogService dialogs, UserService u
 
         // Signed in only once the drawer is known: if that lookup fails, nobody is left half signed in.
         var till = await shifts.GetTillShiftAsync(user.Id, session.TillId, session.TillName);
+        session.Features = await features.GetAsync(session.TillId);
         session.CurrentUser = user;
         session.CurrentShift = till.IsMine ? till.Shift : null;
         session.OtherDrawer = till.IsOtherCashiers ? till.Shift : null;

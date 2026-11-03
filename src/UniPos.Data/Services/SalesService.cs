@@ -33,6 +33,8 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
         var settings = await db.Settings.AsNoTracking().OrderBy(s => s.Id).FirstOrDefaultAsync(ct) ?? new StoreSettings();
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.UserId && u.IsActive, ct)
                    ?? throw new BusinessRuleException(Loc.T("Err.CashierInactive"));
+        if (request.Channel != SalesChannel.InStore && !(await FeatureService.ReadAsync(db, request.TillId, ct)).Delivery)
+            throw new BusinessRuleException(Loc.T("Err.DeliveryOff"));
 
         Shift? shift = null;
         if (request.ShiftId is { } shiftId)

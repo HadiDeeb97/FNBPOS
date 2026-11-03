@@ -1,5 +1,6 @@
 using UniPos.Core;
 using UniPos.Core.Entities;
+using UniPos.Core.Features;
 using UniPos.Core.Localization;
 using UniPos.Core.Security;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -23,6 +24,13 @@ public sealed partial class Session : ObservableObject
     /// </summary>
     [ObservableProperty]
     public partial Shift? OtherDrawer { get; set; }
+
+    /// <summary>
+    /// The features switched on at this till. Loaded at sign-in, picked up again within a minute when an admin changes
+    /// them; menus and screens hide what is off.
+    /// </summary>
+    [ObservableProperty]
+    public partial FeatureSet Features { get; set; } = FeatureSet.All;
 
     /// <summary>This PC (till): its PC ID, and its name for people to read. The cash drawer belongs to the till.</summary>
     public string TillId { get; set; } = Environment.MachineName;

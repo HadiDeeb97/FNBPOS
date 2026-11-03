@@ -394,6 +394,11 @@ public partial class App : Application
             }
         }
 
+        // A new store: what kind of place it is decides the features it starts with ("Later" asks again next time).
+        var settings = Services.GetRequiredService<SettingsService>();
+        if (settings.Current.Venue is null && session.Can(Core.Security.Permission.ManageSettings))
+            dialogs.ShowDialog(new FirstRunViewModel(dialogs, settings, Services.GetRequiredService<FeatureService>(), session));
+
         ShowMain(startPage: null);
     }
 

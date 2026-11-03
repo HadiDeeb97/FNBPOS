@@ -345,6 +345,44 @@ namespace UniPos.Data.Migrations
                     b.ToTable("ExchangeRateChanges");
                 });
 
+            modelBuilder.Entity("UniPos.Core.Entities.FeatureSwitch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ChangedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Feature")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TillId")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("Feature", "TillId")
+                        .IsUnique();
+
+                    b.ToTable("FeatureSwitches");
+                });
+
             modelBuilder.Entity("UniPos.Core.Entities.HeldSale", b =>
                 {
                     b.Property<int>("Id")
@@ -1360,6 +1398,10 @@ namespace UniPos.Data.Migrations
                         .HasPrecision(9, 4)
                         .HasColumnType("decimal(9,4)");
 
+                    b.Property<string>("Venue")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Settings");
@@ -1496,6 +1538,14 @@ namespace UniPos.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("UniPos.Core.Entities.FeatureSwitch", b =>
+                {
+                    b.HasOne("UniPos.Core.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("UniPos.Core.Entities.Payment", b =>
