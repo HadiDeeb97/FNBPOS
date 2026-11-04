@@ -23,7 +23,7 @@
   "Inventory.ReorderPrompt": "نبّهني عندما ينخفض مخزون {0} إلى أو أقل من:",
   "Inventory.RetailValue": "القيمة بسعر البيع",
   "Inventory.SaveAdjustment": "حفظ التعديل",
-  "Inventory.SearchHint": "ابحث بالمنتج أو الرمز أو اللون أو المقاس أو الباركود",
+  "Inventory.SearchHint": "ابحث عن صنف أو رمز أو باركود",
   "Inventory.StockCount": "جرد",
   "Inventory.StockCountPrompt": "الكمية المعدودة لـ {0} ({1}).\nالكمية في النظام: {2}",
   "Inventory.StockValueCost": "قيمة المخزون (بالكلفة)",

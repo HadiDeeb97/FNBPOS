@@ -18,12 +18,12 @@ public class FullReportTests
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id, CustomerId = customer.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 2)], Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 2)], Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
         });
         var online = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id, Channel = SalesChannel.Instagram, Courier = "Toters", CustomerId = customer.Id,
-            Lines = [new CheckoutLine(tee.Variants[1].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
+            Lines = [new CheckoutLine(tee.Items[1].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
         });
         await db.Returns.ProcessReturnAsync(new ReturnRequest
         {
@@ -39,16 +39,17 @@ public class FullReportTests
 
         var report = await db.Reports.GetSalesReportAsync(DateTime.Today, DateTime.Today.AddDays(1));
 
-        // Sizes and payments are filled, with each row's share of the total. Sizes are net of returns (2 S sold, 1 back).
-        Assert.Equal([("S", 1), ("M", 1)], report.BySize.Select(x => (x.Name, x.Quantity)));
-        Assert.Equal(100m, report.BySize.Sum(x => x.SharePercent));
+        // Items and payments are filled, with each row's share of the total. Items are net of returns (2 S sold, 1 back).
+        Assert.Equal([("Basic Tee S", 1), ("Basic Tee M", 1)], report.TopProducts.Select(x => (x.Name, x.Quantity)));
+        Assert.Equal(100m, Assert.Single(report.ByCategory).SharePercent);
+        Assert.Empty(report.ByOption); // no options on tees
         var payments = report.ByPaymentMethod.ToDictionary(x => x.Name);
         Assert.Equal((44m, 66.7m), (payments[Loc.EnumText(PaymentMethod.Card)].Amount, payments[Loc.EnumText(PaymentMethod.Card)].SharePercent));
         Assert.Equal(22m, payments[Loc.EnumText(PaymentMethod.Delivery)].Amount);
 
-        var product = Assert.Single(report.TopProducts);
-        // Net of the returned tee (20 net, its cost back as it was restocked), so it matches the overall profit.
-        Assert.Equal((2, 40m, 16m, 24m), (product.Quantity, product.Amount, product.Cost, product.Profit));
+        // Net of the returned tee (20 net, its cost back as it was restocked), so the items add up to the overall profit.
+        var items = report.TopProducts;
+        Assert.Equal((2, 40m, 16m, 24m), (items.Sum(p => p.Quantity), items.Sum(p => p.Amount), items.Sum(p => p.Cost), items.Sum(p => p.Profit)));
         Assert.Equal("Rana Haddad", Assert.Single(report.TopCustomers).Name);
         Assert.Equal(DateTime.Now.Hour, Assert.Single(report.ByHour).Hour);
         Assert.Equal(("Wrong size", 1), (Assert.Single(report.ReturnsByReason).Name, report.ReturnsByReason[0].Count));
@@ -69,12 +70,12 @@ public class FullReportTests
         var tee = await db.CreateTeeAsync(stockEach: 3, cost: 8m); // reorder level 2
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 2)], Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
+            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 2)], Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
         });
 
         var alerts = await db.Reports.GetStockAlertsAsync(DateTime.Today, DateTime.Today.AddDays(1));
         var low = Assert.Single(alerts.LowStock);
-        Assert.Equal((tee.Variants[0].Sku, 1), (low.Sku, low.Stock));
+        Assert.Equal((tee.Items[0].Sku, 1), (low.Sku, low.Stock));
         Assert.NotNull(low.LastSold);
         Assert.Equal(2, alerts.SlowMovers.Count); // the two sizes that didn't sell
         Assert.All(alerts.SlowMovers, s => Assert.Equal(24m, s.CostValue));

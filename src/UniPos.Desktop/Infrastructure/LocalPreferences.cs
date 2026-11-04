@@ -5,7 +5,7 @@ using UniPos.Core;
 namespace UniPos.Desktop.Infrastructure;
 
 /// <summary>
-/// Per-PC preferences (language on the sign-in screen, sidebar, panel sizes and column widths, printers), kept in
+/// Per-PC preferences (language on the sign-in screen, sidebar, panel sizes and column widths, printer), kept in
 /// %LocalAppData%\UniPOS\preferences.json. Losing the file only resets the layout.
 /// </summary>
 public sealed class LocalPreferences
@@ -20,14 +20,8 @@ public sealed class LocalPreferences
     public bool SidebarCollapsed { get; set; }
     public Dictionary<string, string> Layout { get; set; } = [];
 
-    /// <summary>Label size and content last used on this PC (each PC has its own label printer).</summary>
-    public Services.LabelOptions? Labels { get; set; }
-
     /// <summary>Printer receipts go to without asking (null = show the Windows print dialog).</summary>
     public string? ReceiptPrinter { get; set; }
-
-    /// <summary>Printer price labels go to without asking (null = show the Windows print dialog).</summary>
-    public string? LabelPrinter { get; set; }
 
     /// <summary>A cash drawer is plugged into this PC's receipt printer (opened by a signal sent to the printer).</summary>
     public bool CashDrawer { get; set; }

@@ -299,7 +299,7 @@
                                   infra:WheelToParent.IsEnabled="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding ProductName}" Width="*" MinWidth="140" />
-                                <DataGridTextColumn Header="{l:T History.Variant}" Binding="{Binding VariantDescription}" Width="Auto" MinWidth="100" />
+                                <DataGridTextColumn Header="{l:T History.Options}" Binding="{Binding Options}" Width="Auto" MinWidth="100" />
                                 <DataGridTemplateColumn Header="{l:T Common.Price}" Width="Auto" MinWidth="90">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>

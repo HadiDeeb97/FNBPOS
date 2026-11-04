@@ -1,6 +1,7 @@
 using System.Text.Json;
 using UniPos.Core;
 using UniPos.Core.Entities;
+using UniPos.Core.Menu;
 using UniPos.Core.Pricing;
 using UniPos.Core.Security;
 using UniPos.Core.Text;
@@ -51,29 +52,32 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
             customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == customerId, ct)
                        ?? throw new BusinessRuleException(Loc.T("Err.CustomerNotFound"));
 
-        // Load variants and price the cart with server-side prices.
-        var variantIds = request.Lines.Select(l => l.VariantId).Distinct().ToList();
-        var variants = await db.ProductVariants
-            .Include(v => v.Product).ThenInclude(p => p!.Category)
-            .Where(v => variantIds.Contains(v.Id))
-            .ToDictionaryAsync(v => v.Id, ct);
+        // Load the items with their options (tracked: their stock changes) and price the cart with server-side prices.
+        var productIds = request.Lines.Select(l => l.ProductId).Distinct().ToList();
+        var products = await ProductService.WithOptions(db.Products)
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
 
+        var priced = new List<PricedLine>();
         foreach (var line in request.Lines)
         {
-            if (!variants.TryGetValue(line.VariantId, out var v) || !v.IsActive || !v.Product!.IsActive)
+            if (!products.TryGetValue(line.ProductId, out var p) || !p.IsActive)
                 throw new BusinessRuleException(Loc.T("Err.ItemUnavailable"));
+            if (p.SoldOut) throw new BusinessRuleException(Loc.T("Err.ItemSoldOut", p.Name));
+            if (ModifierRules.Problem(p, line.PickedOptions) is { } problem) throw new BusinessRuleException(problem);
+            var options = ModifierRules.Ordered(p, line.PickedOptions);
+            priced.Add(new PricedLine(line, p, options, ModifierRules.Price(p, options), ModifierRules.Cost(p, options)));
         }
 
-        // The price charged: the shelf price, or one typed at the till (to the cent, and more than nothing).
+        // The price charged: the menu price, or one typed at the till (to the cent, and more than nothing).
         if (request.Lines.Any(l => l.UnitPrice is { } typed && Money.Round(typed) <= 0))
             throw new BusinessRuleException(Loc.T("Err.PriceMustBePositive"));
-        decimal PriceOf(CheckoutLine line) => line.UnitPrice is { } typed ? Money.Round(typed) : variants[line.VariantId].EffectivePrice;
 
         var totals = CartCalculator.Calculate(
-            request.Lines.Select(l => new CartLineInput(PriceOf(l), l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
+            priced.Select(l => new CartLineInput(l.Charged, l.Request.Quantity, l.Request.DiscountType, l.Request.DiscountValue)).ToList(),
             request.CartDiscountType, request.CartDiscountValue, settings.TaxRate, settings.PricesIncludeTax);
 
-        await EnforcePriceRulesAsync(db, user, request, totals, variants, settings, ct);
+        await EnforcePriceRulesAsync(db, user, request, totals, priced, settings, ct);
 
         // Payments.
         var sale = new Sale
@@ -101,27 +105,30 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
 
         // Lines + stock.
         sale.ReceiptNumber = await NextReceiptNumberAsync(db, settings.ReceiptPrefix, sale.CreatedAt, ct);
-        for (var i = 0; i < request.Lines.Count; i++)
+        for (var i = 0; i < priced.Count; i++)
         {
-            var req = request.Lines[i];
-            var v = variants[req.VariantId];
+            var l = priced[i];
             var r = totals.Lines[i];
             sale.Lines.Add(new SaleLine
             {
-                ProductVariantId = v.Id,
-                ProductName = v.Product!.Name,
-                VariantDescription = v.Description,
-                Sku = v.Sku,
-                CategoryName = v.Product.Category?.Name,
-                UnitPrice = PriceOf(req),
-                ListPrice = PriceOf(req) != v.EffectivePrice ? v.EffectivePrice : null,
-                UnitCost = v.EffectiveCost,
-                Quantity = req.Quantity,
+                ProductId = l.Product.Id,
+                ProductName = l.Product.Name,
+                Options = ModifierRules.Describe(l.Options),
+                Sku = l.Product.Sku,
+                CategoryName = l.Product.Category?.Name,
+                UnitPrice = l.Charged,
+                ListPrice = l.Charged != l.MenuPrice ? l.MenuPrice : null,
+                UnitCost = l.Cost,
+                Quantity = l.Request.Quantity,
                 DiscountAmount = r.Discount,
                 TaxAmount = r.Tax,
                 LineTotal = r.Total,
+                Modifiers = l.Options.Select(o => new SaleLineModifier
+                {
+                    ModifierId = o.Id, GroupName = o.ModifierGroup!.Name, Name = o.Name, Price = o.Price, Cost = o.Cost,
+                }).ToList(),
             });
-            StockLedger.Apply(db, v, -req.Quantity, StockMovementType.Sale, user.Id, sale.ReceiptNumber,
+            StockLedger.Apply(db, l.Product, -l.Request.Quantity, StockMovementType.Sale, user.Id, sale.ReceiptNumber,
                 allowNegative: settings.AllowNegativeStock);
         }
 
@@ -146,14 +153,14 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
     /// discounts together), or to sell anything below cost.
     /// </summary>
     private static async Task EnforcePriceRulesAsync(PosDbContext db, User user, CheckoutRequest request, CartTotals totals,
-        IReadOnlyDictionary<int, ProductVariant> variants, StoreSettings settings, CancellationToken ct)
+        IReadOnlyList<PricedLine> lines, StoreSettings settings, CancellationToken ct)
     {
         if (Permissions.Has(user.Role, Permission.OverrideDiscountLimit)) return;
 
-        var reduction = PriceRules.ReductionPercent(request.Lines.Select(l => (variants[l.VariantId].EffectivePrice, l.Quantity)).ToList(), totals);
-        var belowCost = request.Lines
-            .Where((l, i) => PriceRules.IsBelowCost(totals.Lines[i], l.Quantity, variants[l.VariantId].EffectiveCost))
-            .Select(l => variants[l.VariantId].DisplayName)
+        var reduction = PriceRules.ReductionPercent(lines.Select(l => (l.MenuPrice, l.Request.Quantity)).ToList(), totals);
+        var belowCost = lines
+            .Where((l, i) => PriceRules.IsBelowCost(totals.Lines[i], l.Request.Quantity, l.Cost))
+            .Select(l => l.Product.Name)
             .ToList();
         if (reduction <= settings.MaxCashierDiscountPercent && belowCost.Count == 0) return;
 
@@ -250,6 +257,13 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
             sale.LoyaltyPointsEarned = (int)Math.Floor(earningSpend * settings.LoyaltyPointsPerUnit);
             customer.LoyaltyPoints += sale.LoyaltyPointsEarned;
         }
+    }
+
+    /// <summary>A cart line with its item and options as they are now, and what one costs the customer and the store.</summary>
+    private sealed record PricedLine(CheckoutLine Request, Product Product, List<Modifier> Options, decimal MenuPrice, decimal Cost)
+    {
+        /// <summary>The menu price, or the one typed at the till.</summary>
+        public decimal Charged => Request.UnitPrice is { } typed ? Money.Round(typed) : MenuPrice;
     }
 
     internal static bool IsCash(PaymentMethod method) => method is PaymentMethod.Cash or PaymentMethod.CashLbp;
@@ -414,7 +428,7 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
             throw new BusinessRuleException(Loc.T("Err.OnlyManagersVoid"));
 
         var sale = await db.Sales
-            .Include(s => s.Lines).ThenInclude(l => l.ProductVariant)
+            .Include(s => s.Lines).ThenInclude(l => l.Product)
             .Include(s => s.Payments)
             .Include(s => s.Customer)
             .Include(s => s.Shift)
@@ -431,7 +445,7 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
 
         foreach (var line in sale.Lines)
         {
-            StockLedger.Apply(db, line.ProductVariant!, line.Quantity, StockMovementType.Void, userId, sale.ReceiptNumber, "Sale voided");
+            StockLedger.Apply(db, line.Product!, line.Quantity, StockMovementType.Void, userId, sale.ReceiptNumber, "Sale voided");
             // Checked on save, so a return taken at another till meanwhile stops the void.
             db.Entry(line).Property(l => l.ReturnedQuantity).IsModified = true;
         }
@@ -472,7 +486,7 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
             throw new BusinessRuleException(Loc.T("Err.OnlyManagersDelete"));
 
         var sale = await db.Sales
-            .Include(s => s.Lines).ThenInclude(l => l.ProductVariant)
+            .Include(s => s.Lines).ThenInclude(l => l.Product)
             .Include(s => s.Payments)
             .Include(s => s.Customer)
             .Include(s => s.Shift)
@@ -489,7 +503,7 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
         if (sale.Status != SaleStatus.Voided)
         {
             foreach (var line in sale.Lines)
-                StockLedger.Apply(db, line.ProductVariant!, line.Quantity, StockMovementType.SaleDeleted, userId, sale.ReceiptNumber, "Sale deleted");
+                StockLedger.Apply(db, line.Product!, line.Quantity, StockMovementType.SaleDeleted, userId, sale.ReceiptNumber, "Sale deleted");
             if (sale.Customer is { } customer)
             {
                 customer.StoreCredit += sale.Payments.Where(p => p.Method == PaymentMethod.StoreCredit).Sum(p => p.Amount);

@@ -144,7 +144,7 @@
   "Err.ShiftNotFound": "Shift not found.",
   "Err.ShiftOpenOnTill": "You still have an open drawer on PC {0}. Close it there, or ask a manager to close it.",
   "Err.SkuTwice": "SKU '{0}' is listed twice.",
-  "Err.SkuUsed": "SKU '{0}' is already used by another item.",
+  "Err.SkuUsed": "Code '{0}' is already used by another item.",
   "Err.StockChangedReceiving": "Stock changed while receiving. Please try again.",
   "Err.StockChangedRefresh": "Stock for this item changed while you were editing. Please refresh and try again.",
   "Err.StoreNameRequired": "Store name is required.",

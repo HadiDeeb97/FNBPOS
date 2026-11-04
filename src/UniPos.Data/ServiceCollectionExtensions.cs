@@ -21,7 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CategoryService>();
         services.AddSingleton<SupplierService>();
         services.AddSingleton<ProductService>();
-        services.AddSingleton<SizePresetService>();
+        services.AddSingleton<ModifierService>();
         services.AddSingleton<InventoryService>();
         services.AddSingleton<CustomerService>();
         services.AddSingleton<SalesService>();

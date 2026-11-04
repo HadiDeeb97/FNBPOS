@@ -16,12 +16,12 @@ public class ShiftAndReportTests
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 50m)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 50m)],
         }); // 22 cash
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[1].Id, 2)], Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
+            Lines = [new CheckoutLine(tee.Items[1].Id, 2)], Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
         });
         await db.Shifts.AddCashMovementAsync(shift.Id, CashMovementType.PayOut, 12.5m, "Window cleaner", db.Cashier.Id);
         await db.Shifts.AddCashMovementAsync(shift.Id, CashMovementType.PayIn, 20m, "Change from bank", db.Cashier.Id);
@@ -47,7 +47,7 @@ public class ShiftAndReportTests
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 2), new CheckoutLine(tee.Variants[1].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 2), new CheckoutLine(tee.Items[1].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Card, 66m)],
         }); // 60 net + 6 tax
         await db.Returns.ProcessReturnAsync(new ReturnRequest
@@ -94,17 +94,19 @@ public class ShiftAndReportTests
     }
 
     [Fact]
-    public async Task Demo_seed_produces_a_usable_catalogue()
+    public async Task Demo_seed_produces_a_usable_menu()
     {
         await using var db = await TestDatabase.CreateAsync();
         await new Data.Seeding.DatabaseInitializer(db.Factory).InitializeAsync(seedDemoData: true);
-        // Products already existed from nothing -> demo seeded now.
         var products = await db.Products.SearchAsync();
         Assert.True(products.Count >= 15);
-        var hit = await db.Products.SearchVariantsAsync("oxford blue");
-        Assert.NotEmpty(hit);
-        Assert.All(hit, v => Assert.Equal("Classic Oxford Shirt", v.Product!.Name));
-        var byCode = await db.Products.FindByCodeAsync(hit[0].Barcode!);
-        Assert.Equal(hit[0].Id, byCode!.Id);
+        // Every item's options can actually be ordered: a required group always has options to pick.
+        Assert.All(products.SelectMany(p => p.ModifierGroups), g => Assert.True(g.ModifierGroup!.Options.Count >= g.ModifierGroup.MinChoices));
+
+        var hit = await db.Products.SearchItemsAsync("lotus crepe");
+        Assert.Equal("Lotus crepe", Assert.Single(hit).Name);
+        var water = await db.Products.FindByCodeAsync("5281006400016");
+        Assert.Equal(("Water 500 ml", true), (water!.Name, water.TrackStock));
+        Assert.Equal(water.Id, (await db.Products.FindByCodeAsync(water.Sku))!.Id);
     }
 }

@@ -40,7 +40,7 @@
   "Purchasing.Received": "المستلم",
   "Purchasing.ReceivedFormat": "استُلم: {0}",
   "Purchasing.SaveOrder": "حفظ الطلب",
-  "Purchasing.SearchHint": "المنتج أو الرمز أو الباركود…",
+  "Purchasing.SearchHint": "صنف، رمز، باركود… (الأصناف المعدودة فقط)",
   "Purchasing.SelectHint": "اختر طلباً لعرض أصنافه.",
   "Purchasing.SupplierRequired": "المورّد *",
   "Purchasing.UnitCost": "كلفة القطعة",

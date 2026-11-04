@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using UniPos.Core;
 using UniPos.Core.Entities;
-using UniPos.Core.Text;
 using UniPos.Data.Services;
 using UniPos.Desktop.Infrastructure;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -10,106 +9,70 @@ using UniPos.Core.Localization;
 
 namespace UniPos.Desktop.ViewModels.Dialogs;
 
-public sealed partial class VariantRowViewModel : ObservableObject
+/// <summary>A modifier group in the item editor: ticked when the item asks it, in the order shown.</summary>
+public sealed partial class GroupLink(ModifierGroup group, bool isChecked) : ObservableObject
 {
-    public int Id { get; init; }
-    public bool IsNew => Id == 0;
+    public ModifierGroup Group { get; } = group;
+    public string Name => Group.Name;
 
-    [ObservableProperty] public partial string Size { get; set; } = "";
-    [ObservableProperty] public partial string Color { get; set; } = "";
-    [ObservableProperty] public partial string? Sku { get; set; }
-    [ObservableProperty] public partial string? Barcode { get; set; }
-    [ObservableProperty] public partial decimal? PriceOverride { get; set; }
-    [ObservableProperty] public partial decimal? CostOverride { get; set; }
-    [ObservableProperty] public partial int StockQuantity { get; set; }
-    [ObservableProperty] public partial int ReorderLevel { get; set; } = 2;
-    [ObservableProperty] public partial bool IsActive { get; set; } = true;
-
-    public ProductVariant ToEntity() => new()
-    {
-        Id = Id, Size = Size ?? "", Color = Color ?? "", Sku = Sku ?? "", Barcode = Barcode,
-        PriceOverride = PriceOverride, CostOverride = CostOverride, StockQuantity = StockQuantity,
-        ReorderLevel = ReorderLevel, IsActive = IsActive,
-    };
-}
-
-/// <summary>A size button: one of the built-in ones, or one the store added (those can be removed).</summary>
-public sealed record SizePreset(string Name, string Sizes, bool IsCustom = false);
-
-/// <summary>A colour button under the colours box: a click adds the colour to the list, or takes it off again.</summary>
-public sealed partial class ColorChoice(string name) : ObservableObject
-{
-    public string Name { get; } = name;
-
-    /// <summary>A dot in the colour for well-known names ("#111827" for Black); null for the shop's own names.</summary>
-    public string? Swatch { get; } = Core.Text.ColorNames.Swatch(name);
-
-    public bool HasSwatch => Swatch is not null;
-
-    /// <summary>The first letter, shown in the dot of a colour with no swatch ("R" for "Rami's special").</summary>
-    public string Initial { get; } = name.Trim() is { Length: > 0 } n ? n[..1].ToUpperInvariant() : "";
+    /// <summary>"Pick 1 · Small, Medium, Large".</summary>
+    public string Summary { get; } = ModifierGroupsViewModel.RuleText(group) + " · " + string.Join(", ", group.Options.Select(o => o.Name));
 
     [ObservableProperty]
-    public partial bool IsSelected { get; set; }
+    public partial bool IsChecked { get; set; } = isChecked;
 }
 
-/// <summary>Create/edit a style with its size × colour matrix.</summary>
+/// <summary>Create or edit a menu item: price, code, stock, and the modifier groups it asks.</summary>
 public sealed partial class ProductEditorViewModel : DialogViewModelBase
 {
-    public override System.Windows.Size? WindowSize => new(width: 1280, height: 720);
+    public override System.Windows.Size? WindowSize => new(width: 1040, height: 720);
 
     private readonly ProductService _products;
-    private readonly SizePresetService _sizePresets;
     private readonly Session _session;
 
-    /// <summary>The product being edited; 0 for a new one (also after "Save &amp; add new").</summary>
+    /// <summary>The item being edited; 0 for a new one (also after "Save &amp; add new").</summary>
     private int _id;
 
-    private ProductEditorViewModel(IDialogService dialogs, ProductService products, SizePresetService sizePresets, Session session, Product? product) : base(dialogs)
+    private ProductEditorViewModel(IDialogService dialogs, ProductService products, Session session, Product? product) : base(dialogs)
     {
         _products = products;
-        _sizePresets = sizePresets;
         _session = session;
         _id = product?.Id ?? 0;
         if (product is null) return;
 
         Name = product.Name;
-        Brand = product.Brand;
-        StyleCode = product.StyleCode;
         Description = product.Description;
-        Season = product.Season;
-        Material = product.Material;
-        Gender = product.Gender;
+        Code = product.Sku;
+        Barcode = product.Barcode;
         Price = product.Price;
         Cost = product.Cost;
         IsActive = product.IsActive;
-        foreach (var v in product.Variants.OrderBy(v => v.Color).ThenBy(v => v.Id))
-        {
-            Variants.Add(new VariantRowViewModel
-            {
-                Id = v.Id, Size = v.Size, Color = v.Color, Sku = v.Sku, Barcode = v.Barcode, PriceOverride = v.PriceOverride,
-                CostOverride = v.CostOverride, StockQuantity = v.StockQuantity, ReorderLevel = v.ReorderLevel, IsActive = v.IsActive,
-            });
-        }
+        SoldOut = product.SoldOut;
+        TrackStock = product.TrackStock;
+        ReorderLevel = product.ReorderLevel;
+        StockOnHand = product.StockQuantity;
     }
 
     public static async Task<ProductEditorViewModel> CreateAsync(
         IDialogService dialogs, ProductService products, CategoryService categories, SupplierService suppliers,
-        SizePresetService sizePresets, Session session, Product? product)
+        ModifierService modifiers, Session session, Product? product)
     {
-        var vm = new ProductEditorViewModel(dialogs, products, sizePresets, session, product)
+        var vm = new ProductEditorViewModel(dialogs, products, session, product)
         {
-            // Active ones, plus the product's own even if it was deactivated since: otherwise saving would quietly move
-            // the product to another category or drop its supplier.
+            // Active ones, plus the item's own even if it was deactivated since: otherwise saving would quietly move
+            // the item to another category or drop its supplier.
             Categories = (await categories.GetAllAsync(includeInactive: true)).Where(c => c.IsActive || c.Id == product?.CategoryId).ToList(),
             Suppliers = (await suppliers.GetAllAsync(includeInactive: true)).Where(s => s.IsActive || s.Id == product?.SupplierId).ToList(),
         };
         vm.SelectedCategory = vm.Categories.FirstOrDefault(c => c.Id == product?.CategoryId) ?? vm.Categories.FirstOrDefault();
         vm.SelectedSupplier = vm.Suppliers.FirstOrDefault(s => s.Id == product?.SupplierId);
-        try { vm.ShowPresets(await sizePresets.GetAllAsync()); }
-        catch { /* the built-in buttons are enough to work with */ }
-        try { vm.ShowColors(await products.GetColorsAsync()); }
-        catch { vm.ShowColors([]); /* the common colours are enough to work with */ }
+
+        // The item's groups first, in its order, then the others A–Z.
+        var all = await modifiers.GetGroupsAsync(includeInactive: true);
+        var own = product?.ModifierGroups.OrderBy(g => g.SortOrder).Select(g => g.ModifierGroupId).ToList() ?? [];
+        foreach (var id in own)
+            if (all.FirstOrDefault(g => g.Id == id) is { } group) vm.Groups.Add(new GroupLink(group, isChecked: true));
+        foreach (var group in all.Where(g => g.IsActive && !own.Contains(g.Id))) vm.Groups.Add(new GroupLink(group, isChecked: false));
         return vm;
     }
 
@@ -117,10 +80,10 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
 
     public bool IsNew => _id == 0;
 
-    /// <summary>"Save &amp; add new" for a new product; for one being edited it saves and starts a similar new one.</summary>
+    /// <summary>"Save &amp; add new" for a new item; for one being edited it saves and starts a similar new one.</summary>
     public string SaveAndNewText => IsNew ? Loc.T("ProductEditor.SaveAndNew") : Loc.T("ProductEditor.SaveAndSimilar");
 
-    /// <summary>"Save &amp; add new" keeps everything but the name for the next product (remembered on this PC).</summary>
+    /// <summary>"Save &amp; add new" keeps everything but the name for the next item (remembered on this PC).</summary>
     [ObservableProperty]
     public partial bool KeepDetails { get; set; } = LocalPreferences.Current.KeepProductDetails;
 
@@ -130,239 +93,56 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
         LocalPreferences.Current.Save();
     }
 
-    /// <summary>"Saved "Abaya Classic" ✓" after "Save &amp; add new", so it's clear the last one went in.</summary>
+    /// <summary>"Saved "Nutella crepe" ✓" after "Save &amp; add new", so it's clear the last one went in.</summary>
     [ObservableProperty]
     public partial string? SavedMessage { get; private set; }
 
-    /// <summary>At least one product was saved, even if the window is then cancelled: the list should refresh.</summary>
+    /// <summary>At least one item was saved, even if the window is then cancelled: the list should refresh.</summary>
     public bool SavedAny { get; private set; }
 
-    /// <summary>Asks the view to put the cursor in the name box (ready for the next product).</summary>
+    /// <summary>Asks the view to put the cursor in the name box (ready for the next item).</summary>
     public event EventHandler? FocusNameRequested;
 
     public List<Category> Categories { get; private init; } = [];
     public List<Supplier> Suppliers { get; private init; } = [];
-    public Gender[] Genders { get; } = Enum.GetValues<Gender>();
-
-    // Built each time, so the names follow a language changed since the app started.
-    private static SizePreset[] BuiltInPresets() =>
-    [
-        new(Loc.T("ProductEditor.Preset.Letters"), "XS, S, M, L, XL, XXL"),
-        new(Loc.T("ProductEditor.Preset.LettersShort"), "S, M, L, XL"),
-        new(Loc.T("ProductEditor.Preset.Women"), "4, 6, 8, 10, 12, 14, 16"),
-        new(Loc.T("ProductEditor.Preset.Waist"), "28, 30, 32, 34, 36, 38"),
-        new(Loc.T("ProductEditor.Preset.Shoes"), "36, 37, 38, 39, 40, 41, 42, 43, 44, 45"),
-        new(Loc.T("ProductEditor.Preset.Kids"), "2Y, 4Y, 6Y, 8Y, 10Y, 12Y, 14Y"),
-        new(Loc.T("ProductEditor.Preset.OneSize"), "One Size"),
-    ];
-
-    /// <summary>Built-in size buttons, then the store's own (shared by every till).</summary>
-    [ObservableProperty]
-    public partial List<SizePreset> SizePresets { get; private set; } = [.. BuiltInPresets()];
-
-    private void ShowPresets(IEnumerable<CustomSizePreset> custom) =>
-        SizePresets = [.. BuiltInPresets(), .. custom.Select(p => new SizePreset(p.Name, p.Sizes, IsCustom: true))];
-
-    /// <summary>Makes a button of the sizes typed in the box, for the next products.</summary>
-    [RelayCommand]
-    private async Task SavePresetAsync()
-    {
-        var sizes = SizePresetService.Normalize(SizesText);
-        if (sizes.Length == 0)
-        {
-            Dialogs.Warning(Loc.T("Err.PresetSizesRequired"));
-            return;
-        }
-        var parts = sizes.Split(", ");
-        var suggestion = parts.Length > 1 ? $"{parts[0]}–{parts[^1]}" : parts[0];
-        var name = Dialogs.Prompt(Loc.T("ProductEditor.SavePreset"), Loc.T("ProductEditor.PresetNamePrompt", sizes), suggestion);
-        if (name is null) return;
-        List<CustomSizePreset> saved = [];
-        // The new button appearing is the confirmation (a toast would be hidden behind this window).
-        if (await RunAsync(async () => saved = await _sizePresets.AddAsync(name, sizes))) ShowPresets(saved);
-    }
-
-    [RelayCommand]
-    private async Task RemovePresetAsync(SizePreset? preset)
-    {
-        if (preset is not { IsCustom: true } || !Dialogs.Confirm(Loc.T("ProductEditor.PresetRemoveConfirm", preset.Name))) return;
-        List<CustomSizePreset> left = [];
-        if (await RunAsync(async () => left = await _sizePresets.RemoveAsync(preset.Name))) ShowPresets(left);
-    }
 
     [ObservableProperty] public partial string Name { get; set; } = "";
-    [ObservableProperty] public partial string? Brand { get; set; }
-    [ObservableProperty] public partial string? StyleCode { get; set; }
     [ObservableProperty] public partial string? Description { get; set; }
-    [ObservableProperty] public partial string? Season { get; set; }
-    [ObservableProperty] public partial string? Material { get; set; }
-    [ObservableProperty] public partial Gender Gender { get; set; }
+    [ObservableProperty] public partial string? Code { get; set; }
+    [ObservableProperty] public partial string? Barcode { get; set; }
     [ObservableProperty] public partial decimal Price { get; set; }
     [ObservableProperty] public partial decimal Cost { get; set; }
     [ObservableProperty] public partial bool IsActive { get; set; } = true;
+    [ObservableProperty] public partial bool SoldOut { get; set; }
+    [ObservableProperty] public partial bool TrackStock { get; set; }
+    [ObservableProperty] public partial int OpeningStock { get; set; }
+    [ObservableProperty] public partial int ReorderLevel { get; set; } = 2;
     [ObservableProperty] public partial Category? SelectedCategory { get; set; }
     [ObservableProperty] public partial Supplier? SelectedSupplier { get; set; }
+
+    /// <summary>Stock of an item being edited (changed on the stock screen, not here).</summary>
+    public int StockOnHand { get; }
 
     public string MarginText => Price <= 0 ? "" : Loc.T("ProductEditor.Margin", (Price - Cost) / Price * 100m);
 
     partial void OnPriceChanged(decimal value) => OnPropertyChanged(nameof(MarginText));
     partial void OnCostChanged(decimal value) => OnPropertyChanged(nameof(MarginText));
 
-    public ObservableCollection<VariantRowViewModel> Variants { get; } = [];
+    /// <summary>Every modifier group, the ones this item asks ticked, in the order the till asks them.</summary>
+    public ObservableCollection<GroupLink> Groups { get; } = [];
 
-    [ObservableProperty] public partial string SizesText { get; set; } = "S, M, L, XL";
-    [ObservableProperty] public partial string ColorsText { get; set; } = "";
-
-    /// <summary>Colour buttons shown before "Show all" (about two rows).</summary>
-    private const int ColorButtonsFolded = 14;
-
-    /// <summary>Colours used in this app run, newest first: shown first, also before they reach the database.</summary>
-    private static readonly List<string> RecentColors = [];
-
-    /// <summary>The shop's colours, most used first, then the common ones (in the app's language): offered while typing.</summary>
-    [ObservableProperty]
-    public partial List<string> ColorSuggestions { get; private set; } = [.. ColorNames.All(Loc.IsRightToLeft)];
-
-    private IReadOnlyList<string> _shopColors = [];
-    private List<ColorChoice> _yourColors = [];
-    private List<ColorChoice> _commonColors = [];
-
-    /// <summary>The shop's own colours on show (all of them after "Show all").</summary>
-    public ObservableCollection<ColorChoice> YourColorChoices { get; } = [];
-
-    /// <summary>Common colours the shop hasn't used yet, on show.</summary>
-    public ObservableCollection<ColorChoice> CommonColorChoices { get; } = [];
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowAllColorsText))]
-    public partial bool ShowAllColors { get; set; }
-
-    public bool HasYourColors => YourColorChoices.Count > 0;
-    public bool HasCommonColors => CommonColorChoices.Count > 0;
-    public bool CanShowAllColors => _yourColors.Count + _commonColors.Count > ColorButtonsFolded;
-    public string ShowAllColorsText => ShowAllColors ? Loc.T("ProductEditor.ColoursFewer") : Loc.T("ProductEditor.ColoursAll", _yourColors.Count + _commonColors.Count);
-
-    /// <summary>"3 selected" next to the colour buttons; empty when none.</summary>
-    public string SelectedColorsText => ColorNames.Split(ColorsText).Count is var n and > 0 ? Loc.T("ProductEditor.ColoursSelected", n) : "";
-
-    private void ShowColors(IReadOnlyList<string> shopColors)
+    [RelayCommand]
+    private void MoveGroupUp(GroupLink link)
     {
-        _shopColors = shopColors;
-        ColorSuggestions = RecentColors.Concat(shopColors).Concat(ColorNames.All(Loc.IsRightToLeft)).DistinctBy(SmartSearch.Fold).ToList();
-        var (yours, common) = ColorNames.Buttons(shopColors, RecentColors, Loc.IsRightToLeft);
-        _yourColors = yours.Select(n => new ColorChoice(n)).ToList();
-        _commonColors = common.Select(n => new ColorChoice(n)).ToList();
-        FillColorButtons();
-    }
-
-    /// <summary>Remembers colours just used, so they come first and are offered at once (the next product included).</summary>
-    private void RememberColors(IEnumerable<string> colors)
-    {
-        foreach (var color in colors.Where(c => !string.IsNullOrWhiteSpace(c)).Reverse())
-        {
-            RecentColors.RemoveAll(c => SmartSearch.Fold(c) == SmartSearch.Fold(color));
-            RecentColors.Insert(0, color.Trim());
-        }
-        if (RecentColors.Count > 12) RecentColors.RemoveRange(12, RecentColors.Count - 12);
-        ShowColors(_shopColors);
-    }
-
-    partial void OnShowAllColorsChanged(bool value) => FillColorButtons();
-
-    /// <summary>Folded: the first buttons only, the shop's own first, topped up with common colours.</summary>
-    private void FillColorButtons()
-    {
-        var yours = ShowAllColors ? _yourColors : _yourColors.Take(ColorButtonsFolded).ToList();
-        var common = ShowAllColors ? _commonColors : _commonColors.Take(Math.Max(0, ColorButtonsFolded - yours.Count)).ToList();
-        YourColorChoices.Clear();
-        foreach (var c in yours) YourColorChoices.Add(c);
-        CommonColorChoices.Clear();
-        foreach (var c in common) CommonColorChoices.Add(c);
-        OnPropertyChanged(nameof(HasYourColors));
-        OnPropertyChanged(nameof(HasCommonColors));
-        OnPropertyChanged(nameof(CanShowAllColors));
-        OnPropertyChanged(nameof(ShowAllColorsText));
-        MarkChosenColors();
-    }
-
-    partial void OnColorsTextChanged(string value)
-    {
-        MarkChosenColors();
-        OnPropertyChanged(nameof(SelectedColorsText));
-    }
-
-    private void MarkChosenColors()
-    {
-        var chosen = ColorNames.Split(ColorsText).Select(SmartSearch.Fold).ToHashSet();
-        foreach (var choice in _yourColors.Concat(_commonColors)) choice.IsSelected = chosen.Contains(SmartSearch.Fold(choice.Name));
+        var i = Groups.IndexOf(link);
+        if (i > 0) Groups.Move(i, i - 1);
     }
 
     [RelayCommand]
-    private void ToggleShowAllColors() => ShowAllColors = !ShowAllColors;
-
-    /// <summary>Takes every colour off the colours box.</summary>
-    [RelayCommand]
-    private void ClearColors() => ColorsText = "";
-
-    [RelayCommand]
-    private void ToggleColor(ColorChoice choice)
+    private void MoveGroupDown(GroupLink link)
     {
-        var colors = ColorNames.Split(ColorsText).ToList();
-        var key = SmartSearch.Fold(choice.Name);
-        if (colors.RemoveAll(c => SmartSearch.Fold(c) == key) == 0) colors.Add(choice.Name);
-        ColorsText = string.Join(", ", colors);
-    }
-
-    /// <summary>A colour as the shop already spells it ("black" is saved as the "Black" already in use).</summary>
-    private string Spelled(string color) => string.IsNullOrWhiteSpace(color) ? "" : ColorNames.Canonical(color, ColorSuggestions);
-    [ObservableProperty] public partial int OpeningStock { get; set; }
-
-    [RelayCommand]
-    private void ApplyPreset(SizePreset preset) => SizesText = preset.Sizes;
-
-    [RelayCommand]
-    private void Generate()
-    {
-        static string[] Split(string text) =>
-            text.Split([',', '،', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        var sizes = Split(SizesText);
-        var colors = ColorNames.Split(ColorsText).Select(Spelled).ToArray();
-        if (sizes.Length == 0) sizes = [""];
-        if (colors.Length == 0) colors = [""];
-        if (sizes is [""] && colors is [""])
-        {
-            Dialogs.Warning(Loc.T("ProductEditor.NeedSizeOrColour"));
-            return;
-        }
-
-        var added = 0;
-        foreach (var color in colors)
-        {
-            foreach (var size in sizes)
-            {
-                var exists = Variants.Any(v =>
-                    string.Equals(v.Size, size, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(v.Color, color, StringComparison.OrdinalIgnoreCase));
-                if (exists) continue;
-                Variants.Add(new VariantRowViewModel { Size = size, Color = color, StockQuantity = Math.Max(0, OpeningStock) });
-                added++;
-            }
-        }
-        RememberColors(colors); // a colour typed for the first time gets its button now
-        if (added == 0) Dialogs.Toast(Loc.T("ProductEditor.AllExist"), ToastKind.Info);
-        else Dialogs.Toast(Loc.T("ProductEditor.VariantsAdded", added));
-    }
-
-    [RelayCommand]
-    private void AddVariant() => Variants.Add(new VariantRowViewModel());
-
-    [RelayCommand]
-    private void RemoveVariant(VariantRowViewModel row)
-    {
-        if (!row.IsNew && !Dialogs.Confirm(Loc.T("ProductEditor.RemoveVariantConfirm", ProductVariant.DescribeVariant(row.Size, row.Color))))
-            return;
-        Variants.Remove(row);
+        var i = Groups.IndexOf(link);
+        if (i >= 0 && i < Groups.Count - 1) Groups.Move(i, i + 1);
     }
 
     [RelayCommand]
@@ -373,8 +153,8 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
     });
 
     /// <summary>
-    /// Saves, then stays open for the next product: with the same details (only the name to type, new codes, opening
-    /// stock) when "keep details" is ticked or a product was being edited, else empty.
+    /// Saves, then stays open for the next item: with the same details (only the name to type, a new code) when "keep
+    /// details" is ticked or an item was being edited, else empty.
     /// </summary>
     [RelayCommand]
     private Task SaveAndNewAsync() => RunAsync(async () =>
@@ -385,30 +165,18 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
         var savedName = Name.Trim();
 
         _id = 0;
-        if (keep)
+        Code = Barcode = null;
+        OpeningStock = 0;
+        if (!keep)
         {
-            // The same sizes and colours as new variants: SKUs and barcodes are generated again, stock starts afresh.
-            var rows = Variants.Where(v => v.IsNew || v.IsActive).Select(v => new VariantRowViewModel
-            {
-                Size = v.Size, Color = v.Color, PriceOverride = v.PriceOverride, CostOverride = v.CostOverride,
-                ReorderLevel = v.ReorderLevel, StockQuantity = Math.Max(0, OpeningStock),
-            }).ToList();
-            Variants.Clear();
-            foreach (var row in rows) Variants.Add(row);
-            StyleCode = null;
-        }
-        else
-        {
-            Brand = StyleCode = Description = Season = Material = null;
-            Gender = default;
+            Description = null;
             Price = Cost = 0;
             IsActive = true;
+            SoldOut = TrackStock = false;
+            ReorderLevel = 2;
             SelectedCategory = Categories.FirstOrDefault(c => c.IsActive) ?? Categories.FirstOrDefault();
             SelectedSupplier = null;
-            Variants.Clear();
-            SizesText = "S, M, L, XL";
-            ColorsText = "";
-            OpeningStock = 0;
+            foreach (var link in Groups) link.IsChecked = false;
         }
         Name = "";
         SavedMessage = Loc.T("ProductEditor.SavedNext", savedName);
@@ -421,31 +189,25 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
     private async Task SaveProductAsync()
     {
         if (SelectedCategory is null) throw new BusinessRuleException(Loc.T("ProductEditor.NeedCategory"));
-        foreach (var row in Variants) row.Color = Spelled(row.Color);
-        var used = Variants.Select(v => v.Color).ToList();
         var product = new Product
         {
             Id = _id,
             Name = Name ?? "",
-            Brand = Brand,
-            StyleCode = StyleCode,
             Description = Description,
-            Season = Season,
-            Material = Material,
-            Gender = Gender,
+            Sku = Code ?? "",
+            Barcode = Barcode,
             Price = Price,
             Cost = Cost,
             IsActive = IsActive,
+            SoldOut = SoldOut,
+            TrackStock = TrackStock,
+            StockQuantity = Math.Max(0, OpeningStock),
+            ReorderLevel = ReorderLevel,
             CategoryId = SelectedCategory.Id,
             SupplierId = SelectedSupplier?.Id,
-            Variants = Variants.Select(v => v.ToEntity()).ToList(),
+            ModifierGroups = Groups.Where(g => g.IsChecked).Select(g => new ProductModifierGroup { ModifierGroupId = g.Group.Id }).ToList(),
         };
         await _products.SaveAsync(product, _session.User.Id);
-
-        // The colours just saved are the shop's now: buttons and suggestions for the next product include them.
-        try { _shopColors = await _products.GetColorsAsync(); }
-        catch { /* the recent colours below still give them their buttons */ }
-        RememberColors(used);
     }
 
     [RelayCommand]

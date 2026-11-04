@@ -72,7 +72,7 @@
                                             <StackPanel VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Line.ProductName}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Line.VariantDescription}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,0,8,0" />
+                                                    <TextBlock Text="{Binding Line.Options}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,0,8,0" />
                                                     <TextBlock Text="{Binding Line.Sku}" Style="{StaticResource MutedText}" FontSize="12" />
                                                 </StackPanel>
                                             </StackPanel>

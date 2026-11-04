@@ -40,7 +40,7 @@
   "Purchasing.Received": "Received",
   "Purchasing.ReceivedFormat": "Received: {0}",
   "Purchasing.SaveOrder": "Save order",
-  "Purchasing.SearchHint": "Product, SKU, barcode…",
+  "Purchasing.SearchHint": "Item, code, barcode… (counted items only)",
   "Purchasing.SelectHint": "Select an order to see its lines.",
   "Purchasing.SupplierRequired": "Supplier *",
   "Purchasing.UnitCost": "Unit cost",

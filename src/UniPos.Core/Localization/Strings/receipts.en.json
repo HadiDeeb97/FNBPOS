@@ -46,7 +46,7 @@
   "Report.Notes": "Notes: {0}",
   "Report.Opened": "Opened",
   "Report.OverShort": "Over / (short)",
-  "Report.PoHeader": "SKU                  Item                             Qty      Cost      Total",
+  "Report.PoHeader": "Code                 Item                             Qty      Cost      Total",
   "Report.Printed": "Printed {0:g}",
   "Report.PurchaseOrder": "PURCHASE ORDER {0}",
   "Report.Returns": "RETURNS ({0})",

@@ -135,7 +135,7 @@ public class UserRulesTests
         var tee = await db.CreateTeeAsync();
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
+            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
         });
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Users.DeleteAsync(db.Cashier.Id, db.Admin.Id));
     }

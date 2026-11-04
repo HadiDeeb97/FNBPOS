@@ -54,11 +54,11 @@ public class OnlineReportsTests
         return service;
     }
 
-    private static async Task SellAsync(TestDatabase db, Shift shift, Product tee, int? customerId = null) =>
+    private static async Task SellAsync(TestDatabase db, Shift shift, TestDatabase.TestItems tee, int? customerId = null) =>
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id, CustomerId = customerId,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
         });
 
     [Fact]
@@ -107,7 +107,7 @@ public class OnlineReportsTests
         var last = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
         });
         await db.Returns.ProcessReturnAsync(new ReturnRequest
         {
@@ -148,28 +148,28 @@ public class OnlineReportsTests
         Assert.Equal(doc.ByDay.Sum(d => d.Total) + 22m, live.Trend14.Sum(d => d.Total)); // + last week's sale
         var sale = live.RecentSales[0];
         var line = Assert.Single(sale.Lines);
-        Assert.Equal(("Basic Tee", "S / Black", 1, 22m), (line.Product, line.Variant, line.Qty, line.Amount)); // what the customer paid, tax included
+        Assert.Equal(("Basic Tee S", "", 1, 22m), (line.Product, line.Variant, line.Qty, line.Amount)); // what the customer paid, tax included
         Assert.True(live.OpenDrawers[0].TotalSales > 0);
 
         // The S tee: 4 sold in the last 30 days and one came back, so 3 sold; at that pace its stock lasts this many days.
         await using (var ctx = await db.Factory.CreateDbContextAsync())
-            await ctx.ProductVariants.Where(v => v.Id == tee.Variants[0].Id).ExecuteUpdateAsync(u => u.SetProperty(v => v.ReorderLevel, 5));
+            await ctx.Products.Where(v => v.Id == tee.Items[0].Id).ExecuteUpdateAsync(u => u.SetProperty(v => v.ReorderLevel, 5));
         var stock = await builder.StockAsync(DateTime.Today);
-        var low = stock.LowStock.Single(r => r.Variant == "S / Black");
+        var low = stock.LowStock.Single(r => r.Product == "Basic Tee S");
         Assert.Equal(3, low.Sold30);
         Assert.Equal((int)Math.Floor(low.Stock / (3 / 30m)), low.DaysLeft);
     }
 
     [Fact]
-    public async Task The_item_list_has_every_size_with_its_stock_and_price_but_no_cost()
+    public async Task The_item_list_has_every_counted_item_with_its_stock_and_price_but_no_cost()
     {
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync(price: 20m, cost: 8.75m);
-        var gone = await db.CreateTeeAsync();
+        var crepe = await db.Products.SaveAsync(new Product { Name = "Nutella crepe", CategoryId = tee.Items[0].CategoryId, Price = 4.5m }, db.Admin.Id);
         await using (var ctx = await db.Factory.CreateDbContextAsync())
         {
-            await ctx.ProductVariants.Where(v => v.Id == tee.Variants[1].Id).ExecuteUpdateAsync(u => u.SetProperty(v => v.PriceOverride, 25m).SetProperty(v => v.Barcode, "6221234567890"));
-            await ctx.Products.Where(p => p.Id == gone.Id).ExecuteUpdateAsync(u => u.SetProperty(p => p.Name, "Old Tee").SetProperty(p => p.IsActive, false));
+            await ctx.Products.Where(p => p.Id == tee.Items[1].Id).ExecuteUpdateAsync(u => u.SetProperty(p => p.Price, 25m).SetProperty(p => p.Barcode, "6221234567890"));
+            await ctx.Products.Where(p => p.Id == tee.Items[2].Id).ExecuteUpdateAsync(u => u.SetProperty(p => p.IsActive, false));
         }
         var shift = await db.OpenShiftAsync();
         await SellAsync(db, shift, tee);
@@ -178,16 +178,17 @@ public class OnlineReportsTests
         var part = Assert.Single(await builder.CatalogAsync(DateTime.Today));
 
         Assert.Equal((0, 1), (part.Part, part.Parts));
-        var product = Assert.Single(part.Products); // the switched-off product is left out
-        Assert.Equal(("Basic Tee", 20m), (product.N, product.P));
-        Assert.StartsWith("Tees ", product.C);
-        Assert.Equal(["S", "M", "L"], product.V.Select(v => (string)v[0]!));
-        var (s, m) = (product.V[0], product.V[1]);
-        Assert.Equal(("Black", 9, 1), ((string)s[1]!, (int)s[4]!, (int)s[7]!)); // one sold this month
-        Assert.False(string.IsNullOrEmpty((string?)s[2])); // the SKU
-        Assert.Null(s[6]);
-        Assert.Equal(("6221234567890", 10, 25m, 0), ((string)m[3]!, (int)m[4]!, (decimal)m[6]!, (int)m[7]!));
+        // Counted items on the menu, A–Z: the item taken off the menu and the crepe (made to order) are left out.
+        Assert.Equal(["Basic Tee M", "Basic Tee S"], part.Products.Select(p => p.N));
+        var (m, s) = (part.Products[0], part.Products[1]);
+        Assert.StartsWith("Tees ", s.C);
+        Assert.Equal((20m, 25m), (s.P, m.P));
+        var (sRow, mRow) = (Assert.Single(s.V), Assert.Single(m.V));
+        Assert.Equal((9, 1), ((int)sRow[4]!, (int)sRow[7]!)); // one sold this month
+        Assert.Equal(tee.Items[0].Sku, (string?)sRow[2]);
+        Assert.Equal(("6221234567890", 10, 0), ((string)mRow[3]!, (int)mRow[4]!, (int)mRow[7]!));
         Assert.DoesNotContain("8.75", JsonSerializer.Serialize(part, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        Assert.DoesNotContain(part.Products, p => p.N == crepe.Name);
     }
 
     [Fact]

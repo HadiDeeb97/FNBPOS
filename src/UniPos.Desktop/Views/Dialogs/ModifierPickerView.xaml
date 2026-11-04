@@ -1,0 +1,88 @@
+<UserControl x:Class="UniPos.Desktop.Views.Dialogs.ModifierPickerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:UniPos.Desktop.Localization"
+             Width="640">
+    <UserControl.Resources>
+        <!-- An option: a big button, outlined and tinted when picked, greyed when sold out. -->
+        <Style x:Key="OptionButton" TargetType="Button">
+            <Setter Property="Width" Value="140" />
+            <Setter Property="MinHeight" Value="58" />
+            <Setter Property="Margin" Value="0,0,8,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Tile" CornerRadius="10" BorderThickness="1" Padding="10,8"
+                                Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Tile" Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsPicked}" Value="True">
+                                <Setter TargetName="Tile" Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                <Setter TargetName="Tile" Property="BorderThickness" Value="2" />
+                            </DataTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Tile" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="{l:T Common.Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+                <Button Content="{l:T Picker.Add}" Style="{StaticResource PrimaryButton}" Command="{Binding AddCommand}" IsDefault="True"
+                        MinWidth="130" Margin="8,0,0,0" />
+            </StackPanel>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding PriceText}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkBrush}" />
+                <TextBlock Text="{Binding Problem}" Style="{StaticResource HintText}" TextWrapping="Wrap"
+                           Visibility="{Binding Problem, Converter={StaticResource HasValueToVis}}" />
+            </StackPanel>
+        </DockPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="560">
+            <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,0,0,10">
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock Text="{Binding Rule}" Style="{StaticResource HintText}" DockPanel.Dock="Right" VerticalAlignment="Bottom" />
+                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" />
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding Options}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource OptionButton}" Command="{Binding ToggleCommand}" IsEnabled="{Binding CanPick}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding PriceText}" Style="{StaticResource HintText}"
+                                                           Visibility="{Binding PriceText, Converter={StaticResource HasValueToVis}}" />
+                                                <TextBlock Text="{Binding SoldOutText}" Foreground="{StaticResource DangerBrush}" FontSize="11"
+                                                           Visibility="{Binding SoldOutText, Converter={StaticResource HasValueToVis}}" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

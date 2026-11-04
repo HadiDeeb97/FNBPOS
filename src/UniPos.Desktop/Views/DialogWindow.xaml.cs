@@ -127,7 +127,7 @@ public partial class DialogWindow : Window
             case Key.Escape:
                 // Let an open drop-down close itself, and don't abandon a save that is still running
                 // (it would finish anyway, but the caller would be told it was cancelled).
-                if (IsDropDownOpen(focused) || TypeAhead.IsOpen(focused) || _viewModel is ViewModelBase { IsBusy: true }) return;
+                if (IsDropDownOpen(focused) || _viewModel is ViewModelBase { IsBusy: true }) return;
                 e.Handled = true;
                 Close();
                 break;

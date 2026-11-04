@@ -41,7 +41,6 @@
         <DockPanel Style="{StaticResource Toolbar}" DockPanel.Dock="Top">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                 <Button Content="{l:T Common.ExportCsv}" Command="{Binding ExportCommand}" />
-                <Button Content="{l:T Products.PrintLabels}" Command="{Binding PrintLabelsCommand}" />
                 <Button Content="{l:T Inventory.ReorderLevel}" Command="{Binding ReorderLevelCommand}" />
                 <Button Content="{l:T Inventory.StockCount}" Command="{Binding CountCommand}" />
                 <Button Content="{l:T Inventory.AdjustStock}" Style="{StaticResource PrimaryButton}" Command="{Binding AdjustCommand}" Margin="0" />
@@ -62,7 +61,7 @@
             </Grid.RowDefinitions>
             <Border Style="{StaticResource TableCard}">
                 <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}"
-                          SelectionMode="Extended" infra:GridSelection.Items="{Binding Selection}" infra:LayoutMemory.Key="Inventory.Items">
+                          infra:LayoutMemory.Key="Inventory.Items">
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                             <Style.Triggers>
@@ -73,14 +72,12 @@
                         </Style>
                     </DataGrid.RowStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{l:T Common.Product}" Binding="{Binding Product.Name}" Width="2*" MinWidth="140" FontWeight="SemiBold" />
-                        <DataGridTextColumn Header="{l:T Common.Category}" Binding="{Binding Product.Category.Name}" Width="*" MinWidth="140" />
-                        <DataGridTextColumn Header="{l:T Common.Size}" Binding="{Binding Size}" Width="Auto" MinWidth="70" />
-                        <DataGridTextColumn Header="{l:T Common.Colour}" Binding="{Binding Color}" Width="*" MinWidth="140" />
-                        <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku}" Width="*" MinWidth="140" />
+                        <DataGridTextColumn Header="{l:T Common.Product}" Binding="{Binding Name}" Width="2*" MinWidth="140" FontWeight="SemiBold" />
+                        <DataGridTextColumn Header="{l:T Common.Category}" Binding="{Binding Category.Name}" Width="*" MinWidth="140" />
+                        <DataGridTextColumn Header="{l:T Menu.Code}" Binding="{Binding Sku}" Width="Auto" MinWidth="90" />
                         <DataGridTextColumn Header="{l:T Common.Barcode}" Binding="{Binding Barcode}" Width="Auto" MinWidth="120" />
-                        <DataGridTextColumn Header="{l:T Common.Cost}" Binding="{Binding EffectiveCost, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
-                        <DataGridTextColumn Header="{l:T Common.Price}" Binding="{Binding EffectivePrice, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="{l:T Common.Cost}" Binding="{Binding Cost, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="{l:T Common.Price}" Binding="{Binding Price, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />
                         <DataGridTextColumn Header="{l:T Products.ReorderAt}" Binding="{Binding ReorderLevel}" Width="Auto" MinWidth="90" ElementStyle="{StaticResource RightCell}" />
                         <DataGridTextColumn Header="{l:T Inventory.OnHand}" Binding="{Binding StockQuantity}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource StrongRightCell}" />
                     </DataGrid.Columns>

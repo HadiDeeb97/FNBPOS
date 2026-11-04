@@ -107,7 +107,7 @@
                                             Command="{Binding DataContext.PickProductCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                         <DockPanel>
                                             <DockPanel DockPanel.Dock="Bottom">
-                                                <TextBlock DockPanel.Dock="Right" Text="{Binding TotalStock, StringFormat={l:T Register.InStockFormat}}" FontSize="11" Style="{StaticResource MutedText}" VerticalAlignment="Bottom" />
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Stock, StringFormat={l:T Register.InStockFormat}}" FontSize="11" Style="{StaticResource MutedText}" VerticalAlignment="Bottom" />
                                                 <TextBlock Text="{Binding PriceText}" FontWeight="SemiBold" FontSize="13.5" Foreground="{StaticResource PrimaryDarkBrush}" />
                                             </DockPanel>
                                             <TextBlock Text="{Binding Product.Name}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="38" ToolTip="{Binding Product.Name}" />
@@ -189,8 +189,8 @@
                                             <TextBlock Text="{Binding ProductName}" FontWeight="SemiBold" FontSize="13.5" TextWrapping="Wrap" />
                                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                                                 <Border Style="{StaticResource Chip}" Padding="7,1" Margin="0,0,6,0"
-                                                        Visibility="{Binding VariantDescription, Converter={StaticResource HasValueToVis}}">
-                                                    <TextBlock Text="{Binding VariantDescription}" FontSize="11.5" />
+                                                        Visibility="{Binding Options, Converter={StaticResource HasValueToVis}}">
+                                                    <TextBlock Text="{Binding Options}" FontSize="11.5" TextWrapping="Wrap" />
                                                 </Border>
                                                 <TextBlock Text="{Binding Sku}" Style="{StaticResource MutedText}" FontSize="11.5" VerticalAlignment="Center" />
                                                 <Border Style="{StaticResource Chip}" Padding="7,1" Margin="6,0,0,0" Background="{StaticResource DangerLightBrush}"
@@ -268,12 +268,10 @@
                         <DataGrid x:Name="ResultsGrid" Style="{StaticResource CardGrid}" ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedResult}"
                                   BorderThickness="0,1,0,0" MouseDoubleClick="OnResultDoubleClick" PreviewKeyDown="OnResultsKeyDown" infra:LayoutMemory.Key="Register.Results">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{l:T Common.Product}" Binding="{Binding Product.Name}" Width="*" MinWidth="140" FontWeight="SemiBold" />
-                                <DataGridTextColumn Header="{l:T Common.Size}" Binding="{Binding Size}" Width="Auto" MinWidth="70" />
-                                <DataGridTextColumn Header="{l:T Common.Colour}" Binding="{Binding Color}" Width="Auto" MinWidth="110" />
-                                <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku}" Width="Auto" MinWidth="140" />
-                                <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding StockQuantity}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />
-                                <DataGridTextColumn Header="{l:T Common.Price}" Binding="{Binding EffectivePrice, Converter={StaticResource Money}}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource StrongRightCell}" />
+                                <DataGridTextColumn Header="{l:T Common.Product}" Binding="{Binding Name}" Width="*" MinWidth="140" FontWeight="SemiBold" />
+                                <DataGridTextColumn Header="{l:T Common.Category}" Binding="{Binding Category.Name}" Width="Auto" MinWidth="110" />
+                                <DataGridTextColumn Header="{l:T Menu.Code}" Binding="{Binding Sku}" Width="Auto" MinWidth="80" />
+                                <DataGridTextColumn Header="{l:T Common.Price}" Binding="{Binding Price, Converter={StaticResource Money}}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource StrongRightCell}" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>

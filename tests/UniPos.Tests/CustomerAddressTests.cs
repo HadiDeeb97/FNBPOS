@@ -32,7 +32,7 @@ public class CustomerAddressTests
         var tee = await db.CreateTeeAsync();
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, CustomerId = rana.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 2)], Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
+            UserId = db.Cashier.Id, CustomerId = rana.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 2)], Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
         });
         await db.Returns.ProcessReturnAsync(new ReturnRequest
         {

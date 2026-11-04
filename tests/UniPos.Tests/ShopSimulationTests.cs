@@ -74,7 +74,7 @@ public class ShopSimulationTests(ITestOutputHelper output)
         private readonly ITestOutputHelper _out;
         private StoreSettings _settings = null!;
         private User _cashier2 = null!;
-        private readonly List<ProductVariant> _variants = [];
+        private readonly List<Product> _variants = [];
         private readonly List<Customer> _customers = [];
         private Supplier _supplier = null!;
         private readonly string[] _couriers = ["Wakilni", "Toters Express"];
@@ -130,16 +130,15 @@ public class ShopSimulationTests(ITestOutputHelper output)
             {
                 var category = await _db.Categories.SaveAsync(new Category { Name = $"Category {i % 4}-{Guid.NewGuid():N}"[..20] });
                 string[] sizes = i % 3 == 0 ? ["S", "M", "L", "XL"] : ["S", "M", "L"];
-                var product = await _db.Products.SaveAsync(new Product
+                foreach (var size in sizes)
                 {
-                    Name = names[i], CategoryId = category.Id, Price = prices[i], Cost = Math.Round(prices[i] * 0.45m, 2),
-                    Variants = sizes.Select((s, k) => new ProductVariant
+                    var price = i == 4 && size == "XL" ? 27.5m : prices[i];
+                    _variants.Add(await _db.Products.SaveAsync(new Product
                     {
-                        Size = s, Color = k % 2 == 0 ? "Black" : "White", StockQuantity = 15 + _rng.Next(10),
-                        PriceOverride = i == 4 && s == "XL" ? 27.5m : null,
-                    }).ToList(),
-                }, _db.Admin.Id);
-                _variants.AddRange(product.Variants);
+                        Name = $"{names[i]} {size}", CategoryId = category.Id, Price = price, Cost = Math.Round(prices[i] * 0.45m, 2),
+                        TrackStock = true, StockQuantity = 15 + _rng.Next(10),
+                    }, _db.Admin.Id));
+                }
             }
             foreach (var v in _variants) _stock[v.Id] = v.StockQuantity;
 
@@ -247,7 +246,7 @@ public class ShopSimulationTests(ITestOutputHelper output)
         private decimal Price(int variantId)
         {
             var v = _variants.First(x => x.Id == variantId);
-            return v.PriceOverride ?? _productPrices.GetValueOrDefault(v.ProductId, 0m);
+            return _productPrices.GetValueOrDefault(v.Id, 0m);
         }
 
         private Dictionary<int, decimal>? _productPricesCache;
@@ -268,7 +267,7 @@ public class ShopSimulationTests(ITestOutputHelper output)
             if (bigDiscount) cartDiscount = (DiscountType.Percent, 20m);
 
             var totals = CartCalculator.Calculate(
-                lines.Select(l => new CartLineInput(l.UnitPrice ?? Price(l.VariantId), l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
+                lines.Select(l => new CartLineInput(l.UnitPrice ?? Price(l.ProductId), l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
                 cartDiscount.Item1, cartDiscount.Item2, _settings.TaxRate, _settings.PricesIncludeTax);
             var fee = online ? 3m : 0m;
             var total = totals.Total + fee;
@@ -343,7 +342,7 @@ public class ShopSimulationTests(ITestOutputHelper output)
             lock (_saleIds)
             {
                 _saleIds.Add(sale.Id);
-                foreach (var l in lines) _stock[l.VariantId] -= l.Quantity;
+                foreach (var l in lines) _stock[l.ProductId] -= l.Quantity;
                 if (customer is not null)
                 {
                     _credit[customer.Id] -= sale.Payments.Where(p => p.Method == PaymentMethod.StoreCredit).Sum(p => p.Amount);
@@ -363,13 +362,13 @@ public class ShopSimulationTests(ITestOutputHelper output)
                 Problem($"{sale.ReceiptNumber}: total {sale.Total}, the cart works out to {total}");
             foreach (var line in lines)
             {
-                var saved = sale.Lines.Single(l => l.ProductVariantId == line.VariantId);
-                var shelf = Price(line.VariantId);
+                var saved = sale.Lines.Single(l => l.ProductId == line.ProductId);
+                var shelf = Price(line.ProductId);
                 var charged = line.UnitPrice ?? shelf;
                 if (saved.UnitPrice != charged || saved.ListPrice != (charged != shelf ? shelf : null))
                     Problem($"{sale.ReceiptNumber}: {saved.Sku} charged {saved.UnitPrice} (shelf {saved.ListPrice}), typed {line.UnitPrice}, shelf {shelf}");
             }
-            if (!sale.Lines.Select(l => l.ProductVariantId).SequenceEqual(lines.Select(l => l.VariantId)))
+            if (!sale.Lines.Select(l => l.ProductId).SequenceEqual(lines.Select(l => l.ProductId)))
                 Problem($"{sale.ReceiptNumber}: the receipt lists the items in another order than they were rung up");
             if (sale.Lines.Sum(l => l.LineTotal) + sale.DeliveryFee != sale.Total)
                 Problem($"{sale.ReceiptNumber}: lines {sale.Lines.Sum(l => l.LineTotal)} + fee {sale.DeliveryFee} ≠ total {sale.Total}");
@@ -401,11 +400,11 @@ public class ShopSimulationTests(ITestOutputHelper output)
             if (lines.Count == 0) return;
             var customer = _customers[_rng.Next(_customers.Count)];
             var held = await _db.Sales.HoldAsync("", till.UserId,
-                new HeldCart(lines.Select(l => new HeldCartLine(l.VariantId, l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
+                new HeldCart(lines.Select(l => new HeldCartLine(l.ProductId, l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
                     DiscountType.None, 0, customer.Id));
             var cart = await _db.Sales.ResumeAsync(held.Id);
             Count("held and resumed");
-            await SellAsync(till, cart: cart.Lines.Select(l => new CheckoutLine(l.VariantId, l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
+            await SellAsync(till, cart: cart.Lines.Select(l => new CheckoutLine(l.ProductId, l.Quantity, l.DiscountType, l.DiscountValue)).ToList(),
                 customerId: cart.CustomerId);
         }
 
@@ -446,7 +445,7 @@ public class ShopSimulationTests(ITestOutputHelper output)
             }
             Count($"return ({to})");
 
-            foreach (var l in lines.Where(l => l.Restock)) _stock[sale.Lines.First(x => x.Id == l.SaleLineId).ProductVariantId] += l.Quantity;
+            foreach (var l in lines.Where(l => l.Restock)) _stock[sale.Lines.First(x => x.Id == l.SaleLineId).ProductId] += l.Quantity;
             _drawers[till.Shift.Id].Usd -= ret.Refunds.Where(r => r.Method == RefundMethod.Cash).Sum(r => r.Amount);
             _drawers[till.Shift.Id].Lbp -= ret.Refunds.Where(r => r.Method == RefundMethod.CashLbp).Sum(r => r.AmountLbp);
             if (sale.CustomerId is { } cid)
@@ -471,7 +470,7 @@ public class ShopSimulationTests(ITestOutputHelper output)
             if (_saleCash[sale.Id].Usd > drawer.Usd || _saleCash[sale.Id].Lbp > drawer.Lbp) return;
             await _db.Sales.VoidSaleAsync(sale.Id, _db.Manager.Id, "Wrong item");
             Count("void");
-            foreach (var l in sale.Lines) _stock[l.ProductVariantId] += l.Quantity;
+            foreach (var l in sale.Lines) _stock[l.ProductId] += l.Quantity;
             var cash = _saleCash[sale.Id];
             _drawers[cash.ShiftId].Usd -= cash.Usd;
             _drawers[cash.ShiftId].Lbp -= cash.Lbp;
@@ -525,13 +524,13 @@ public class ShopSimulationTests(ITestOutputHelper output)
             var order = await _db.PurchaseOrders.SaveAsync(new PurchaseOrder
             {
                 SupplierId = _supplier.Id,
-                Lines = picks.Select(v => new PurchaseOrderLine { ProductVariantId = v.Id, QuantityOrdered = 10, UnitCost = 7.5m }).ToList(),
+                Lines = picks.Select(v => new PurchaseOrderLine { ProductId = v.Id, QuantityOrdered = 10, UnitCost = 7.5m }).ToList(),
             }, _db.Manager.Id);
             await _db.PurchaseOrders.MarkOrderedAsync(order.Id);
             var saved = (await _db.PurchaseOrders.GetAsync(order.Id))!;
             var received = saved.Lines.ToDictionary(l => l.Id, _ => 4 + _rng.Next(7));
             await _db.PurchaseOrders.ReceiveAsync(order.Id, received, _db.Manager.Id);
-            foreach (var l in saved.Lines) _stock[l.ProductVariantId] += received[l.Id];
+            foreach (var l in saved.Lines) _stock[l.ProductId] += received[l.Id];
             Count("stock received");
         }
 
@@ -568,12 +567,12 @@ public class ShopSimulationTests(ITestOutputHelper output)
             await using var ctx = await _db.Factory.CreateDbContextAsync();
 
             // Stock: what the shop did, and each item's movement history.
-            var variants = await ctx.ProductVariants.AsNoTracking().ToListAsync();
+            var variants = await ctx.Products.AsNoTracking().ToListAsync();
             var movements = await ctx.StockMovements.AsNoTracking().OrderBy(m => m.Id).ToListAsync();
             foreach (var v in variants.Where(v => _stock.ContainsKey(v.Id)))
             {
                 if (v.StockQuantity != _stock[v.Id]) Problem($"{when}: {v.Sku} stock {v.StockQuantity}, should be {_stock[v.Id]}");
-                var history = movements.Where(m => m.ProductVariantId == v.Id).ToList();
+                var history = movements.Where(m => m.ProductId == v.Id).ToList();
                 if (history.Sum(m => m.QuantityChange) != v.StockQuantity)
                     Problem($"{when}: {v.Sku} movements add up to {history.Sum(m => m.QuantityChange)}, stock is {v.StockQuantity}");
                 var running = 0;

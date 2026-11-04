@@ -133,6 +133,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             Nav<CustomersViewModel>("Nav.Customers", "", Permission.ManageCustomers));
         AddGroup("Nav.Group.Catalog",
             Nav<ProductsViewModel>("Nav.Products", "", Permission.ViewProducts),
+            Nav<ModifierGroupsViewModel>("Nav.Modifiers", "", Permission.ViewProducts),
             Nav<InventoryViewModel>("Nav.Inventory", "", Permission.ManageInventory),
             Nav<CategoriesViewModel>("Nav.Categories", "", Permission.ManageProducts));
         AddGroup("Nav.Group.Purchasing",

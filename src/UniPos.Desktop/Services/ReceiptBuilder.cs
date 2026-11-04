@@ -64,7 +64,7 @@ public static class ReceiptBuilder
             Cashier = sale.User?.FullName ?? "",
             Customer = sale.Customer?.FullName,
             Lines = sale.Lines.Select(l => new ReceiptLine(
-                l.ProductName, Detail(l.VariantDescription, l.Sku), l.Quantity, l.UnitPrice, l.DiscountAmount, l.UnitPrice * l.Quantity)).ToList(),
+                l.ProductName, l.Options, l.Quantity, l.UnitPrice, l.DiscountAmount, l.UnitPrice * l.Quantity)).ToList(),
             Subtotal = sale.Subtotal,
             Discount = sale.DiscountTotal,
             Tax = sale.TaxTotal,
@@ -91,7 +91,7 @@ public static class ReceiptBuilder
         var lines = ret.Lines.Select(rl =>
         {
             var sl = sale.Lines.First(l => l.Id == rl.SaleLineId);
-            return new ReceiptLine(sl.ProductName, Detail(sl.VariantDescription, sl.Sku) + (rl.Restocked ? "" : R("Receipt.NotRestocked")),
+            return new ReceiptLine(sl.ProductName, (sl.Options + (rl.Restocked ? "" : R("Receipt.NotRestocked"))).Trim(),
                 rl.Quantity, Money.Round(rl.RefundAmount / rl.Quantity), 0, rl.RefundAmount);
         }).ToList();
 
@@ -251,9 +251,9 @@ public static class ReceiptBuilder
         };
         foreach (var l in po.Lines)
         {
-            var name = l.ProductVariant?.DisplayName ?? "";
+            var name = l.Product?.Name ?? "";
             if (name.Length > 30) name = name[..30];
-            var sku = l.ProductVariant?.Sku ?? "";
+            var sku = l.Product?.Sku ?? "";
             if (sku.Length > 20) sku = sku[..20];
             lines.Add($"{sku,-20} {name,-30} {l.QuantityOrdered,5} {M(l.UnitCost),9} {M(l.LineTotal),10}");
         }
@@ -265,7 +265,4 @@ public static class ReceiptBuilder
 
     private static string PaymentLabel(string language, PaymentMethod method, string? reference) =>
         Loc.Get(language, $"Enum.PaymentMethod.{method}") + (string.IsNullOrWhiteSpace(reference) ? "" : $" ({reference})");
-
-    private static string Detail(string variant, string sku) =>
-        string.IsNullOrWhiteSpace(variant) ? sku : $"{variant}  {sku}";
 }

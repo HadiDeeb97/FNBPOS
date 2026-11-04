@@ -3,7 +3,6 @@ using UniPos.Core.Entities;
 using UniPos.Data.Services;
 using UniPos.Desktop.Infrastructure;
 using UniPos.Desktop.Services;
-using UniPos.Desktop.ViewModels.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UniPos.Core.Localization;
@@ -12,7 +11,7 @@ namespace UniPos.Desktop.ViewModels;
 
 public sealed partial class InventoryViewModel(
     IDialogService dialogs, InventoryService inventory, CategoryService categories, ReportService reports,
-    Session session, PrintService print, ProductService products, SettingsService settings) : ViewModelBase(dialogs), IPageViewModel, ICategoryFilter
+    Session session) : ViewModelBase(dialogs), IPageViewModel, ICategoryFilter
 {
     public string Title => Loc.T("Nav.Inventory");
 
@@ -29,11 +28,11 @@ public sealed partial class InventoryViewModel(
     public partial bool LowStockOnly { get; set; }
 
     [ObservableProperty]
-    public partial List<ProductVariant> Items { get; set; } = [];
+    public partial List<Product> Items { get; set; } = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AdjustCommand), nameof(CountCommand), nameof(ReorderLevelCommand))]
-    public partial ProductVariant? SelectedItem { get; set; }
+    public partial Product? SelectedItem { get; set; }
 
     [ObservableProperty]
     public partial List<StockMovement> Movements { get; set; } = [];
@@ -56,7 +55,7 @@ public sealed partial class InventoryViewModel(
     partial void OnSelectedCategoryChanged(Category value) => _ = LoadItemsAsync();
     partial void OnLowStockOnlyChanged(bool value) => _ = LoadItemsAsync();
 
-    async partial void OnSelectedItemChanged(ProductVariant? value)
+    async partial void OnSelectedItemChanged(Product? value)
     {
         try
         {
@@ -92,8 +91,8 @@ public sealed partial class InventoryViewModel(
         var lowStockOnly = LowStockOnly;
         try
         {
-            Func<CancellationToken, Task<List<ProductVariant>>> load = ct => inventory.GetStockAsync(text, categoryId, lowStockOnly, ct: ct);
-            Action<List<ProductVariant>> apply = found =>
+            Func<CancellationToken, Task<List<Product>>> load = ct => inventory.GetStockAsync(text, categoryId, lowStockOnly, ct: ct);
+            Action<List<Product>> apply = found =>
             {
                 Items = found;
                 SelectedItem = Items.FirstOrDefault(i => i.Id == selectedId) ?? Items.FirstOrDefault();
@@ -119,11 +118,11 @@ public sealed partial class InventoryViewModel(
     private async Task CountAsync()
     {
         if (SelectedItem is not { } item) return;
-        var counted = Dialogs.PromptInt(Loc.T("Inventory.StockCount"), Loc.T("Inventory.StockCountPrompt", item.DisplayName, item.Sku, item.StockQuantity), item.StockQuantity);
+        var counted = Dialogs.PromptInt(Loc.T("Inventory.StockCount"), Loc.T("Inventory.StockCountPrompt", item.Name, item.Sku, item.StockQuantity), item.StockQuantity);
         if (counted is null) return;
         if (await RunAsync(() => inventory.SetCountedStockAsync(item.Id, counted.Value, Loc.T("Inventory.StockCount"), session.User.Id)))
         {
-            Dialogs.Toast(Loc.T("Inventory.CountSaved", item.DisplayName, counted.Value));
+            Dialogs.Toast(Loc.T("Inventory.CountSaved", item.Name, counted.Value));
             await RefreshAsync();
         }
     }
@@ -132,23 +131,11 @@ public sealed partial class InventoryViewModel(
     private async Task ReorderLevelAsync()
     {
         if (SelectedItem is not { } item) return;
-        var level = Dialogs.PromptInt(Loc.T("Inventory.ReorderLevel"), Loc.T("Inventory.ReorderPrompt", item.DisplayName), item.ReorderLevel);
+        var level = Dialogs.PromptInt(Loc.T("Inventory.ReorderLevel"), Loc.T("Inventory.ReorderPrompt", item.Name), item.ReorderLevel);
         if (level is null) return;
         if (await RunAsync(() => inventory.UpdateReorderLevelAsync(item.Id, level.Value))) await LoadItemsAsync();
     }
 
-    /// <summary>Rows ticked in the stock list (Ctrl/Shift+click).</summary>
-    public System.Collections.ObjectModel.ObservableCollection<object> Selection { get; } = [];
-
-    /// <summary>Labels for the selected rows (Ctrl+A selects everything listed); with nothing selected, for everything listed.</summary>
-    [RelayCommand]
-    private void PrintLabels()
-    {
-        var selected = Selection.OfType<ProductVariant>().ToList();
-        List<ProductVariant> targets = selected.Count > 0 ? selected : Items;
-        if (targets.Count > 200 && !Dialogs.Confirm(Loc.T("Labels.ManyItemsConfirm", targets.Count))) return;
-        Dialogs.ShowDialog(new LabelPrintViewModel(Dialogs, print, products, settings, targets));
-    }
 
     [RelayCommand]
     private void Export()
@@ -158,13 +145,12 @@ public sealed partial class InventoryViewModel(
         try
         {
             CsvExporter.Write(path,
-                [Loc.T("Common.Product"), Loc.T("Common.Brand"), Loc.T("Common.Category"), Loc.T("Common.Size"), Loc.T("Common.Colour"),
-                    Loc.T("Common.Sku"), Loc.T("Common.Barcode"), Loc.T("Common.Stock"), Loc.T("Inventory.ReorderLevel"), Loc.T("Common.Cost"),
-                    Loc.T("Common.Price"), Loc.T("Inventory.StockValueCost")],
-                Items.Select(v => new object?[]
+                [Loc.T("Common.Product"), Loc.T("Common.Category"), Loc.T("Menu.Code"), Loc.T("Common.Barcode"), Loc.T("Common.Stock"),
+                    Loc.T("Inventory.ReorderLevel"), Loc.T("Common.Cost"), Loc.T("Common.Price"), Loc.T("Inventory.StockValueCost")],
+                Items.Select(p => new object?[]
                 {
-                    v.Product?.Name, v.Product?.Brand, v.Product?.Category?.Name, v.Size, v.Color, v.Sku, v.Barcode,
-                    v.StockQuantity, v.ReorderLevel, v.EffectiveCost, v.EffectivePrice, Money.Round(Math.Max(0, v.StockQuantity) * v.EffectiveCost),
+                    p.Name, p.Category?.Name, p.Sku, p.Barcode, p.StockQuantity, p.ReorderLevel, p.Cost, p.Price,
+                    Money.Round(Math.Max(0, p.StockQuantity) * p.Cost),
                 }));
             Dialogs.Toast(Loc.T("Common.Exported", Items.Count));
         }
@@ -177,11 +163,11 @@ public sealed partial class InventoryViewModel(
 
 public sealed record AdjustmentReason(string Label, StockMovementType Type, int Sign);
 
-public sealed partial class StockAdjustViewModel(IDialogService dialogs, InventoryService inventory, Session session, ProductVariant item)
+public sealed partial class StockAdjustViewModel(IDialogService dialogs, InventoryService inventory, Session session, Product item)
     : DialogViewModelBase(dialogs)
 {
     public override string Title => Loc.T("Inventory.AdjustStock");
-    public ProductVariant Item { get; } = item;
+    public Product Item { get; } = item;
 
     public AdjustmentReason[] Reasons { get; } =
     [

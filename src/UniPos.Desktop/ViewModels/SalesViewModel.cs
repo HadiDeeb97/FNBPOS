@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using UniPos.Core;
 using UniPos.Core.Entities;
+using UniPos.Core.Menu;
 using UniPos.Core.Pricing;
 using UniPos.Core.Security;
 using UniPos.Data.Services;
@@ -86,10 +87,10 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     public partial string SearchText { get; set; } = "";
 
     [ObservableProperty]
-    public partial List<ProductVariant> SearchResults { get; set; } = [];
+    public partial List<Product> SearchResults { get; set; } = [];
 
     [ObservableProperty]
-    public partial ProductVariant? SelectedResult { get; set; }
+    public partial Product? SelectedResult { get; set; }
 
     [ObservableProperty]
     public partial bool IsSearchOpen { get; set; }
@@ -199,7 +200,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         {
             await _browse.RunNowAsync(
                 ct => _products.SearchAsync(null, categoryId, includeInactive: false, ct, max: MaxTiles + 50),
-                found => BrowseProducts = found.Where(p => p.Variants.Any(v => v.IsActive)).Take(MaxTiles).Select(p => new ProductRow(p)).ToList());
+                found => BrowseProducts = found.Take(MaxTiles).Select(p => new ProductRow(p)).ToList());
         }
         catch (Exception ex)
         {
@@ -207,21 +208,11 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         }
     }
 
-    /// <summary>A product tile was clicked: add it, or ask for size and colour first.</summary>
+    /// <summary>An item tile was clicked: add it (asking for its options first when it has any).</summary>
     [RelayCommand]
     private void PickProduct(ProductRow? row)
     {
-        if (row is null) return;
-        var variants = row.Product.Variants.Where(v => v.IsActive).ToList();
-        foreach (var v in variants) v.Product = row.Product;
-        if (variants.Count == 1)
-        {
-            AddVariant(variants[0]);
-            return;
-        }
-        var picker = new VariantPickerViewModel(Dialogs, row.Product, variants, _settings.Current.AllowNegativeStock);
-        if (Dialogs.ShowDialog(picker) && picker.Chosen is { } chosen) AddVariant(chosen);
-        else FocusSearchRequested?.Invoke(this, EventArgs.Empty);
+        if (row is not null) AddProduct(row.Product);
     }
 
     // ---- Adding items -----------------------------------------------------------------------
@@ -246,7 +237,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         try
         {
             await _search.RunAsync(
-                ct => SearchTiming.TimeAsync("Register (typing)", text, () => _products.SearchVariantsAsync(text, ct: ct), _products, r => r.Count),
+                ct => SearchTiming.TimeAsync("Register (typing)", text, () => _products.SearchItemsAsync(text, ct: ct), _products, r => r.Count),
                 results => ShowResults(text, results));
         }
         catch (Exception ex)
@@ -268,11 +259,11 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         {
             await _search.RunNowAsync(
                 ct => SearchTiming.TimeAsync("Register (Enter/scan)", text,
-                    async () => await _products.FindByCodeAsync(text, ct) is { } exact ? [exact] : await _products.SearchVariantsAsync(text, ct: ct),
+                    async () => await _products.FindByCodeAsync(text, ct) is { } exact ? [exact] : await _products.SearchItemsAsync(text, ct: ct),
                     _products, r => r.Count),
                 results =>
                 {
-                    if (results.Count == 1) AddVariant(results[0]);
+                    if (results.Count == 1) AddProduct(results[0]);
                     else ShowResults(text, results);
                 });
         }
@@ -282,7 +273,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         }
     }
 
-    private void ShowResults(string text, List<ProductVariant> results)
+    private void ShowResults(string text, List<Product> results)
     {
         SearchResults = results;
         SelectedResult = results.FirstOrDefault();
@@ -298,11 +289,10 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     }
 
     [RelayCommand]
-    private void AddResult(ProductVariant? variant)
+    private void AddResult(Product? product)
     {
-        variant ??= SelectedResult;
-        if (variant is null) return;
-        AddVariant(variant);
+        product ??= SelectedResult;
+        if (product is not null) AddProduct(product);
     }
 
     [RelayCommand]
@@ -313,13 +303,39 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         FocusSearchRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private void AddVariant(ProductVariant variant)
+    /// <summary>
+    /// Adds an item: one with options asks for them first (size, fillings...); "Cancel" adds nothing. A sold-out item is
+    /// refused.
+    /// </summary>
+    private void AddProduct(Product product)
     {
         if (IsBusy) return; // the sale is being saved: anything added now would be cleared with it
-        // A line with a discount or a typed price stays as it is: the item scanned again goes on its own line.
-        var existing = Items.FirstOrDefault(i => i.VariantId == variant.Id && i.DiscountType == DiscountType.None && !i.PriceChanged);
+        if (product.SoldOut)
+        {
+            Dialogs.Warning(Loc.T("Err.ItemSoldOut", product.Name));
+            return;
+        }
+        IReadOnlyList<Modifier> options = [];
+        if (ModifierRules.ActiveGroups(product).Any())
+        {
+            var picker = new ModifierPickerViewModel(Dialogs, product);
+            if (!Dialogs.ShowDialog(picker))
+            {
+                FocusSearchRequested?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+            options = picker.Picked;
+        }
+        AddItem(product, options);
+    }
+
+    private void AddItem(Product product, IReadOnlyList<Modifier> options)
+    {
+        // A line with a discount or a typed price stays as it is: the same item added again goes on its own line.
+        var ids = options.Select(o => o.Id).ToList();
+        var existing = Items.FirstOrDefault(i => i.IsSame(product.Id, ids) && i.DiscountType == DiscountType.None && !i.PriceChanged);
         var newQty = (existing?.Quantity ?? 0) + 1;
-        if (!CheckStock(variant.Id, variant.StockQuantity, newQty, existing, variant.DisplayName)) return;
+        if (!CheckStock(product.Id, product.TrackStock, product.StockQuantity, newQty, existing, product.Name)) return;
 
         if (existing is not null)
         {
@@ -328,7 +344,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         }
         else
         {
-            var item = NewItem(variant);
+            var item = NewItem(product, options);
             Items.Add(item);
             SelectedItem = item;
         }
@@ -342,9 +358,10 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     /// <paramref name="wanted"/> is the quantity for <paramref name="line"/> (null: a new line); the same item on other
     /// lines (e.g. one with a discount) counts too, since they all come out of the same stock.
     /// </summary>
-    private bool CheckStock(int variantId, int onHand, int wanted, CartItemViewModel? line, string name)
+    private bool CheckStock(int productId, bool trackStock, int onHand, int wanted, CartItemViewModel? line, string name)
     {
-        wanted += Items.Where(i => i.VariantId == variantId && !ReferenceEquals(i, line)).Sum(i => i.Quantity);
+        if (!trackStock) return true; // made to order: no stock to run out of
+        wanted += Items.Where(i => i.ProductId == productId && !ReferenceEquals(i, line)).Sum(i => i.Quantity);
         if (wanted <= onHand || _settings.Current.AllowNegativeStock) return true;
         Dialogs.Warning(onHand <= 0 ? Loc.T("Register.OutOfStock", name) : Loc.T("Register.OnlyInStock", onHand, name));
         return false;
@@ -356,7 +373,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     private void Increase(CartItemViewModel? item)
     {
         item ??= SelectedItem;
-        if (IsBusy || item is null || !CheckStock(item.VariantId, item.StockOnHand, item.Quantity + 1, item, item.ProductName)) return;
+        if (IsBusy || item is null || !CheckStock(item.ProductId, item.TrackStock, item.StockOnHand, item.Quantity + 1, item, item.ProductName)) return;
         item.Quantity++;
     }
 
@@ -384,14 +401,14 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     private void SetQuantity()
     {
         if (IsBusy || SelectedItem is not { } item) return;
-        var qty = Dialogs.PromptInt(Loc.T("Common.Qty"), Loc.T("Register.QuantityFor", item.ProductName, item.VariantDescription), item.Quantity);
+        var qty = Dialogs.PromptInt(Loc.T("Common.Qty"), Loc.T("Register.QuantityFor", item.ProductName, item.Options), item.Quantity);
         if (qty is null) return;
         if (qty <= 0)
         {
             Items.Remove(item);
             return;
         }
-        if (CheckStock(item.VariantId, item.StockOnHand, qty.Value, item, item.ProductName)) item.Quantity = qty.Value;
+        if (CheckStock(item.ProductId, item.TrackStock, item.StockOnHand, qty.Value, item, item.ProductName)) item.Quantity = qty.Value;
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
@@ -452,7 +469,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
 
         var reasons = new List<string>();
         if (belowCost.Count > 0)
-            reasons.Add(Loc.T("Register.BelowCostApproval", string.Join("\n", belowCost.Select(i => $"• {i.ProductName} {i.VariantDescription}".TrimEnd()))));
+            reasons.Add(Loc.T("Register.BelowCostApproval", string.Join("\n", belowCost.Select(i => $"• {i.ProductName} {i.Options}".TrimEnd()))));
         if (overLimit) reasons.Add(Loc.T("Register.DiscountOverLimit", worst, limit));
         var approval = new ManagerApprovalViewModel(Dialogs, _users, string.Join("\n\n", reasons), Permission.OverrideDiscountLimit);
         if (!Dialogs.ShowDialog(approval) || approval.ApprovedBy is null) return false;
@@ -463,8 +480,8 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         return true;
     }
 
-    private CartItemViewModel NewItem(ProductVariant variant, int quantity = 1) =>
-        new(variant, quantity) { ShowCost = Session.Can(Permission.OverrideDiscountLimit) };
+    private CartItemViewModel NewItem(Product product, IReadOnlyList<Modifier> options, int quantity = 1) =>
+        new(product, options, quantity) { ShowCost = Session.Can(Permission.OverrideDiscountLimit) };
 
     /// <summary>The cashier typed a price in a cart line's price box (Enter, Tab or clicking away).</summary>
     private void OnPriceTyped(object? sender, string text)
@@ -532,7 +549,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         if (label is null) return;
 
         var cart = new HeldCart(
-            Items.Select(i => new HeldCartLine(i.VariantId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null)).ToList(),
+            Items.Select(i => new HeldCartLine(i.ProductId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null, i.OptionIds)).ToList(),
             CartDiscountType, CartDiscountValue, Customer?.Id, Channel, IsOnline ? DeliveryFee : 0, OrderNotes, IsOnline ? Courier : null, IsOnline ? DeliveryReference : null);
         await _sales.HoldAsync(label, Session.User.Id, cart);
         ResetSale();
@@ -554,7 +571,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
 
         // Load everything first and only then take it off hold, so a failed load doesn't lose the cart.
         var cart = await _sales.PeekHeldAsync(picker.Chosen.Id);
-        var variants = (await _products.GetVariantsAsync(cart.Lines.Select(l => l.VariantId))).ToDictionary(v => v.Id);
+        var products = (await _products.GetItemsAsync(cart.Lines.Select(l => l.ProductId))).ToDictionary(p => p.Id);
         var customer = cart.CustomerId is { } customerId ? await _customers.GetAsync(customerId) : null;
         await _sales.ResumeAsync(picker.Chosen.Id);
 
@@ -562,12 +579,14 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         var missing = 0;
         foreach (var line in cart.Lines)
         {
-            if (!variants.TryGetValue(line.VariantId, out var v) || !v.IsActive || v.Product is { IsActive: false })
+            // Gone from the menu, sold out, or its options changed since it was held.
+            var picked = line.Options ?? [];
+            if (!products.TryGetValue(line.ProductId, out var p) || !p.IsActive || p.SoldOut || ModifierRules.Problem(p, picked) is not null)
             {
                 missing++;
                 continue;
             }
-            var item = NewItem(v, line.Quantity);
+            var item = NewItem(p, ModifierRules.Ordered(p, picked), line.Quantity);
             item.DiscountType = line.DiscountType;
             item.DiscountValue = line.DiscountValue;
             if (line.UnitPrice is { } price) item.SetPrice(price);
@@ -733,11 +752,16 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         if (!await RunAsync(async () =>
             {
                 await _settings.GetAsync();
-                var variants = (await _products.GetVariantsAsync(Items.Select(i => i.VariantId).Distinct())).ToDictionary(v => v.Id);
+                var products = (await _products.GetItemsAsync(Items.Select(i => i.ProductId))).ToDictionary(p => p.Id);
                 foreach (var item in Items)
                 {
-                    if (!variants.TryGetValue(item.VariantId, out var v) || !v.IsActive || v.Product is { IsActive: false }) unavailable.Add(item);
-                    else if (item.Reprice(v.EffectivePrice, v.EffectiveCost)) repriced++;
+                    if (!products.TryGetValue(item.ProductId, out var p) || !p.IsActive || p.SoldOut || ModifierRules.Problem(p, item.OptionIds) is not null)
+                    {
+                        unavailable.Add(item);
+                        continue;
+                    }
+                    var options = ModifierRules.Ordered(p, item.OptionIds);
+                    if (item.Reprice(ModifierRules.Price(p, options), ModifierRules.Cost(p, options))) repriced++;
                 }
                 Recalculate();
             })) return;
@@ -745,7 +769,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         {
             // Switched off (or deleted) since it was scanned: the sale would be refused after the money is taken.
             foreach (var item in unavailable) Items.Remove(item);
-            Dialogs.Warning(Loc.T("Register.ItemsUnavailable", string.Join("\n", unavailable.Select(i => $"{i.ProductName} {i.VariantDescription}"))));
+            Dialogs.Warning(Loc.T("Register.ItemsUnavailable", string.Join("\n", unavailable.Select(i => $"{i.ProductName} {i.Options}".TrimEnd()))));
             return;
         }
         if (repriced > 0)
@@ -758,7 +782,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         // Managers sell below cost without approval, but are asked once.
         var belowCost = Items.Where(i => i.IsBelowCost).ToList();
         if (belowCost.Count > 0 && Session.Can(Permission.OverrideDiscountLimit)
-            && !Dialogs.Confirm(Loc.T("Register.BelowCostConfirm", string.Join("\n", belowCost.Select(i => $"• {i.ProductName} {i.VariantDescription} ({i.BelowCostText})")))))
+            && !Dialogs.Confirm(Loc.T("Register.BelowCostConfirm", string.Join("\n", belowCost.Select(i => $"• {i.ProductName} {i.Options} ({i.BelowCostText})".Replace("  ", " "))))))
             return;
 
         var payment = new PaymentViewModel(Dialogs, GrandTotal, Customer, _settings.Current, allowDelivery: IsOnline);
@@ -788,7 +812,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
                 ShiftId = Session.CurrentShift?.Id,
                 TillId = Session.TillId,
                 CustomerId = Customer?.Id,
-                Lines = Items.Select(i => new CheckoutLine(i.VariantId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null)).ToList(),
+                Lines = Items.Select(i => new CheckoutLine(i.ProductId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null, i.OptionIds)).ToList(),
                 CartDiscountType = CartDiscountType,
                 CartDiscountValue = CartDiscountValue,
                 Payments = payment.Payments,

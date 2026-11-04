@@ -170,18 +170,6 @@
                             <CheckBox IsChecked="{Binding Settings.PrintNoteOnReceipt}" Margin="0,12,0,0">
                                 <TextBlock Text="{l:T Settings.PrintNoteOnReceipt}" TextWrapping="Wrap" />
                             </CheckBox>
-
-                            <!-- The kind of barcode on price labels -->
-                            <TextBlock Text="{l:T Settings.LabelBarcode}" Style="{StaticResource Label}" Margin="0,16,0,6" />
-                            <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
-                                <StackPanel Orientation="Horizontal">
-                                    <RadioButton Style="{StaticResource SegmentButton}" GroupName="LabelBarcode" Content="{l:T Settings.LabelBarcodeEan13}"
-                                                 IsChecked="{Binding Settings.LabelBarcode, Converter={StaticResource Equals}, ConverterParameter=Ean13}" />
-                                    <RadioButton Style="{StaticResource SegmentButton}" GroupName="LabelBarcode" Content="{l:T Settings.LabelBarcodeCode128}"
-                                                 IsChecked="{Binding Settings.LabelBarcode, Converter={StaticResource Equals}, ConverterParameter=Code128}" />
-                                </StackPanel>
-                            </Border>
-                            <TextBlock Text="{l:T Settings.LabelBarcodeHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,6,16,0" />
                         </StackPanel>
                     </Border>
 
@@ -273,10 +261,6 @@
                                         <Button DockPanel.Dock="Right" Content="{l:T Print.Test}" Command="{Binding TestReceiptPrinterCommand}" Margin="8,0,0,0" />
                                         <ComboBox ItemsSource="{Binding Printers}" SelectedValuePath="Name" DisplayMemberPath="Display" SelectedValue="{Binding ReceiptPrinter}" />
                                     </DockPanel>
-                                </StackPanel>
-                                <StackPanel Style="{StaticResource Cell}">
-                                    <TextBlock Text="{l:T Print.LabelPrinter}" Style="{StaticResource Label}" />
-                                    <ComboBox ItemsSource="{Binding Printers}" SelectedValuePath="Name" DisplayMemberPath="Display" SelectedValue="{Binding LabelPrinter}" />
                                 </StackPanel>
                                 <StackPanel Style="{StaticResource Cell}">
                                     <TextBlock Text="{l:T Print.ReceiptCopies}" Style="{StaticResource Label}" />

@@ -7,14 +7,6 @@ public enum UserRole
     Admin = 2,
 }
 
-public enum Gender
-{
-    Unisex = 0,
-    Men = 1,
-    Women = 2,
-    Kids = 3,
-}
-
 public enum SaleStatus
 {
     Completed = 0,

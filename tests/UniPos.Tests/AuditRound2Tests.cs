@@ -17,40 +17,19 @@ public class AuditRound2Tests
         var po = await db.PurchaseOrders.SaveAsync(new PurchaseOrder
         {
             SupplierId = supplier.Id,
-            Lines = [new PurchaseOrderLine { ProductVariantId = tee.Variants[0].Id, QuantityOrdered = 10, UnitCost = 8m }],
+            Lines = [new PurchaseOrderLine { ProductId = tee.Items[0].Id, QuantityOrdered = 10, UnitCost = 8m }],
         }, db.Manager.Id);
         var line = po.Lines.Single();
 
         // A typo (100 for 10), or a second PC receiving the same delivery: refused.
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
             db.PurchaseOrders.ReceiveAsync(po.Id, new Dictionary<int, int> { [line.Id] = 100 }, db.Manager.Id));
-        Assert.Equal(0, (await db.GetVariantAsync(tee.Variants[0].Id)).StockQuantity);
+        Assert.Equal(0, (await db.GetItemAsync(tee.Items[0].Id)).StockQuantity);
 
         // The supplier really sent 12: confirmed on screen, so it is booked.
         po = await db.PurchaseOrders.ReceiveAsync(po.Id, new Dictionary<int, int> { [line.Id] = 12 }, db.Manager.Id, allowOverReceipt: true);
         Assert.Equal(PurchaseOrderStatus.Received, po.Status);
-        Assert.Equal(12, (await db.GetVariantAsync(tee.Variants[0].Id)).StockQuantity);
-    }
-
-    [Fact]
-    public async Task A_retired_size_keeps_its_codes_and_adding_it_again_gets_new_ones()
-    {
-        await using var db = await TestDatabase.CreateAsync();
-        var tee = await db.CreateTeeAsync(stockEach: 0);
-        var small = tee.Variants.Single(v => v.Size == "S");
-        await db.Inventory.AdjustStockAsync(small.Id, 2, StockMovementType.Adjustment, "Found", db.Manager.Id);
-        tee = (await db.Products.GetAsync(tee.Id))!;
-
-        // Remove S (it has stock history, so it is retired) and add S / Black again with blank codes.
-        tee.Variants.Remove(tee.Variants.Single(v => v.Id == small.Id));
-        tee.Variants.Add(new ProductVariant { Size = "S", Color = "Black" });
-        var saved = await db.Products.SaveAsync(tee, db.Admin.Id);
-
-        var both = saved.Variants.Where(v => v.Size == "S").ToList();
-        Assert.Equal(2, both.Count);
-        Assert.Single(both, v => !v.IsActive);
-        Assert.Equal(2, both.Select(v => v.Sku).Distinct().Count());
-        Assert.Equal(2, both.Select(v => v.Barcode).Distinct().Count());
+        Assert.Equal(12, (await db.GetItemAsync(tee.Items[0].Id)).StockQuantity);
     }
 
     [Fact]
@@ -65,7 +44,7 @@ public class AuditRound2Tests
         // 0.05 + 0.05 is one point's worth; rounding each up would need two.
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, CustomerId = customer.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, CustomerId = customer.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Payments =
             [
                 new PaymentInput(PaymentMethod.LoyaltyPoints, 0.05m), new PaymentInput(PaymentMethod.LoyaltyPoints, 0.05m),
@@ -84,7 +63,7 @@ public class AuditRound2Tests
         var online = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, Channel = SalesChannel.WhatsApp, Courier = "Toters", CustomerId = customer.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
         });
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Deliveries.SettleAsync(new SettleDeliveriesRequest
@@ -102,19 +81,19 @@ public class AuditRound2Tests
         var tee = await db.CreateTeeAsync(stockEach: 5);
         var old = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
+            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
         });
         await using (var ctx = await db.Factory.CreateDbContextAsync())
             await ctx.Sales.Where(s => s.Id == old.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.CreatedAt, DateTime.Today.AddDays(-10)));
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
+            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
         });
 
         var alerts = await db.Reports.GetStockAlertsAsync(DateTime.Today.AddDays(-15), DateTime.Today.AddDays(-5));
         var skus = alerts.SlowMovers.Select(r => r.Sku).ToList();
-        Assert.DoesNotContain(tee.Variants[0].Sku, skus); // sold on day -10
-        Assert.Contains(tee.Variants[1].Sku, skus);       // never sold
+        Assert.DoesNotContain(tee.Items[0].Sku, skus); // sold on day -10
+        Assert.Contains(tee.Items[1].Sku, skus);       // never sold
     }
 
     [Fact]
@@ -124,7 +103,7 @@ public class AuditRound2Tests
         var tee = await db.CreateTeeAsync();
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
+            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
         });
         Assert.Equal((10m, false), (sale.TaxRate, sale.PricesIncludeTax));
     }

@@ -14,7 +14,7 @@ public class SalesHistoryTests
         var shift = await db.OpenShiftAsync();
         async Task<Core.Entities.Sale> Sell(int qty) => await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, ShiftId = shift.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, qty)],
+            UserId = db.Cashier.Id, ShiftId = shift.Id, Lines = [new CheckoutLine(tee.Items[0].Id, qty)],
             Payments = [new PaymentInput(PaymentMethod.Card, 22m * qty)],
         });
 

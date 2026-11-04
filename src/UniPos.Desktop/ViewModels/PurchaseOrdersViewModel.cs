@@ -146,9 +146,9 @@ public sealed partial class PurchaseOrdersViewModel(
     }
 }
 
-public sealed partial class PoLineViewModel(ProductVariant variant, int quantity, decimal unitCost) : ObservableObject
+public sealed partial class PoLineViewModel(Product variant, int quantity, decimal unitCost) : ObservableObject
 {
-    public ProductVariant Variant { get; } = variant;
+    public Product Variant { get; } = variant;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LineTotal))]
@@ -183,7 +183,7 @@ public sealed partial class PurchaseOrderEditorViewModel : DialogViewModelBase
         ExpectedDate = order?.ExpectedDate ?? DateTime.Today.AddDays(14);
         Notes = order?.Notes;
         foreach (var line in order?.Lines ?? [])
-            AddLine(new PoLineViewModel(line.ProductVariant!, line.QuantityOrdered, line.UnitCost));
+            AddLine(new PoLineViewModel(line.Product!, line.QuantityOrdered, line.UnitCost));
     }
 
     public static async Task<PurchaseOrderEditorViewModel> CreateAsync(IDialogService dialogs, PurchaseOrderService orders, SupplierService suppliers,
@@ -207,8 +207,8 @@ public sealed partial class PurchaseOrderEditorViewModel : DialogViewModelBase
     [ObservableProperty] public partial DateTime? ExpectedDate { get; set; }
     [ObservableProperty] public partial string? Notes { get; set; }
     [ObservableProperty] public partial string SearchText { get; set; } = "";
-    [ObservableProperty] public partial List<ProductVariant> SearchResults { get; set; } = [];
-    [ObservableProperty] public partial ProductVariant? SelectedResult { get; set; }
+    [ObservableProperty] public partial List<Product> SearchResults { get; set; } = [];
+    [ObservableProperty] public partial Product? SelectedResult { get; set; }
 
     public decimal Total => Lines.Sum(l => l.LineTotal);
     public int TotalUnits => Lines.Sum(l => l.Quantity);
@@ -244,9 +244,9 @@ public sealed partial class PurchaseOrderEditorViewModel : DialogViewModelBase
         }
         try
         {
-            Func<CancellationToken, Task<List<ProductVariant>>> load = async ct =>
-                await _products.FindByCodeAsync(text, ct) is { } exact ? [exact] : await _products.SearchVariantsAsync(text, 200, ct);
-            Action<List<ProductVariant>> apply = found =>
+            Func<CancellationToken, Task<List<Product>>> load = async ct =>
+                (await _products.FindByCodeAsync(text, ct) is { } exact ? [exact] : await _products.SearchItemsAsync(text, 200, ct)).Where(p => p.TrackStock).ToList();
+            Action<List<Product>> apply = found =>
             {
                 SearchResults = found;
                 SelectedResult = found.FirstOrDefault();
@@ -260,13 +260,13 @@ public sealed partial class PurchaseOrderEditorViewModel : DialogViewModelBase
     }
 
     [RelayCommand]
-    private void AddResult(ProductVariant? variant)
+    private void AddResult(Product? variant)
     {
         variant ??= SelectedResult;
         if (variant is null) return;
         var existing = Lines.FirstOrDefault(l => l.Variant.Id == variant.Id);
         if (existing is not null) existing.Quantity++;
-        else AddLine(new PoLineViewModel(variant, 1, variant.EffectiveCost));
+        else AddLine(new PoLineViewModel(variant, 1, variant.Cost));
     }
 
     [RelayCommand]
@@ -280,7 +280,7 @@ public sealed partial class PurchaseOrderEditorViewModel : DialogViewModelBase
     {
         if (SelectedSupplier is null) throw new BusinessRuleException(Loc.T("Purchasing.ChooseSupplierFirst"));
         var low = (await _inventory.GetStockAsync(lowStockOnly: true))
-            .Where(v => v.Product?.SupplierId == SelectedSupplier.Id)
+            .Where(v => v.SupplierId == SelectedSupplier.Id)
             .ToList();
         if (low.Count == 0)
         {
@@ -291,7 +291,7 @@ public sealed partial class PurchaseOrderEditorViewModel : DialogViewModelBase
         {
             // Order enough to get back to twice the reorder level.
             var qty = Math.Max(1, v.ReorderLevel * 2 - Math.Max(0, v.StockQuantity));
-            AddLine(new PoLineViewModel(v, qty, v.EffectiveCost));
+            AddLine(new PoLineViewModel(v, qty, v.Cost));
         }
     });
 
@@ -312,7 +312,7 @@ public sealed partial class PurchaseOrderEditorViewModel : DialogViewModelBase
             SupplierId = SelectedSupplier.Id,
             ExpectedDate = ExpectedDate,
             Notes = Notes,
-            Lines = Lines.Select(l => new PurchaseOrderLine { ProductVariantId = l.Variant.Id, QuantityOrdered = l.Quantity, UnitCost = l.UnitCost }).ToList(),
+            Lines = Lines.Select(l => new PurchaseOrderLine { ProductId = l.Variant.Id, QuantityOrdered = l.Quantity, UnitCost = l.UnitCost }).ToList(),
         }, _session.User.Id);
         Close(true);
     });
@@ -359,7 +359,7 @@ public sealed partial class ReceivePurchaseOrderViewModel(IDialogService dialogs
         if (quantities.Count == 0) throw new BusinessRuleException(Loc.T("Purchasing.EnterQuantities"));
         var over = Lines.Where(l => l.ReceiveNow > l.Line.QuantityOutstanding).ToList();
         if (over.Count > 0 && !Dialogs.Confirm(Loc.T("Purchasing.OverReceiveConfirm",
-                string.Join("\n", over.Select(l => $"{l.Line.ProductVariant?.Product?.Name} {l.Line.ProductVariant?.Description}: {l.ReceiveNow} / {l.Line.QuantityOutstanding}")))))
+                string.Join("\n", over.Select(l => $"{l.Line.Product?.Name}: {l.ReceiveNow} / {l.Line.QuantityOutstanding}")))))
             return;
         var result = await orders.ReceiveAsync(order.Id, quantities, session.User.Id, UpdateCosts, allowOverReceipt: over.Count > 0);
         Dialogs.Toast(Loc.T("Purchasing.Booked", quantities.Values.Sum(), Loc.EnumText(result.Status)));

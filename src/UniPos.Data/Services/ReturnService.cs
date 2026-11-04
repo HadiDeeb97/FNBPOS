@@ -120,7 +120,7 @@ public class ReturnService(IDbContextFactory<PosDbContext> factory)
             });
 
             if (req.Restock)
-                StockLedger.Apply(db, line.ProductVariant!, req.Quantity, StockMovementType.Return, user.Id, ret.ReturnNumber, QueryHelpers.Clean(request.Reason));
+                StockLedger.Apply(db, line.Product!, req.Quantity, StockMovementType.Return, user.Id, ret.ReturnNumber, QueryHelpers.Clean(request.Reason));
         }
 
         if (sale.Customer is { } customer)
@@ -179,7 +179,7 @@ public class ReturnService(IDbContextFactory<PosDbContext> factory)
     private static async Task<SaleState> LoadAsync(PosDbContext db, int saleId, CancellationToken ct)
     {
         var sale = await db.Sales
-            .Include(s => s.Lines).ThenInclude(l => l.ProductVariant)
+            .Include(s => s.Lines).ThenInclude(l => l.Product)
             .Include(s => s.Payments)
             .Include(s => s.Customer)
             .AsSplitQuery()

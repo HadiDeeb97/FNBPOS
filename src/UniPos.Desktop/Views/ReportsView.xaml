@@ -257,15 +257,15 @@
                     </DockPanel>
                 </DockPanel>
             </TabItem>
-            <TabItem Header="{l:T Reports.Sizes}">
+            <TabItem Header="{l:T Reports.Options}">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Sizes}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Reports.About.Options}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,0" />
                     <DockPanel Margin="0,12,0,0">
-                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="sizes" />
+                        <Button DockPanel.Dock="Top" Content="{l:T Common.ExportCsv}" HorizontalAlignment="Right" Margin="0,0,0,10" Command="{Binding ExportCommand}" CommandParameter="options" />
                         <Border Style="{StaticResource TableCard}">
-                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.BySize}" infra:LayoutMemory.Key="Reports.Sizes">
+                            <DataGrid Style="{StaticResource ReportGrid}" ItemsSource="{Binding Report.ByOption}" infra:LayoutMemory.Key="Reports.Options">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{l:T Common.Size}" Binding="{Binding Name}" Width="*" MinWidth="140" />
+                                    <DataGridTextColumn Header="{l:T Reports.Option}" Binding="{Binding Name}" Width="*" MinWidth="140" />
                                     <DataGridTextColumn Header="{l:T Reports.Units}" Binding="{Binding Quantity}" Width="Auto" MinWidth="100" ElementStyle="{StaticResource RightCell}" />
                                     <DataGridTextColumn Header="{l:T Reports.NetSales}" Binding="{Binding Amount, Converter={StaticResource Money}}" Width="Auto" MinWidth="130" ElementStyle="{StaticResource StrongRightCell}" />
                                     <DataGridTextColumn Header="{l:T Reports.Share}" Binding="{Binding SharePercent, StringFormat={}{0:0.#}%}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
@@ -505,7 +505,6 @@
                                 <DataGrid MaxHeight="380" MinHeight="120" Style="{StaticResource ReportGrid}" ItemsSource="{Binding Alerts.LowStock}" infra:LayoutMemory.Key="Reports.LowStock">
                                     <DataGrid.Columns>
                                     <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Product}" Width="*" MinWidth="140" />
-                                    <DataGridTextColumn Header="{l:T Labels.Variant}" Binding="{Binding Variant}" Width="Auto" MinWidth="110" />
                                     <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku}" Width="Auto" MinWidth="130" />
                                     <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding Stock}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource StrongRightCell}" />
                                     <DataGridTextColumn Header="{l:T Reports.ReorderAt}" Binding="{Binding ReorderLevel}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
@@ -519,7 +518,6 @@
                                 <DataGrid MaxHeight="380" MinHeight="120" Style="{StaticResource ReportGrid}" ItemsSource="{Binding Alerts.SlowMovers}" infra:LayoutMemory.Key="Reports.SlowMovers">
                                     <DataGrid.Columns>
                                     <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Product}" Width="*" MinWidth="140" />
-                                    <DataGridTextColumn Header="{l:T Labels.Variant}" Binding="{Binding Variant}" Width="Auto" MinWidth="110" />
                                     <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Sku}" Width="Auto" MinWidth="130" />
                                     <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding Stock}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource RightCell}" />
                                     <DataGridTextColumn Header="{l:T Reports.ValueAtCost}" Binding="{Binding CostValue, Converter={StaticResource Money}}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource StrongRightCell}" />

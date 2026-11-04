@@ -22,7 +22,7 @@
   "History.SaleCount": "Sales",
   "History.SalesTotal": "Total sales",
   "History.SearchFailed": "Sales search failed.",
-  "History.SearchHint": "Receipt, customer, product or SKU",
+  "History.SearchHint": "Receipt, customer, item or code",
   "History.SelectSale": "Select a sale to see its details.",
   "History.ShowVoided": "Show voided",
   "History.Source": "Source",

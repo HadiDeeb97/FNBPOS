@@ -9,7 +9,10 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Product> Products => Set<Product>();
-    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+    public DbSet<ModifierGroup> ModifierGroups => Set<ModifierGroup>();
+    public DbSet<Modifier> Modifiers => Set<Modifier>();
+    public DbSet<ProductModifierGroup> ProductModifierGroups => Set<ProductModifierGroup>();
+    public DbSet<SaleLineModifier> SaleLineModifiers => Set<SaleLineModifier>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleLine> SaleLines => Set<SaleLine>();
@@ -72,33 +75,46 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
         {
             e.Property(x => x.Name).HasMaxLength(200).IsRequired();
             e.HasIndex(x => x.Name);
-            // Narrow copy of what product searches look at, so a search reads this instead of whole product rows.
-            e.HasIndex(x => x.IsActive).IncludeProperties(x => new { x.Name, x.Brand, x.StyleCode, x.CategoryId });
-            e.HasOne(x => x.Category).WithMany(c => c.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.SetNull);
-            e.HasMany(x => x.Variants).WithOne(v => v.Product).HasForeignKey(v => v.ProductId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        b.Entity<ProductVariant>(e =>
-        {
             e.Property(x => x.Sku).HasMaxLength(64).UseCollation(CaseInsensitive).IsRequired();
             e.HasIndex(x => x.Sku).IsUnique();
             e.Property(x => x.Barcode).HasMaxLength(64);
             e.HasIndex(x => x.Barcode).IsUnique().HasFilter("[Barcode] IS NOT NULL");
-            // Likewise for variants: active ones with the columns a search matches on.
-            // Stock and price columns too, so stock lists and low-stock checks read only this.
-            e.HasIndex(x => new { x.IsActive, x.ProductId }).IncludeProperties(x => new
+            // Narrow copy of what searches and stock lists look at, so they read this instead of whole rows.
+            e.HasIndex(x => x.IsActive).IncludeProperties(x => new
             {
-                x.Sku, x.Color, x.Size, x.Barcode, x.StockQuantity, x.ReorderLevel, x.PriceOverride, x.CostOverride,
+                x.Name, x.Sku, x.Barcode, x.CategoryId, x.Price, x.SoldOut, x.TrackStock, x.StockQuantity, x.ReorderLevel,
             });
-            e.Property(x => x.Size).HasMaxLength(20);
-            e.Property(x => x.Color).HasMaxLength(40);
             e.Property(x => x.Version).IsConcurrencyToken();
-            e.Ignore(x => x.EffectivePrice);
-            e.Ignore(x => x.EffectiveCost);
+            e.HasOne(x => x.Category).WithMany(c => c.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.ModifierGroups).WithOne(g => g.Product).HasForeignKey(g => g.ProductId).OnDelete(DeleteBehavior.Cascade);
             e.Ignore(x => x.IsLowStock);
-            e.Ignore(x => x.Description);
-            e.Ignore(x => x.DisplayName);
+            e.Ignore(x => x.HasOptions);
+        });
+
+        b.Entity<ProductModifierGroup>(e =>
+        {
+            e.HasKey(x => new { x.ProductId, x.ModifierGroupId });
+            e.HasOne(x => x.ModifierGroup).WithMany().HasForeignKey(x => x.ModifierGroupId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ModifierGroup>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(100).UseCollation(CaseInsensitive).IsRequired();
+            e.HasIndex(x => x.Name).IsUnique();
+            e.HasMany(x => x.Options).WithOne(o => o.ModifierGroup).HasForeignKey(o => o.ModifierGroupId).OnDelete(DeleteBehavior.Cascade);
+            e.Ignore(x => x.IsRequired);
+        });
+
+        b.Entity<Modifier>(e => e.Property(x => x.Name).HasMaxLength(100).IsRequired());
+
+        b.Entity<SaleLineModifier>(e =>
+        {
+            e.Property(x => x.GroupName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.HasIndex(x => x.SaleLineId);
+            // An option deleted from the menu stays on the sales that had it, by name.
+            e.HasOne<Modifier>().WithMany().HasForeignKey(x => x.ModifierId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<Customer>(e =>
@@ -154,16 +170,17 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
             // SQL Server groups text with no length limit about ten times slower.
             e.Property(x => x.ProductName).HasMaxLength(200).IsRequired();
             e.Property(x => x.CategoryName).HasMaxLength(100);
-            e.Property(x => x.VariantDescription).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Options).HasMaxLength(500).IsRequired();
             e.Property(x => x.Sku).HasMaxLength(64).IsRequired();
             // Item counts in sales history, and everything a report reads from a line, so a report over months doesn't
             // look up each line on its own.
             e.HasIndex(x => x.SaleId).IncludeProperties(x => new
             {
-                x.Quantity, x.ReturnedQuantity, x.ProductVariantId, x.UnitPrice, x.UnitCost, x.LineTotal, x.TaxAmount, x.DiscountAmount,
+                x.Quantity, x.ReturnedQuantity, x.ProductId, x.UnitPrice, x.UnitCost, x.LineTotal, x.TaxAmount, x.DiscountAmount,
                 x.ProductName, x.CategoryName,
             });
-            e.HasOne(x => x.ProductVariant).WithMany().HasForeignKey(x => x.ProductVariantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Modifiers).WithOne(m => m.SaleLine).HasForeignKey(m => m.SaleLineId).OnDelete(DeleteBehavior.Cascade);
             // Two tills returning the same item at once: the second save fails instead of refunding it twice.
             e.Property(x => x.ReturnedQuantity).IsConcurrencyToken();
             e.Ignore(x => x.ReturnableQuantity);
@@ -191,8 +208,8 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
 
         b.Entity<StockMovement>(e =>
         {
-            e.HasIndex(x => new { x.ProductVariantId, x.CreatedAt });
-            e.HasOne(x => x.ProductVariant).WithMany().HasForeignKey(x => x.ProductVariantId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.ProductId, x.CreatedAt });
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -210,7 +227,7 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
 
         b.Entity<PurchaseOrderLine>(e =>
         {
-            e.HasOne(x => x.ProductVariant).WithMany().HasForeignKey(x => x.ProductVariantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             e.Property(x => x.QuantityReceived).IsConcurrencyToken();
             e.Ignore(x => x.LineTotal);
             e.Ignore(x => x.QuantityOutstanding);
@@ -353,7 +370,7 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
         {
             switch (entry.Entity)
             {
-                case ProductVariant v: v.Version++; break;
+                case Product p: p.Version++; break;
                 case Customer c: c.Version++; break;
             }
         }

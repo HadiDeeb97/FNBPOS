@@ -14,7 +14,7 @@ public class DeliveryPartnerTests
         var tee = await db.CreateTeeAsync();
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, CustomerId = await db.ShopperIdAsync(), Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, CustomerId = await db.ShopperIdAsync(), Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Channel = SalesChannel.WhatsApp, Courier = "Old Courier", Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
         });
 
@@ -41,7 +41,7 @@ public class DeliveryPartnerTests
         var unused = await db.Deliveries.SavePartnerAsync(new DeliveryPartner { Name = "Never used" });
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, CustomerId = await db.ShopperIdAsync(), Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, CustomerId = await db.ShopperIdAsync(), Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Channel = SalesChannel.Instagram, Courier = "Toters", Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
         });
 

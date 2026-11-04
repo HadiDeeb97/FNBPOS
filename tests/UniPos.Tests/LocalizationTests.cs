@@ -78,7 +78,7 @@ public partial class LocalizationTests
     {
         Type[] enums =
         [
-            typeof(PaymentMethod), typeof(RefundMethod), typeof(RefundDestination), typeof(UserRole), typeof(Gender),
+            typeof(PaymentMethod), typeof(RefundMethod), typeof(RefundDestination), typeof(UserRole),
             typeof(SaleStatus), typeof(StockMovementType), typeof(PurchaseOrderStatus), typeof(CashMovementType),
             typeof(DiscountType), typeof(BackupKind), typeof(ShiftStatus), typeof(CashCurrency), typeof(ChangeCurrency), typeof(SalesChannel), typeof(SettlementMethod),
             typeof(UniPos.Core.Features.Feature), typeof(UniPos.Core.Features.Venue),

@@ -39,7 +39,9 @@ public static class ReceiptFormatter
         foreach (var item in doc.Lines)
         {
             foreach (var l in Wrap(item.Description, width)) lines.Add(l);
-            if (!string.IsNullOrWhiteSpace(item.Detail)) lines.Add(Truncate("  " + item.Detail, width));
+            // The options picked ("Large · Nutella, Banana"), whole: the kitchen and the customer both read them.
+            if (!string.IsNullOrWhiteSpace(item.Detail))
+                foreach (var l in Wrap(item.Detail, width - 2)) lines.Add("  " + l);
             lines.Add(Pair($"  {item.Quantity} x {M(item.UnitPrice)}", M(item.Total), width));
             if (item.Discount != 0) lines.Add(Pair("  " + R("Receipt.Discount"), M(-item.Discount), width));
         }

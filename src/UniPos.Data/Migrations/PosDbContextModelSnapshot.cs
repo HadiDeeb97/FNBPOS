@@ -414,6 +414,77 @@ namespace UniPos.Data.Migrations
                     b.ToTable("HeldSales");
                 });
 
+            modelBuilder.Entity("UniPos.Core.Entities.Modifier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ModifierGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("SoldOut")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModifierGroupId");
+
+                    b.ToTable("Modifiers");
+                });
+
+            modelBuilder.Entity("UniPos.Core.Entities.ModifierGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MaxChoices")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinChoices")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Latin1_General_100_CI_AS");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ModifierGroups");
+                });
+
             modelBuilder.Entity("UniPos.Core.Entities.Payment", b =>
                 {
                     b.Property<int>("Id")
@@ -452,8 +523,9 @@ namespace UniPos.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Brand")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<string>("Barcode")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
@@ -468,14 +540,8 @@ namespace UniPos.Data.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Gender")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
-
-                    b.Property<string>("Material")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -486,68 +552,8 @@ namespace UniPos.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("Season")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StyleCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("SupplierId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("IsActive");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("IsActive"), new[] { "Name", "Brand", "StyleCode", "CategoryId" });
-
-                    b.HasIndex("Name");
-
-                    b.HasIndex("SupplierId");
-
-                    b.ToTable("Products");
-                });
-
-            modelBuilder.Entity("UniPos.Core.Entities.ProductVariant", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Barcode")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<decimal?>("CostOverride")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("PriceOverride")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
                     b.Property<int>("ReorderLevel")
                         .HasColumnType("int");
-
-                    b.Property<string>("Size")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Sku")
                         .IsRequired()
@@ -555,8 +561,17 @@ namespace UniPos.Data.Migrations
                         .HasColumnType("nvarchar(64)")
                         .UseCollation("Latin1_General_100_CI_AS");
 
+                    b.Property<bool>("SoldOut")
+                        .HasColumnType("bit");
+
                     b.Property<int>("StockQuantity")
                         .HasColumnType("int");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("TrackStock")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
@@ -568,16 +583,38 @@ namespace UniPos.Data.Migrations
                         .IsUnique()
                         .HasFilter("[Barcode] IS NOT NULL");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("IsActive");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("IsActive"), new[] { "Name", "Sku", "Barcode", "CategoryId", "Price", "SoldOut", "TrackStock", "StockQuantity", "ReorderLevel" });
+
+                    b.HasIndex("Name");
 
                     b.HasIndex("Sku")
                         .IsUnique();
 
-                    b.HasIndex("IsActive", "ProductId");
+                    b.HasIndex("SupplierId");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("IsActive", "ProductId"), new[] { "Sku", "Color", "Size", "Barcode", "StockQuantity", "ReorderLevel", "PriceOverride", "CostOverride" });
+                    b.ToTable("Products");
+                });
 
-                    b.ToTable("ProductVariants");
+            modelBuilder.Entity("UniPos.Core.Entities.ProductModifierGroup", b =>
+                {
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ModifierGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductId", "ModifierGroupId");
+
+                    b.HasIndex("ModifierGroupId");
+
+                    b.ToTable("ProductModifierGroups");
                 });
 
             modelBuilder.Entity("UniPos.Core.Entities.PurchaseOrder", b =>
@@ -636,7 +673,7 @@ namespace UniPos.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ProductVariantId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<int>("PurchaseOrderId")
@@ -655,7 +692,7 @@ namespace UniPos.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductVariantId");
+                    b.HasIndex("ProductId");
 
                     b.HasIndex("PurchaseOrderId");
 
@@ -929,13 +966,18 @@ namespace UniPos.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Options")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("ProductVariantId")
-                        .HasColumnType("int");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -964,20 +1006,56 @@ namespace UniPos.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("VariantDescription")
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SaleId");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SaleId"), new[] { "Quantity", "ReturnedQuantity", "ProductId", "UnitPrice", "UnitCost", "LineTotal", "TaxAmount", "DiscountAmount", "ProductName", "CategoryName" });
+
+                    b.ToTable("SaleLines");
+                });
+
+            modelBuilder.Entity("UniPos.Core.Entities.SaleLineModifier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("GroupName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("ModifierId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SaleLineId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductVariantId");
+                    b.HasIndex("ModifierId");
 
-                    b.HasIndex("SaleId");
+                    b.HasIndex("SaleLineId");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SaleId"), new[] { "Quantity", "ReturnedQuantity", "ProductVariantId", "UnitPrice", "UnitCost", "LineTotal", "TaxAmount", "DiscountAmount", "ProductName", "CategoryName" });
-
-                    b.ToTable("SaleLines");
+                    b.ToTable("SaleLineModifiers");
                 });
 
             modelBuilder.Entity("UniPos.Core.Entities.SaleReturn", b =>
@@ -1244,7 +1322,7 @@ namespace UniPos.Data.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ProductVariantId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<int>("QuantityAfter")
@@ -1266,7 +1344,7 @@ namespace UniPos.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("ProductVariantId", "CreatedAt");
+                    b.HasIndex("ProductId", "CreatedAt");
 
                     b.ToTable("StockMovements");
                 });
@@ -1330,9 +1408,6 @@ namespace UniPos.Data.Migrations
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("LabelBarcode")
-                        .HasColumnType("int");
 
                     b.Property<bool>("LbpEnabled")
                         .HasColumnType("bit");
@@ -1548,6 +1623,17 @@ namespace UniPos.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("UniPos.Core.Entities.Modifier", b =>
+                {
+                    b.HasOne("UniPos.Core.Entities.ModifierGroup", "ModifierGroup")
+                        .WithMany("Options")
+                        .HasForeignKey("ModifierGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ModifierGroup");
+                });
+
             modelBuilder.Entity("UniPos.Core.Entities.Payment", b =>
                 {
                     b.HasOne("UniPos.Core.Entities.Sale", "Sale")
@@ -1577,13 +1663,21 @@ namespace UniPos.Data.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("UniPos.Core.Entities.ProductVariant", b =>
+            modelBuilder.Entity("UniPos.Core.Entities.ProductModifierGroup", b =>
                 {
+                    b.HasOne("UniPos.Core.Entities.ModifierGroup", "ModifierGroup")
+                        .WithMany()
+                        .HasForeignKey("ModifierGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("UniPos.Core.Entities.Product", "Product")
-                        .WithMany("Variants")
+                        .WithMany("ModifierGroups")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ModifierGroup");
 
                     b.Navigation("Product");
                 });
@@ -1601,9 +1695,9 @@ namespace UniPos.Data.Migrations
 
             modelBuilder.Entity("UniPos.Core.Entities.PurchaseOrderLine", b =>
                 {
-                    b.HasOne("UniPos.Core.Entities.ProductVariant", "ProductVariant")
+                    b.HasOne("UniPos.Core.Entities.Product", "Product")
                         .WithMany()
-                        .HasForeignKey("ProductVariantId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1613,7 +1707,7 @@ namespace UniPos.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ProductVariant");
+                    b.Navigation("Product");
 
                     b.Navigation("PurchaseOrder");
                 });
@@ -1652,9 +1746,9 @@ namespace UniPos.Data.Migrations
 
             modelBuilder.Entity("UniPos.Core.Entities.SaleLine", b =>
                 {
-                    b.HasOne("UniPos.Core.Entities.ProductVariant", "ProductVariant")
+                    b.HasOne("UniPos.Core.Entities.Product", "Product")
                         .WithMany()
-                        .HasForeignKey("ProductVariantId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1664,9 +1758,25 @@ namespace UniPos.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ProductVariant");
+                    b.Navigation("Product");
 
                     b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("UniPos.Core.Entities.SaleLineModifier", b =>
+                {
+                    b.HasOne("UniPos.Core.Entities.Modifier", null)
+                        .WithMany()
+                        .HasForeignKey("ModifierId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("UniPos.Core.Entities.SaleLine", "SaleLine")
+                        .WithMany("Modifiers")
+                        .HasForeignKey("SaleLineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SaleLine");
                 });
 
             modelBuilder.Entity("UniPos.Core.Entities.SaleReturn", b =>
@@ -1779,9 +1889,9 @@ namespace UniPos.Data.Migrations
 
             modelBuilder.Entity("UniPos.Core.Entities.StockMovement", b =>
                 {
-                    b.HasOne("UniPos.Core.Entities.ProductVariant", "ProductVariant")
+                    b.HasOne("UniPos.Core.Entities.Product", "Product")
                         .WithMany()
-                        .HasForeignKey("ProductVariantId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1790,7 +1900,7 @@ namespace UniPos.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("ProductVariant");
+                    b.Navigation("Product");
 
                     b.Navigation("User");
                 });
@@ -1813,9 +1923,14 @@ namespace UniPos.Data.Migrations
                     b.Navigation("Sales");
                 });
 
+            modelBuilder.Entity("UniPos.Core.Entities.ModifierGroup", b =>
+                {
+                    b.Navigation("Options");
+                });
+
             modelBuilder.Entity("UniPos.Core.Entities.Product", b =>
                 {
-                    b.Navigation("Variants");
+                    b.Navigation("ModifierGroups");
                 });
 
             modelBuilder.Entity("UniPos.Core.Entities.PurchaseOrder", b =>
@@ -1828,6 +1943,11 @@ namespace UniPos.Data.Migrations
                     b.Navigation("Lines");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("UniPos.Core.Entities.SaleLine", b =>
+                {
+                    b.Navigation("Modifiers");
                 });
 
             modelBuilder.Entity("UniPos.Core.Entities.SaleReturn", b =>

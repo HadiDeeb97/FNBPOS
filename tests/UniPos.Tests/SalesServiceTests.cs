@@ -12,7 +12,7 @@ public class SalesServiceTests
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync(stockEach: 5);
         var shift = await db.OpenShiftAsync();
-        var medium = tee.Variants.Single(v => v.Size == "M");
+        var medium = tee.Items[1];
 
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
@@ -28,7 +28,7 @@ public class SalesServiceTests
         Assert.Equal(6m, sale.ChangeGiven);
         Assert.Equal(44m, sale.Payments.Single().Amount);
         Assert.Matches(@"^R\d{8}-0001$", sale.ReceiptNumber);
-        Assert.Equal(3, (await db.GetVariantAsync(medium.Id)).StockQuantity);
+        Assert.Equal(3, (await db.GetItemAsync(medium.Id)).StockQuantity);
 
         var second = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
@@ -46,7 +46,7 @@ public class SalesServiceTests
     {
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync(stockEach: 1);
-        var v = tee.Variants[0];
+        var v = tee.Items[0];
 
         var request = new CheckoutRequest
         {
@@ -55,14 +55,14 @@ public class SalesServiceTests
             Payments = [new PaymentInput(PaymentMethod.Cash, 100m)],
         };
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Sales.CompleteSaleAsync(request));
-        Assert.Equal(1, (await db.GetVariantAsync(v.Id)).StockQuantity);
+        Assert.Equal(1, (await db.GetItemAsync(v.Id)).StockQuantity);
 
         var settings = await db.Settings.GetAsync();
         settings.AllowNegativeStock = true;
         await db.Settings.SaveAsync(settings);
 
         await db.Sales.CompleteSaleAsync(request);
-        Assert.Equal(-1, (await db.GetVariantAsync(v.Id)).StockQuantity);
+        Assert.Equal(-1, (await db.GetItemAsync(v.Id)).StockQuantity);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class SalesServiceTests
     {
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync();
-        var lines = new[] { new CheckoutLine(tee.Variants[0].Id, 1) }; // total 22.00
+        var lines = new[] { new CheckoutLine(tee.Items[0].Id, 1) }; // total 22.00
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
@@ -101,7 +101,7 @@ public class SalesServiceTests
         {
             UserId = db.Cashier.Id,
             CustomerId = customer.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 2)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 2)],
             Payments =
             [
                 new PaymentInput(PaymentMethod.StoreCredit, 10m),
@@ -127,7 +127,7 @@ public class SalesServiceTests
         CheckoutRequest Request(int? approver) => new()
         {
             UserId = db.Cashier.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1, DiscountType.Percent, 25m)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1, DiscountType.Percent, 25m)],
             Payments = [new PaymentInput(PaymentMethod.Cash, 100m)],
             ExchangeRate = 89_500m,
             ApprovedByUserId = approver,
@@ -153,7 +153,7 @@ public class SalesServiceTests
         {
             UserId = db.Cashier.Id,
             ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Cash, 100m)],
         }));
     }
@@ -172,14 +172,14 @@ public class SalesServiceTests
             UserId = db.Cashier.Id,
             ShiftId = shift.Id,
             CustomerId = customer.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.StoreCredit, 5m), new PaymentInput(PaymentMethod.Cash, 20m)],
         });
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Sales.VoidSaleAsync(sale.Id, db.Cashier.Id, "mistake"));
         await db.Sales.VoidSaleAsync(sale.Id, db.Manager.Id, "Rang up wrong item");
 
-        Assert.Equal(5, (await db.GetVariantAsync(tee.Variants[0].Id)).StockQuantity);
+        Assert.Equal(5, (await db.GetItemAsync(tee.Items[0].Id)).StockQuantity);
         var c = await db.GetCustomerAsync(customer.Id);
         Assert.Equal(5m, c.StoreCredit);
         Assert.Equal(0, c.LoyaltyPoints);

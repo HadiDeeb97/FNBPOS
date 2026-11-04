@@ -77,7 +77,7 @@ public class OnlineReportsBuilder(IDbContextFactory<PosDbContext> factory, Repor
                 ? p with { PreviousQty = b.Qty, PreviousAmount = b.Amount }
                 : p with { PreviousQty = 0, PreviousAmount = 0 }).ToList(),
             Cashiers = Rows(r.ByCashier),
-            Sizes = Rows(r.BySize),
+            Sizes = Rows(r.ByOption), // shown as "sizes" until the website is reworked for menus
             Channels = Rows(r.ByChannel),
             ReturnsByReason = Rows(r.ReturnsByReason.Take(TableRows)),
             TopReturned = Rows(r.TopReturned.Take(TableRows)),
@@ -218,9 +218,9 @@ public class OnlineReportsBuilder(IDbContextFactory<PosDbContext> factory, Repor
         var lines = (await db.SaleLines.AsNoTracking()
                 .Where(l => ids.Contains(l.SaleId))
                 .OrderBy(l => l.Id)
-                .Select(l => new { l.SaleId, l.ProductName, l.VariantDescription, l.Quantity, l.LineTotal })
+                .Select(l => new { l.SaleId, l.ProductName, l.Options, l.Quantity, l.LineTotal })
                 .ToListAsync(ct))
-            .ToLookup(l => l.SaleId, l => new SaleLineDoc(l.ProductName, l.VariantDescription, l.Quantity, l.LineTotal));
+            .ToLookup(l => l.SaleId, l => new SaleLineDoc(l.ProductName, l.Options, l.Quantity, l.LineTotal));
 
         var closes = await db.Shifts.AsNoTracking()
             .Where(s => s.Status == ShiftStatus.Closed && s.ClosedAt != null)
@@ -229,7 +229,7 @@ public class OnlineReportsBuilder(IDbContextFactory<PosDbContext> factory, Repor
                 s.ClosedAt!.Value, s.User != null ? s.User.FullName : "", s.TillName, s.ExpectedCash, s.CountedCash, s.ExpectedCashLbp, s.CountedCashLbp))
             .ToListAsync(ct);
 
-        var active = db.ProductVariants.AsNoTracking().Where(v => v.IsActive && v.Product!.IsActive);
+        var active = db.Products.AsNoTracking().Where(p => p.IsActive && p.TrackStock);
         var low = await active.CountAsync(v => v.StockQuantity <= v.ReorderLevel, ct);
         var outOfStock = await active.CountAsync(v => v.StockQuantity <= 0, ct);
 
@@ -264,57 +264,48 @@ public class OnlineReportsBuilder(IDbContextFactory<PosDbContext> factory, Repor
             alerts.LowStock.Take(StockRows).Select(a =>
             {
                 var sold = sold30.GetValueOrDefault(a.Sku);
-                return new LowStockDoc(a.Product, a.Variant, a.Sku, a.Stock, a.ReorderLevel)
+                return new LowStockDoc(a.Product, "", a.Sku, a.Stock, a.ReorderLevel)
                 {
                     Sold30 = sold,
                     // At the last 30 days' pace; nothing when it hasn't sold (it isn't running out).
                     DaysLeft = a.Stock <= 0 ? 0 : sold > 0 ? (int)Math.Floor(a.Stock / (sold / 30m)) : null,
                 };
             }).ToList(),
-            alerts.SlowMovers.Take(StockRows).Select(a => new SlowMoverDoc(a.Product, a.Variant, a.Stock, a.CostValue, a.LastSold)).ToList());
+            alerts.SlowMovers.Take(StockRows).Select(a => new SlowMoverDoc(a.Product, "", a.Stock, a.CostValue, a.LastSold)).ToList());
     }
 
-    /// <summary>Variants per part of the item list (about 100 bytes each, far below D1's 2 MB per row).</summary>
+    /// <summary>Items per part of the item list (about 100 bytes each, far below D1's 2 MB per row).</summary>
     public const int CatalogPartSize = 4000;
 
-    /// <summary>Parts at most (40,000 variants), as many as the website reads in one request.</summary>
+    /// <summary>Parts at most (40,000 items), as many as the website reads in one request.</summary>
     public const int CatalogMaxParts = 10;
 
     /// <summary>
-    /// Every active item with its stock, for the website's stock search: products A–Z, each with its sizes and colours.
-    /// Two queries; the 30-day sales use the sales date index.
+    /// Every counted item with its stock, for the website's stock search, A–Z. Each is one row in the website's old
+    /// size/colour format (both empty) until the website is reworked for menus. Two queries; the 30-day sales use the sales date index.
     /// </summary>
     public async Task<List<CatalogDoc>> CatalogAsync(DateTime today, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var variants = await db.ProductVariants.AsNoTracking()
-            .Where(v => v.IsActive && v.Product!.IsActive)
-            .Select(v => new
+        var items = await db.Products.AsNoTracking()
+            .Where(p => p.IsActive && p.TrackStock)
+            .Select(p => new
             {
-                v.Id, v.ProductId, Product = v.Product!.Name, Category = v.Product.Category != null ? v.Product.Category.Name : null,
-                v.Product.Brand, v.Product.StyleCode, ProductPrice = v.Product.Price,
-                v.Size, v.Color, v.Sku, v.Barcode, v.StockQuantity, v.ReorderLevel, v.PriceOverride,
+                p.Id, Product = p.Name, Category = p.Category != null ? p.Category.Name : null, p.Price, p.Sku, p.Barcode, p.StockQuantity, p.ReorderLevel,
             })
             .ToListAsync(ct);
         var since = today.Date.AddDays(-30);
         var sold = await db.SaleLines.AsNoTracking()
             .Where(l => l.Sale!.Status == SaleStatus.Completed && l.Sale.CreatedAt >= since)
-            .GroupBy(l => l.ProductVariantId)
+            .GroupBy(l => l.ProductId)
             .Select(g => new { Id = g.Key, Qty = g.Sum(l => l.Quantity - l.ReturnedQuantity) })
             .ToDictionaryAsync(x => x.Id, x => x.Qty, ct);
 
-        var products = variants
-            .GroupBy(v => v.ProductId)
-            .Select(g =>
-            {
-                var first = g.First();
-                return new CatalogProduct(first.Product, first.Category, Blank(first.Brand), Blank(first.StyleCode), first.ProductPrice,
-                    g.OrderBy(v => v.Color).ThenBy(v => v.Id).Select(v => new object?[]
-                    {
-                        v.Size, v.Color, v.Sku, Blank(v.Barcode), v.StockQuantity, v.ReorderLevel,
-                        v.PriceOverride is { } own && own != first.ProductPrice ? own : null, sold.GetValueOrDefault(v.Id),
-                    }).ToList());
-            })
+        var products = items
+            .Select(i => new CatalogProduct(i.Product, i.Category, null, null, i.Price,
+            [
+                new object?[] { "", "", i.Sku, Blank(i.Barcode), i.StockQuantity, i.ReorderLevel, null, sold.GetValueOrDefault(i.Id) },
+            ]))
             .OrderBy(p => p.N, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 

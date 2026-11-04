@@ -23,7 +23,7 @@
   "Inventory.ReorderPrompt": "Warn when stock of {0} falls to or below:",
   "Inventory.RetailValue": "Retail value",
   "Inventory.SaveAdjustment": "Save adjustment",
-  "Inventory.SearchHint": "Search product, SKU, colour, size, barcode",
+  "Inventory.SearchHint": "Search item, code or barcode",
   "Inventory.StockCount": "Stock count",
   "Inventory.StockCountPrompt": "Counted quantity for {0} ({1}).\nSystem quantity: {2}",
   "Inventory.StockValueCost": "Stock value (cost)",

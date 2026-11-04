@@ -9,10 +9,10 @@ namespace UniPos.Tests;
 public class PriceChangeTests
 {
     // The test tee: shelf price 20, cost 8, tax 10% on top, cashiers may give up to 10% off.
-    private static Task<Sale> SellAsync(TestDatabase db, Shift shift, Product tee, decimal? price, User? user = null,
+    private static Task<Sale> SellAsync(TestDatabase db, Shift shift, TestDatabase.TestItems tee, decimal? price, User? user = null,
         DiscountType discount = DiscountType.None, decimal discountValue = 0, int? approvedBy = null)
     {
-        var line = new CheckoutLine(tee.Variants[0].Id, 1, discount, discountValue, price);
+        var line = new CheckoutLine(tee.Items[0].Id, 1, discount, discountValue, price);
         var total = price is <= 0 ? 1m // refused anyway
             : CartCalculator.Calculate([new CartLineInput(price ?? 20m, 1, discount, discountValue)], DiscountType.None, 0, 10m, false).Total;
         return db.Sales.CompleteSaleAsync(new CheckoutRequest
@@ -98,7 +98,7 @@ public class PriceChangeTests
         var tee = await db.CreateTeeAsync();
         var shift = await db.OpenShiftAsync();
         await Assert.ThrowsAsync<BusinessRuleException>(() => SellAsync(db, shift, tee, price, user: db.Manager));
-        Assert.Equal(10, (await db.GetVariantAsync(tee.Variants[0].Id)).StockQuantity);
+        Assert.Equal(10, (await db.GetItemAsync(tee.Items[0].Id)).StockQuantity);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class PriceChangeTests
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync();
         var held = await db.Sales.HoldAsync("Rana", db.Cashier.Id,
-            new HeldCart([new HeldCartLine(tee.Variants[0].Id, 2, DiscountType.None, 0, 24.5m), new HeldCartLine(tee.Variants[1].Id, 1, DiscountType.None, 0)],
+            new HeldCart([new HeldCartLine(tee.Items[0].Id, 2, DiscountType.None, 0, 24.5m), new HeldCartLine(tee.Items[1].Id, 1, DiscountType.None, 0)],
                 DiscountType.None, 0, null));
 
         var cart = await db.Sales.PeekHeldAsync(held.Id);
@@ -119,7 +119,7 @@ public class PriceChangeTests
             ctx.HeldSales.Add(new HeldSale
             {
                 Label = "Old", UserId = db.Cashier.Id, CreatedAt = DateTime.Now,
-                Payload = $$"""{"Lines":[{"VariantId":{{tee.Variants[0].Id}},"Quantity":1,"DiscountType":0,"DiscountValue":0}],"CartDiscountType":0,"CartDiscountValue":0,"CustomerId":null}""",
+                Payload = $$"""{"Lines":[{"VariantId":{{tee.Items[0].Id}},"Quantity":1,"DiscountType":0,"DiscountValue":0}],"CartDiscountType":0,"CartDiscountValue":0,"CustomerId":null}""",
             });
             await ctx.SaveChangesAsync();
         }

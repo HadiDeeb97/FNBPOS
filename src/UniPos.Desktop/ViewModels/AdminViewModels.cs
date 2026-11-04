@@ -303,9 +303,6 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
     public partial string ReceiptPrinter { get; set; } = "";
 
     [ObservableProperty]
-    public partial string LabelPrinter { get; set; } = "";
-
-    [ObservableProperty]
     public partial int ReceiptCopies { get; set; } = 1;
 
     // ---- Cash drawer on this PC's receipt printer ----
@@ -396,12 +393,11 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
         var list = new List<PrinterChoice> { new("", Loc.T("Print.AskEveryTime")) };
         list.AddRange(installed.Select(n => new PrinterChoice(n, n)));
         // A saved printer that is unplugged or renamed stays visible, so it isn't silently forgotten.
-        foreach (var saved in new[] { LocalPreferences.Current.ReceiptPrinter, LocalPreferences.Current.LabelPrinter })
+        foreach (var saved in new[] { LocalPreferences.Current.ReceiptPrinter })
             if (!string.IsNullOrEmpty(saved) && list.All(c => !string.Equals(c.Name, saved, StringComparison.OrdinalIgnoreCase)))
                 list.Add(new PrinterChoice(saved, Loc.T("Print.NotFound", saved)));
         Printers = list;
         ReceiptPrinter = LocalPreferences.Current.ReceiptPrinter ?? "";
-        LabelPrinter = LocalPreferences.Current.LabelPrinter ?? "";
         ReceiptCopies = Math.Clamp(LocalPreferences.Current.ReceiptCopies, 1, 99);
         var prefs = LocalPreferences.Current;
         CashDrawer = prefs.CashDrawer;
@@ -417,7 +413,6 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
     {
         var prefs = LocalPreferences.Current;
         prefs.ReceiptPrinter = string.IsNullOrEmpty(ReceiptPrinter) ? null : ReceiptPrinter;
-        prefs.LabelPrinter = string.IsNullOrEmpty(LabelPrinter) ? null : LabelPrinter;
         prefs.ReceiptCopies = Math.Clamp(ReceiptCopies, 1, 99);
         prefs.CashDrawer = CashDrawer;
         prefs.DrawerSignal = DrawerSignal;

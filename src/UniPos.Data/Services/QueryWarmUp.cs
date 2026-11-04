@@ -21,7 +21,7 @@ public class QueryWarmUp(
             () => products.SearchAsync(null, null, ct: ct),
             () => products.SearchAsync("~", null, ct: ct),
             () => products.SearchAsync(null, 0, ct: ct),
-            () => products.SearchVariantsAsync("~", ct: ct),
+            () => products.SearchItemsAsync("~", ct: ct),
             () => products.FindByCodeAsync("~", ct),
             () => customers.SearchAsync(null, ct: ct),
             () => customers.SearchAsync("~", ct: ct),

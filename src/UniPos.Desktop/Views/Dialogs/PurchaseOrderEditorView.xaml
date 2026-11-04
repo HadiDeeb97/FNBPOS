@@ -58,9 +58,9 @@
                 </WrapPanel>
                 <DataGrid ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedResult}" MouseDoubleClick="OnResultDoubleClick">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding DisplayName}" Width="*" MinWidth="140" />
+                        <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Name}" Width="*" MinWidth="140" />
                         <DataGridTextColumn Header="{l:T Common.Stock}" Binding="{Binding StockQuantity}" Width="Auto" MinWidth="65" ElementStyle="{StaticResource RightCell}" />
-                        <DataGridTextColumn Header="{l:T Common.Cost}" Binding="{Binding EffectiveCost, Converter={StaticResource Money}}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="{l:T Common.Cost}" Binding="{Binding Cost, Converter={StaticResource Money}}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>
@@ -71,8 +71,8 @@
                 <TextBlock DockPanel.Dock="Top" Text="{l:T Purchasing.OrderLines}" Style="{StaticResource SectionTitle}" />
                 <DataGrid ItemsSource="{Binding Lines}" IsReadOnly="False" RowHeight="40">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Variant.DisplayName, Mode=OneWay}" Width="*" MinWidth="140" IsReadOnly="True" />
-                        <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Variant.Sku, Mode=OneWay}" Width="Auto" MinWidth="130" IsReadOnly="True" />
+                        <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Variant.Name, Mode=OneWay}" Width="*" MinWidth="140" IsReadOnly="True" />
+                        <DataGridTextColumn Header="{l:T Menu.Code}" Binding="{Binding Variant.Sku, Mode=OneWay}" Width="Auto" MinWidth="130" IsReadOnly="True" />
                         <DataGridTextColumn Header="{l:T Inventory.OnHand}" Binding="{Binding Variant.StockQuantity, Mode=OneWay}" Width="Auto" MinWidth="75" IsReadOnly="True" ElementStyle="{StaticResource RightCell}" />
                         <DataGridTemplateColumn Header="{l:T Common.Qty}" Width="Auto" MinWidth="75">
                             <DataGridTemplateColumn.CellTemplate>

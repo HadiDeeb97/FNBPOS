@@ -22,9 +22,9 @@ public class DeliveryPaymentTests
         var tee = await db.CreateTeeAsync();
         var shift = await db.OpenShiftAsync();
 
-        var a = await SellAsync(db, tee.Variants[0].Id, 1, "Toters", shiftId: shift.Id);   // owes 25
-        var b = await SellAsync(db, tee.Variants[1].Id, 2, "Toters", shiftId: shift.Id);   // owes 47
-        var c = await SellAsync(db, tee.Variants[2].Id, 1, "Abu Ali", shiftId: shift.Id);  // owes 25
+        var a = await SellAsync(db, tee.Items[0].Id, 1, "Toters", shiftId: shift.Id);   // owes 25
+        var b = await SellAsync(db, tee.Items[1].Id, 2, "Toters", shiftId: shift.Id);   // owes 47
+        var c = await SellAsync(db, tee.Items[2].Id, 1, "Abu Ali", shiftId: shift.Id);  // owes 25
 
         Assert.Equal(PaymentMethod.Delivery, a.Payments.Single().Method);
         Assert.Equal("Toters", a.Courier);
@@ -63,11 +63,11 @@ public class DeliveryPaymentTests
         var tee = await db.CreateTeeAsync();
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
         }));
 
-        var sale = await SellAsync(db, tee.Variants[0].Id, 1, "Toters");
+        var sale = await SellAsync(db, tee.Items[0].Id, 1, "Toters");
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Deliveries.SettleAsync(new SettleDeliveriesRequest
         {
             SaleIds = [sale.Id], UserId = db.Cashier.Id, Method = SettlementMethod.Cash,
@@ -80,7 +80,7 @@ public class DeliveryPaymentTests
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync();
         var shift = await db.OpenShiftAsync();
-        var sale = await SellAsync(db, tee.Variants[0].Id, 1, "Toters", fee: 0m); // owes 22 = 1,969,000 LBP
+        var sale = await SellAsync(db, tee.Items[0].Id, 1, "Toters", fee: 0m); // owes 22 = 1,969,000 LBP
 
         var settlement = await db.Deliveries.SettleAsync(new SettleDeliveriesRequest
         {
@@ -96,7 +96,7 @@ public class DeliveryPaymentTests
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync();
         var shift = await db.OpenShiftAsync();
-        var sale = await SellAsync(db, tee.Variants[0].Id, 2, "Toters", fee: 0m); // owes 44
+        var sale = await SellAsync(db, tee.Items[0].Id, 2, "Toters", fee: 0m); // owes 44
 
         var first = await db.Returns.ProcessReturnAsync(new ReturnRequest
         {
@@ -125,7 +125,7 @@ public class DeliveryPaymentTests
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync();
         var shift = await db.OpenShiftAsync();
-        var sale = await SellAsync(db, tee.Variants[0].Id, 2, "Toters", fee: 0m); // owes 44
+        var sale = await SellAsync(db, tee.Items[0].Id, 2, "Toters", fee: 0m); // owes 44
 
         var plan = await db.Returns.PlanAsync(sale.Id, [new ReturnLineRequest(sale.Lines[0].Id, 1)], RefundDestination.OriginalPayment,
             customerPaidCourier: true);
@@ -148,7 +148,7 @@ public class DeliveryPaymentTests
         var tee = await db.CreateTeeAsync();
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Channel = SalesChannel.WhatsApp, Courier = "Toters", DeliveryReference = " tt-88231 ", CustomerId = await db.ShopperIdAsync(),
             Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
         });
@@ -173,7 +173,7 @@ public class DeliveryCashMixupTests
         var shopper = await db.ShopperIdAsync();
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, CustomerId = shopper, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, CustomerId = shopper, Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Channel = SalesChannel.WhatsApp, Courier = "test",
             Payments = [new PaymentInput(PaymentMethod.Delivery, 22m), new PaymentInput(PaymentMethod.Cash, 22m)],
         }));

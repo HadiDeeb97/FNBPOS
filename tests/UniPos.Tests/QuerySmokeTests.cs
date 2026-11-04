@@ -32,18 +32,26 @@ public class QuerySmokeTests
 
         var supplier = (await db.Suppliers.GetAllAsync()).First();
         var categories = await db.Categories.GetAllAsync();
-        var products = await db.Products.SearchAsync("jeans", categories.First(c => c.Name.Contains("Jeans")).Id);
-        Assert.NotEmpty(products);
-        Assert.NotEmpty(await db.Products.SearchAsync("indigo lab"));    // brand
-        Assert.NotEmpty(await db.Products.SearchAsync(products[0].Variants[0].Sku));
+        var crepes = await db.Products.SearchAsync("crepe", categories.First(c => c.Name == "Sweet crepes").Id);
+        Assert.NotEmpty(crepes);
+        Assert.NotEmpty(await db.Products.SearchAsync("hot drinks"));    // category
+        Assert.NotEmpty(await db.Products.SearchAsync(crepes[0].Sku));
         Assert.NotEmpty(await db.Products.SearchAsync(null, null, includeInactive: true));
+        Assert.NotEmpty(await db.Products.SearchItemsAsync("nutella"));
+        Assert.NotNull(await db.Products.FindByCodeAsync("5281006400016"));
+        Assert.NotEmpty(await db.Modifiers.GetGroupsAsync());
+        Assert.NotEmpty(await db.Modifiers.CountItemsAsync());
 
-        var variant = products[0].Variants.First(v => v.StockQuantity > 1);
-        Assert.NotNull(await db.Products.GetAsync(products[0].Id));
-        Assert.Single(await db.Products.GetVariantsAsync([variant.Id, variant.Id]));
-        Assert.NotEmpty(await db.Inventory.GetStockAsync("jeans 32"));
+        var variant = (await db.Inventory.GetStockAsync("water")).Single(); // a counted item
+        var cappuccino = (await db.Products.SearchItemsAsync("cappuccino")).Single();
+        Assert.NotNull(await db.Products.GetAsync(cappuccino.Id));
+        Assert.Single(await db.Products.GetItemsAsync([variant.Id, variant.Id]));
         Assert.NotNull(await db.Inventory.GetStockAsync(null, categories[0].Id, lowStockOnly: true));
         Assert.NotEmpty(await db.Inventory.GetMovementsAsync(null, DateTime.Today, DateTime.Today.AddDays(1)));
+
+        // A large cappuccino with oat milk (size and milk must be picked).
+        var options = cappuccino.ModifierGroups.SelectMany(g => g.ModifierGroup!.Options)
+            .Where(o => o.Name is "Large" or "Oat").Select(o => o.Id).ToList();
 
         var customer = (await db.Customers.SearchAsync("sarah 0101")).Single();
         Assert.Empty(await db.Customers.SearchAsync("100%_no_match"));
@@ -52,10 +60,11 @@ public class QuerySmokeTests
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id, CustomerId = customer.Id,
-            Lines = [new CheckoutLine(variant.Id, 1)],
+            Lines = [new CheckoutLine(variant.Id, 1), new CheckoutLine(cappuccino.Id, 1, Options: options)],
             Payments = [new PaymentInput(PaymentMethod.Cash, 500m)],
             ExchangeRate = 89_500m, // the cents of the change come back in pounds, at the rate shown
         });
+        Assert.Equal(("Large · Oat", 4.50m, 2), (sale.Lines[1].Options, sale.Lines[1].UnitPrice, options.Count));
 
         var today = DateTime.Today;
         var tomorrow = today.AddDays(1);
@@ -78,7 +87,7 @@ public class QuerySmokeTests
         var po = await db.PurchaseOrders.SaveAsync(new PurchaseOrder
         {
             SupplierId = supplier.Id,
-            Lines = [new PurchaseOrderLine { ProductVariantId = variant.Id, QuantityOrdered = 3, UnitCost = 10m }],
+            Lines = [new PurchaseOrderLine { ProductId = variant.Id, QuantityOrdered = 3, UnitCost = 10m }],
         }, db.Manager.Id);
         Assert.Single(await db.PurchaseOrders.GetAllAsync());
         Assert.Single(await db.PurchaseOrders.GetAllAsync(PurchaseOrderStatus.Draft));
@@ -90,12 +99,11 @@ public class QuerySmokeTests
 
         var report = await db.Reports.GetSalesReportAsync(today, tomorrow);
         Assert.Equal(1, report.Transactions);
-        Assert.NotEmpty(report.BySize);
+        Assert.NotEmpty(report.ByOption);
         Assert.NotEmpty(report.ByDay);
         var valuation = await db.Reports.GetInventoryValuationAsync();
         Assert.True(valuation.CostValue > 0);
 
-        Assert.NotEmpty(await db.Products.GenerateBarcodesAsync(2));
         Assert.True(await db.Users.IsFirstRunAsync()); // default admin still has the initial password
     }
 

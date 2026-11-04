@@ -22,7 +22,7 @@
   "Returns.Reason.Exchange": "استبدال",
   "Returns.Reason.Gift": "هدية غير مرغوبة",
   "Returns.Reason.NotAsDescribed": "غير مطابق للوصف",
-  "Returns.Reason.WrongSize": "مقاس غير مناسب",
+  "Returns.Reason.WrongSize": "طلب خاطئ",
   "Returns.ReceiptHint": "امسح أو اكتب رقم الإيصال",
   "Returns.Refund": "المبلغ المسترد",
   "Returns.RefundTitle": "استرداد {0}",

@@ -20,7 +20,7 @@ public class ReturnServiceTests
             UserId = db.Cashier.Id,
             ShiftId = shift.Id,
             CustomerId = customer.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 3)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 3)],
             CartDiscountType = DiscountType.Percent,
             CartDiscountValue = 10m,
             Payments = [new PaymentInput(PaymentMethod.Cash, 29.70m)],
@@ -49,7 +49,7 @@ public class ReturnServiceTests
 
         Assert.Equal(9.90m, first.TotalRefund);
         Assert.Equal(29.70m, first.TotalRefund + second.TotalRefund);
-        Assert.Equal(10, (await db.GetVariantAsync(line.ProductVariantId)).StockQuantity);
+        Assert.Equal(10, (await db.GetItemAsync(line.ProductId)).StockQuantity);
         Assert.Matches(@"^RT\d{8}-0002$", second.ReturnNumber);
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Returns.ProcessReturnAsync(new ReturnRequest
@@ -78,7 +78,7 @@ public class ReturnServiceTests
         var c = await db.GetCustomerAsync(customer.Id);
         Assert.Equal(ret.TotalRefund, c.StoreCredit);
         Assert.Equal(29 - 9, c.LoyaltyPoints);
-        Assert.Equal(7, (await db.GetVariantAsync(line.ProductVariantId)).StockQuantity); // not restocked
+        Assert.Equal(7, (await db.GetItemAsync(line.ProductId)).StockQuantity); // not restocked
     }
 
     [Fact]
@@ -119,11 +119,11 @@ public class ReturnServiceTests
     // ---- Refunds follow the original payment -------------------------------------------------
 
     /// <summary>Tee at 10.00 + 10% tax = 11.00 each, with a customer who has store credit and points.</summary>
-    private static async Task<(TestDatabase Db, ProductVariant Tee, Shift Shift, Customer Customer)> SetupTenderAsync(
+    private static async Task<(TestDatabase Db, Product Tee, Shift Shift, Customer Customer)> SetupTenderAsync(
         decimal storeCredit = 50m, int points = 100)
     {
         var db = await TestDatabase.CreateAsync();
-        var tee = (await db.CreateTeeAsync(stockEach: 10, price: 10m)).Variants[0];
+        var tee = (await db.CreateTeeAsync(stockEach: 10, price: 10m)).Items[0];
         var customer = await db.Customers.SaveAsync(new Customer { FirstName = "Tess" });
         if (storeCredit > 0) await db.Customers.AdjustStoreCreditAsync(customer.Id, storeCredit, db.Manager.Id);
         await using (var ctx = await db.Factory.CreateDbContextAsync())
@@ -133,7 +133,7 @@ public class ReturnServiceTests
         return (db, tee, await db.OpenShiftAsync(), customer);
     }
 
-    private static Task<Sale> SellAsync(TestDatabase db, ProductVariant tee, Shift shift, Customer customer, int quantity,
+    private static Task<Sale> SellAsync(TestDatabase db, Product tee, Shift shift, Customer customer, int quantity,
         params PaymentInput[] payments) =>
         db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
@@ -263,7 +263,7 @@ public class ReturnServiceTests
         Assert.Equal(11m, plan.Total);
         Assert.True(plan.NeedsCashOverride);
         Assert.Equal(6.67m, plan.CashOut);
-        Assert.Equal(7, (await db.GetVariantAsync(tee.Id)).StockQuantity);
+        Assert.Equal(7, (await db.GetItemAsync(tee.Id)).StockQuantity);
         Assert.Equal(0m, (await db.GetCustomerAsync(customer.Id)).StoreCredit);
 
         var ret = await db.Returns.ProcessReturnAsync(Return(db, sale, shift, 1, RefundDestination.Cash, approver: db.Manager.Id));

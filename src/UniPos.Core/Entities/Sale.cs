@@ -100,19 +100,21 @@ public class SaleLine : Entity
     public int SaleId { get; set; }
     public Sale? Sale { get; set; }
 
-    public int ProductVariantId { get; set; }
-    public ProductVariant? ProductVariant { get; set; }
+    public int ProductId { get; set; }
+    public Product? Product { get; set; }
 
-    // Snapshots so receipts/reports stay correct even if the product is later edited.
+    // Snapshots so receipts/reports stay correct even if the item is later edited.
     public string ProductName { get; set; } = "";
-    public string VariantDescription { get; set; } = "";
+
+    /// <summary>The options picked, as printed under the item ("Large · Nutella, Banana"); empty when none.</summary>
+    public string Options { get; set; } = "";
     public string Sku { get; set; } = "";
     public string? CategoryName { get; set; }
 
-    /// <summary>Price charged for one: the shelf price, or the price the cashier typed in.</summary>
+    /// <summary>Price charged for one, options included: the menu price, or the price the cashier typed in.</summary>
     public decimal UnitPrice { get; set; }
 
-    /// <summary>The shelf price at the time of sale when the cashier typed another price; empty otherwise.</summary>
+    /// <summary>The menu price (with options) at the time of sale when the cashier typed another price; empty otherwise.</summary>
     public decimal? ListPrice { get; set; }
 
     public bool PriceChanged => ListPrice is { } shelf && shelf != UnitPrice;
@@ -130,6 +132,26 @@ public class SaleLine : Entity
     public int ReturnedQuantity { get; set; }
 
     public int ReturnableQuantity => Quantity - ReturnedQuantity;
+
+    /// <summary>The options picked, one row each, for reports (what sells with what).</summary>
+    public List<SaleLineModifier> Modifiers { get; set; } = [];
+}
+
+/// <summary>An option picked on a sale line, as it was when sold.</summary>
+public class SaleLineModifier : Entity
+{
+    public int SaleLineId { get; set; }
+    public SaleLine? SaleLine { get; set; }
+
+    /// <summary>The option; null once it was deleted from the menu.</summary>
+    public int? ModifierId { get; set; }
+
+    public string GroupName { get; set; } = "";
+    public string Name { get; set; } = "";
+
+    /// <summary>Added to the price of one item.</summary>
+    public decimal Price { get; set; }
+    public decimal Cost { get; set; }
 }
 
 public class Payment : Entity

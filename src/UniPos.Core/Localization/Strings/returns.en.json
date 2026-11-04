@@ -22,7 +22,7 @@
   "Returns.Reason.Exchange": "Exchange",
   "Returns.Reason.Gift": "Unwanted gift",
   "Returns.Reason.NotAsDescribed": "Not as described",
-  "Returns.Reason.WrongSize": "Wrong size",
+  "Returns.Reason.WrongSize": "Wrong order",
   "Returns.ReceiptHint": "Scan or type receipt number",
   "Returns.Refund": "Refund",
   "Returns.RefundTitle": "Refund {0}",

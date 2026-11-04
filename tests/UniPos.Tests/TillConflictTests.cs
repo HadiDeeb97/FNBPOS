@@ -19,11 +19,11 @@ public class TillConflictTests
         var sales = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
         })));
 
         Assert.Equal(6, sales.Select(s => s.ReceiptNumber).Distinct().Count());
-        Assert.Equal(94, (await db.GetVariantAsync(tee.Variants[0].Id)).StockQuantity);
+        Assert.Equal(94, (await db.GetItemAsync(tee.Items[0].Id)).StockQuantity);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class TillConflictTests
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1), new CheckoutLine(tee.Variants[1].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1), new CheckoutLine(tee.Items[1].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Card, 44m)],
         });
 
@@ -57,7 +57,7 @@ public class TillConflictTests
         Task<Sale> Sell() => db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Card, 22m)],
         });
         var first = await Sell();
         await using (var ctx = await db.Factory.CreateDbContextAsync())

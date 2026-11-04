@@ -66,8 +66,8 @@
                         </Border>
                         <DataGrid ItemsSource="{Binding Detail.Lines}" Style="{StaticResource CardGrid}" infra:LayoutMemory.Key="PurchaseOrders.Lines">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding ProductVariant.DisplayName}" Width="*" MinWidth="140" />
-                                <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding ProductVariant.Sku}" Width="Auto" MinWidth="140" />
+                                <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Product.Name}" Width="*" MinWidth="140" />
+                                <DataGridTextColumn Header="{l:T Menu.Code}" Binding="{Binding Product.Sku}" Width="Auto" MinWidth="140" />
                                 <DataGridTextColumn Header="{l:T Purchasing.Ordered}" Binding="{Binding QuantityOrdered}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource RightCell}" />
                                 <DataGridTextColumn Header="{l:T Purchasing.Received}" Binding="{Binding QuantityReceived}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
                                 <DataGridTextColumn Header="{l:T Common.Cost}" Binding="{Binding UnitCost, Converter={StaticResource Money}}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource RightCell}" />

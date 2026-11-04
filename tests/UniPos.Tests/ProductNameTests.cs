@@ -11,7 +11,7 @@ public class ProductNameTests
     {
         await using var db = await TestDatabase.CreateAsync();
         var category = await db.Categories.SaveAsync(new Category { Name = "Tops" });
-        Product Make(string name) => new() { Name = name, CategoryId = category.Id, Price = 10, Variants = [new ProductVariant()] };
+        Product Make(string name) => new() { Name = name, CategoryId = category.Id, Price = 10 };
 
         var first = await db.Products.SaveAsync(Make("Abaya Butterfly"), db.Admin.Id);
 
@@ -25,11 +25,11 @@ public class ProductNameTests
     {
         await using var db = await TestDatabase.CreateAsync();
         var category = await db.Categories.SaveAsync(new Category { Name = "Tops" });
-        var old = await db.Products.SaveAsync(new Product { Name = "Linen Shirt", CategoryId = category.Id, Price = 10, Variants = [new ProductVariant()] }, db.Admin.Id);
+        var old = await db.Products.SaveAsync(new Product { Name = "Linen Shirt", CategoryId = category.Id, Price = 10 }, db.Admin.Id);
         old.IsActive = false;
         await db.Products.SaveAsync(old, db.Admin.Id);
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            db.Products.SaveAsync(new Product { Name = "LINEN SHIRT", CategoryId = category.Id, Price = 12, Variants = [new ProductVariant()] }, db.Admin.Id));
+            db.Products.SaveAsync(new Product { Name = "LINEN SHIRT", CategoryId = category.Id, Price = 12 }, db.Admin.Id));
     }
 }

@@ -16,6 +16,7 @@
     <DataTemplate DataType="{x:Type vm:PurchaseOrdersViewModel}"><v:PurchaseOrdersView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:SuppliersViewModel}"><v:SuppliersView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:CategoriesViewModel}"><v:CategoriesView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ModifierGroupsViewModel}"><v:ModifierGroupsView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ShiftViewModel}"><v:ShiftView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ReportsViewModel}"><v:ReportsView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:UsersViewModel}"><v:UsersView /></DataTemplate>
@@ -40,9 +41,8 @@
     <DataTemplate DataType="{x:Type dlg:OnlineSaleViewModel}"><vd:OnlineSaleView /></DataTemplate>
     <DataTemplate DataType="{x:Type dlg:SettleDeliveriesViewModel}"><vd:SettleDeliveriesView /></DataTemplate>
     <DataTemplate DataType="{x:Type dlg:DeliveryPartnersViewModel}"><vd:DeliveryPartnersView /></DataTemplate>
-    <DataTemplate DataType="{x:Type dlg:VariantPickerViewModel}"><vd:VariantPickerView /></DataTemplate>
+    <DataTemplate DataType="{x:Type dlg:ModifierPickerViewModel}"><vd:ModifierPickerView /></DataTemplate>
     <DataTemplate DataType="{x:Type dlg:ProductEditorViewModel}"><vd:ProductEditorView /></DataTemplate>
-    <DataTemplate DataType="{x:Type dlg:LabelPrintViewModel}"><vd:LabelPrintView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:StockAdjustViewModel}"><vd:StockAdjustView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:PurchaseOrderEditorViewModel}"><vd:PurchaseOrderEditorView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ReceivePurchaseOrderViewModel}"><vd:ReceivePurchaseOrderView /></DataTemplate>

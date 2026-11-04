@@ -1,0 +1,103 @@
+<UserControl x:Class="UniPos.Desktop.Views.ModifierGroupsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:UniPos.Desktop.Localization"
+             xmlns:infra="clr-namespace:UniPos.Desktop.Infrastructure">
+    <Grid infra:LayoutMemory.Key="Modifiers" infra:PanelFit.IsEnabled="True">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="360" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="520" MinWidth="420" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Groups -->
+        <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="{l:T Modifiers.Intro}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,10" />
+            <Border Style="{StaticResource TableCard}">
+                <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" infra:LayoutMemory.Key="Modifiers.List">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{l:T Modifiers.Group}" Binding="{Binding Name}" Width="Auto" MinWidth="140" FontWeight="SemiBold" />
+                        <DataGridTextColumn Header="{l:T Modifiers.Rule}" Binding="{Binding Rule}" Width="Auto" MinWidth="120" />
+                        <DataGridTextColumn Header="{l:T Modifiers.Options}" Binding="{Binding Options}" Width="*" MinWidth="160" />
+                        <DataGridTextColumn Header="{l:T Modifiers.Items}" Binding="{Binding ItemsText}" Width="Auto" MinWidth="90" />
+                        <DataGridCheckBoxColumn Header="{l:T Common.Active}" Binding="{Binding Group.IsActive}" Width="Auto" MinWidth="70" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" Style="{StaticResource ColumnSplitter}" />
+
+        <!-- The group being edited -->
+        <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Stretch" IsEnabled="{Binding CanEdit}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <Button DockPanel.Dock="Right" Content="{l:T Modifiers.NewButton}" Style="{StaticResource LinkButton}" Command="{Binding NewCommand}" Margin="0" />
+                    <TextBlock Text="{l:T Modifiers.Details}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" />
+                </DockPanel>
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="{l:T Modifiers.NameRequired}" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding Name}" />
+
+                    <TextBlock Text="{l:T Modifiers.HowMany}" Style="{StaticResource FieldLabel}" />
+                    <WrapPanel Margin="0,0,0,6">
+                        <Button Content="{l:T Picker.PickOne}" Style="{StaticResource SmallButton}" Command="{Binding UseRuleCommand}" CommandParameter="one" Margin="0,0,6,0" />
+                        <Button Content="{l:T Picker.PickOneOptional}" Style="{StaticResource SmallButton}" Command="{Binding UseRuleCommand}" CommandParameter="optional-one" Margin="0,0,6,0" />
+                        <Button Content="{l:T Picker.PickAny}" Style="{StaticResource SmallButton}" Command="{Binding UseRuleCommand}" CommandParameter="any" />
+                    </WrapPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{l:T Modifiers.AtLeast}" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding MinChoices}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{l:T Modifiers.AtMost}" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding MaxChoices}" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="{l:T Modifiers.HowManyHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" />
+                    <CheckBox Content="{l:T Common.Active}" IsChecked="{Binding IsActive}" Margin="0,10,0,0" />
+
+                    <DockPanel Margin="0,14,0,6">
+                        <Button DockPanel.Dock="Right" Content="{l:T Modifiers.AddOption}" Style="{StaticResource LinkButton}" Command="{Binding AddOptionCommand}" Margin="0" />
+                        <TextBlock Text="{l:T Modifiers.Options}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button Content="{l:T Common.Save}" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" MinWidth="90" />
+                    <Button Content="{l:T Common.Delete}" Style="{StaticResource GhostButton}" Foreground="{StaticResource DangerBrush}" Command="{Binding DeleteCommand}" />
+                </StackPanel>
+                <Border Style="{StaticResource TableCard}">
+                    <DataGrid ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" CanUserAddRows="False" CanUserSortColumns="False"
+                              HeadersVisibility="Column" MinHeight="140" infra:LayoutMemory.Key="Modifiers.Options">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{l:T Modifiers.Option}" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*" MinWidth="140" />
+                            <DataGridTextColumn Header="{l:T Modifiers.ExtraPrice}" Binding="{Binding Price, StringFormat=0.00}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                            <DataGridTextColumn Header="{l:T Modifiers.ExtraCost}" Binding="{Binding Cost, StringFormat=0.00}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
+                            <DataGridCheckBoxColumn Header="{l:T Menu.SoldOut}" Binding="{Binding SoldOut, UpdateSourceTrigger=PropertyChanged}" Width="Auto" MinWidth="70" />
+                            <DataGridTemplateColumn Width="Auto">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Style="{StaticResource IconButton}" Content="&#xE70E;" Width="26" Height="26" ToolTip="{l:T Menu.MoveUp}"
+                                                    Command="{Binding DataContext.MoveOptionUpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                            <Button Style="{StaticResource IconButton}" Content="&#xE70D;" Width="26" Height="26" ToolTip="{l:T Menu.MoveDown}"
+                                                    Command="{Binding DataContext.MoveOptionDownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                            <Button Style="{StaticResource IconButton}" Content="&#xE711;" Width="26" Height="26" ToolTip="{l:T Common.Remove}"
+                                                    Command="{Binding DataContext.RemoveOptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

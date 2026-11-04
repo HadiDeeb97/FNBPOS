@@ -61,14 +61,14 @@ public class SmartSearchTests
         var tee = await db.CreateTeeAsync();
         var black = await db.Sales.CompleteSaleAsync(new Data.Services.CheckoutRequest
         {
-            UserId = db.Cashier.Id, Lines = [new Data.Services.CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, Lines = [new Data.Services.CheckoutLine(tee.Items[0].Id, 1)],
             Payments = [new Data.Services.PaymentInput(Core.PaymentMethod.Cash, 22m)],
         });
         Assert.NotNull(black);
 
-        Assert.Equal(3, (await db.Products.SearchVariantsAsync("black tee")).Count);
-        Assert.Single(await db.Products.SearchVariantsAsync("tee black m"));
-        var code = tee.Variants[2].Sku;
-        Assert.Equal(tee.Variants[2].Id, (await db.Products.SearchVariantsAsync(code))[0].Id);
+        Assert.Equal(3, (await db.Products.SearchItemsAsync("basic tee")).Count);
+        Assert.Single(await db.Products.SearchItemsAsync("m tee"));
+        var code = tee.Items[2].Sku;
+        Assert.Equal(tee.Items[2].Id, (await db.Products.SearchItemsAsync(code))[0].Id);
     }
 }

@@ -1,102 +1,85 @@
 using UniPos.Core;
-using UniPos.Core.Barcodes;
 using UniPos.Core.Entities;
 using UniPos.Core.Security;
 using UniPos.Data.Services;
 
 namespace UniPos.Data.Seeding;
 
-/// <summary>Sample catalogue so a fresh install is usable for training and demos.</summary>
+/// <summary>Sample menu so a fresh install is usable for training and demos: crepes, drinks and a few packaged items.</summary>
 internal static class DemoDataSeeder
 {
-    private sealed record DemoProduct(
-        string Name, string Brand, string Category, Gender Gender, decimal Price, decimal Cost,
-        string[] Sizes, string[] Colors, string Supplier, string? Material = null,
-        Dictionary<string, decimal>? SizePrices = null);
+    /// <param name="Groups">Names of the modifier groups the item offers, in the order the till asks them.</param>
+    /// <param name="Stock">Opening stock of a counted (packaged) item; null for items made to order.</param>
+    private sealed record DemoItem(string Name, string Category, decimal Price, decimal Cost, string[] Groups, int? Stock = null, string? Barcode = null);
+
+    private static ModifierGroup Group(string name, int min, int max, params (string Name, decimal Price)[] options) => new()
+    {
+        Name = name,
+        MinChoices = min,
+        MaxChoices = max,
+        Options = options.Select((o, i) => new Modifier { Name = o.Name, Price = o.Price, Cost = Money.Round(o.Price * 0.3m), SortOrder = i }).ToList(),
+    };
 
     public static async Task SeedAsync(PosDbContext db, CancellationToken ct)
     {
-        string[] categoryNames =
-        [
-            "Men's Shirts", "Dresses", "Jeans & Trousers", "T-Shirts & Tops", "Knitwear",
-            "Jackets & Coats", "Activewear", "Kids", "Accessories", "Footwear",
-        ];
+        string[] categoryNames = ["Sweet crepes", "Savoury crepes", "Hot drinks", "Cold drinks", "Snacks"];
         var categories = categoryNames.ToDictionary(n => n, n => new Category { Name = n });
         db.Categories.AddRange(categories.Values);
 
-        var suppliers = new[]
-        {
-            new Supplier { Name = "Urban Threads Wholesale", ContactName = "Dana Lee", Phone = "555-0140", Email = "orders@urbanthreads.example" },
-            new Supplier { Name = "Nordic Knit Co.", ContactName = "Erik Holm", Phone = "555-0141", Email = "sales@nordicknit.example" },
-            new Supplier { Name = "Denim Works Ltd.", ContactName = "Priya Shah", Phone = "555-0142", Email = "trade@denimworks.example" },
-        }.ToDictionary(s => s.Name);
-        db.Suppliers.AddRange(suppliers.Values);
+        var supplier = new Supplier { Name = "Beirut Food Supplies", ContactName = "Rami Khoury", Phone = "01 555 140", Email = "orders@beirutfood.example" };
+        db.Suppliers.Add(supplier);
 
-        const string urban = "Urban Threads Wholesale", knit = "Nordic Knit Co.", denim = "Denim Works Ltd.";
-        string[] adult = ["S", "M", "L", "XL"];
-        DemoProduct[] products =
+        ModifierGroup[] groups =
         [
-            new("Classic Oxford Shirt", "Hartwell", "Men's Shirts", Gender.Men, 49.99m, 18m, adult, ["White", "Light Blue"], urban, "100% Cotton"),
-            new("Linen Summer Shirt", "Hartwell", "Men's Shirts", Gender.Men, 59.99m, 22m, ["M", "L", "XL"], ["Beige", "Navy"], urban, "100% Linen"),
-            new("Slim Fit Stretch Jeans", "Indigo Lab", "Jeans & Trousers", Gender.Men, 69.99m, 25m, ["30", "32", "34", "36"], ["Indigo", "Black"], denim, "98% Cotton, 2% Elastane"),
-            new("High-Rise Mom Jeans", "Indigo Lab", "Jeans & Trousers", Gender.Women, 64.99m, 23m, ["24", "26", "28", "30"], ["Light Wash", "Mid Wash"], denim, "100% Cotton"),
-            new("Essential Crew Tee", "Basics+", "T-Shirts & Tops", Gender.Unisex, 19.99m, 5m, ["XS", "S", "M", "L", "XL", "XXL"], ["Black", "White", "Grey"], urban, "Organic Cotton",
-                new() { ["XXL"] = 22.99m }),
-            new("Floral Wrap Dress", "Maison Rue", "Dresses", Gender.Women, 79.99m, 28m, ["XS", "S", "M", "L"], ["Red Floral", "Blue Floral"], urban, "Viscose"),
-            new("Little Black Dress", "Maison Rue", "Dresses", Gender.Women, 89.99m, 32m, ["XS", "S", "M", "L"], ["Black"], urban, "Polyester Crepe"),
-            new("Merino Crew Sweater", "Fjord", "Knitwear", Gender.Unisex, 89.99m, 35m, adult, ["Charcoal", "Camel", "Forest Green"], knit, "100% Merino Wool"),
-            new("Quilted Puffer Jacket", "Fjord", "Jackets & Coats", Gender.Unisex, 149.99m, 60m, adult, ["Black", "Olive"], knit, "Recycled Nylon"),
-            new("Wool Blend Overcoat", "Hartwell", "Jackets & Coats", Gender.Men, 229.99m, 95m, ["M", "L", "XL"], ["Camel", "Charcoal"], knit, "70% Wool"),
-            new("Performance Leggings", "Motion", "Activewear", Gender.Women, 44.99m, 14m, ["XS", "S", "M", "L"], ["Black", "Plum"], urban, "Nylon/Spandex"),
-            new("Kids Graphic Hoodie", "Little Ones", "Kids", Gender.Kids, 34.99m, 11m, ["4Y", "6Y", "8Y", "10Y", "12Y"], ["Navy", "Red"], urban, "Cotton Fleece"),
-            new("Leather Belt", "Hartwell", "Accessories", Gender.Men, 39.99m, 12m, ["M", "L"], ["Brown", "Black"], urban, "Full-grain Leather"),
-            new("Wool Beanie", "Fjord", "Accessories", Gender.Unisex, 24.99m, 7m, ["One Size"], ["Black", "Grey", "Mustard"], knit, "Wool Blend"),
-            new("Canvas Low-Top Sneakers", "Strider", "Footwear", Gender.Unisex, 59.99m, 24m, ["38", "39", "40", "41", "42", "43", "44"], ["White", "Black"], urban, "Canvas"),
+            Group("Size", 1, 1, ("Small", 0m), ("Medium", 0.50m), ("Large", 1.00m)),
+            Group("Fillings", 1, 3, ("Nutella", 0m), ("Lotus", 0.50m), ("Banana", 0.50m), ("Strawberry", 0.75m), ("Kinder", 1.00m)),
+            Group("Extra fillings", 0, 2, ("Banana", 0.50m), ("Strawberry", 0.75m), ("White chocolate", 0.75m)),
+            Group("Extras", 0, 0, ("Extra cheese", 0.75m), ("Mushrooms", 0.50m), ("Jalapeños", 0.25m)),
+            Group("Remove", 0, 0, ("No onions", 0m), ("No mayo", 0m), ("No tomatoes", 0m)),
+            Group("Milk", 1, 1, ("Full fat", 0m), ("Skimmed", 0m), ("Oat", 0.50m)),
+            Group("Sugar", 0, 1, ("No sugar", 0m), ("Less sugar", 0m), ("Extra sugar", 0m)),
+        ];
+        db.ModifierGroups.AddRange(groups);
+        var byName = groups.ToDictionary(g => g.Name);
+
+        DemoItem[] items =
+        [
+            new("Nutella crepe", "Sweet crepes", 4.50m, 1.40m, ["Extra fillings"]),
+            new("Lotus crepe", "Sweet crepes", 5.00m, 1.60m, ["Extra fillings"]),
+            new("Build your own crepe", "Sweet crepes", 3.50m, 0.90m, ["Fillings"]),
+            new("Chicken & cheese crepe", "Savoury crepes", 6.50m, 2.20m, ["Extras", "Remove"]),
+            new("Turkey & cheese crepe", "Savoury crepes", 6.00m, 2.00m, ["Extras", "Remove"]),
+            new("Halloumi crepe", "Savoury crepes", 5.50m, 1.80m, ["Extras", "Remove"]),
+            new("Espresso", "Hot drinks", 2.00m, 0.40m, ["Sugar"]),
+            new("Cappuccino", "Hot drinks", 3.00m, 0.70m, ["Size", "Milk", "Sugar"]),
+            new("Latte", "Hot drinks", 3.25m, 0.75m, ["Size", "Milk", "Sugar"]),
+            new("Tea", "Hot drinks", 1.50m, 0.20m, ["Sugar"]),
+            new("Fresh orange juice", "Cold drinks", 3.50m, 1.10m, ["Size"]),
+            new("Lemonade", "Cold drinks", 2.75m, 0.60m, ["Size", "Sugar"]),
+            new("Iced coffee", "Cold drinks", 3.75m, 0.90m, ["Size", "Milk", "Sugar"]),
+            new("Water 500 ml", "Snacks", 0.75m, 0.25m, [], Stock: 48, Barcode: "5281006400016"),
+            new("Soft drink can", "Snacks", 1.25m, 0.55m, [], Stock: 36, Barcode: "5449000000996"),
+            new("Potato chips", "Snacks", 1.00m, 0.40m, [], Stock: 24, Barcode: "5281031100011"),
         ];
 
-        var random = new Random(42);
-        long barcodeSeq = 1;
-        var usedSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var p in products)
+        var code = ProductService.FirstCode;
+        foreach (var i in items)
         {
             var product = new Product
             {
-                Name = p.Name,
-                Brand = p.Brand,
-                Category = categories[p.Category],
-                Supplier = suppliers[p.Supplier],
-                Gender = p.Gender,
-                Price = p.Price,
-                Cost = p.Cost,
-                Material = p.Material,
-                Season = "All Season",
-                StyleCode = SkuGenerator.StyleCodeFromName(p.Name),
+                Name = i.Name,
+                Category = categories[i.Category],
+                Price = i.Price,
+                Cost = i.Cost,
+                Sku = (code++).ToString(),
+                Barcode = i.Barcode,
+                TrackStock = i.Stock is not null,
+                ReorderLevel = i.Stock is null ? 0 : 6,
+                Supplier = i.Stock is null ? null : supplier,
+                ModifierGroups = i.Groups.Select((g, order) => new ProductModifierGroup { ModifierGroup = byName[g], SortOrder = order }).ToList(),
             };
-
-            foreach (var color in p.Colors)
-            {
-                foreach (var size in p.Sizes)
-                {
-                    var variant = new ProductVariant
-                    {
-                        Product = product,
-                        Size = size,
-                        Color = color,
-                        Sku = SkuGenerator.MakeUnique(SkuGenerator.Build(product.StyleCode, size, color), usedSkus),
-                        Barcode = Ean13.CreateInStore(barcodeSeq++),
-                        PriceOverride = p.SizePrices?.GetValueOrDefault(size),
-                        ReorderLevel = 2,
-                    };
-                    usedSkus.Add(variant.Sku);
-                    product.Variants.Add(variant);
-
-                    var qty = random.Next(0, 13);
-                    if (qty > 0)
-                        StockLedger.Apply(db, variant, qty, StockMovementType.InitialStock, null, notes: "Demo opening stock");
-                }
-            }
             db.Products.Add(product);
+            if (i.Stock is { } stock) StockLedger.Apply(db, product, stock, StockMovementType.InitialStock, null, notes: "Demo opening stock");
         }
 
         db.Customers.AddRange(

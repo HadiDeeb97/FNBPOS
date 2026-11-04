@@ -198,8 +198,8 @@ public sealed partial class ReportsViewModel(
                     break;
                 case "lowstock" or "slow":
                     var stock = section == "lowstock" ? Alerts?.LowStock ?? [] : Alerts?.SlowMovers ?? [];
-                    CsvExporter.Write(path, [Loc.T("Common.Item"), Loc.T("Labels.Variant"), Loc.T("Common.Sku"), Loc.T("Common.Stock"), Loc.T("Reports.ReorderAt"), Loc.T("Reports.ValueAtCost"), Loc.T("Reports.LastSold")],
-                        stock.Select(x => new object?[] { x.Product, x.Variant, x.Sku, x.Stock, x.ReorderLevel, x.CostValue, x.LastSold }));
+                    CsvExporter.Write(path, [Loc.T("Common.Item"), Loc.T("Menu.Code"), Loc.T("Common.Stock"), Loc.T("Reports.ReorderAt"), Loc.T("Reports.ValueAtCost"), Loc.T("Reports.LastSold")],
+                        stock.Select(x => new object?[] { x.Product, x.Sku, x.Stock, x.ReorderLevel, x.CostValue, x.LastSold }));
                     break;
                 case "cashiers":
                     CsvExporter.Write(path, [Loc.T("Common.Cashier"), Loc.T("Reports.Transactions"), Loc.T("Common.Items"), Loc.T("Common.Total")], Report.ByCashier.Select(x => new object?[] { x.Name, x.Count, x.Quantity, x.Amount }));
@@ -208,7 +208,7 @@ public sealed partial class ReportsViewModel(
                     var rows = section switch
                     {
                         "categories" => Report.ByCategory,
-                        "sizes" => Report.BySize,
+                        "options" => Report.ByOption,
                         _ => Report.TopProducts,
                     };
                     CsvExporter.Write(path, [Loc.T("Common.Name"), Loc.T("Reports.Units"), Loc.T("Reports.NetSales"), Loc.T("Reports.Cost"), Loc.T("Reports.Profit"), Loc.T("Reports.Margin")],

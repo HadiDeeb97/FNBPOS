@@ -3,9 +3,16 @@ using UniPos.Core.Pricing;
 
 namespace UniPos.Data.Services;
 
-/// <summary>A cart line; <paramref name="UnitPrice"/> is a price typed at the till instead of the shelf price.</summary>
+/// <summary>
+/// A cart line: an item with the options picked for it (<paramref name="Options"/>, modifier ids).
+/// <paramref name="UnitPrice"/> is a price typed at the till instead of the menu price (options included).
+/// </summary>
 public sealed record CheckoutLine(
-    int VariantId, int Quantity, DiscountType DiscountType = DiscountType.None, decimal DiscountValue = 0m, decimal? UnitPrice = null);
+    int ProductId, int Quantity, DiscountType DiscountType = DiscountType.None, decimal DiscountValue = 0m, decimal? UnitPrice = null,
+    IReadOnlyList<int>? Options = null)
+{
+    public IReadOnlyList<int> PickedOptions => Options ?? [];
+}
 
 public sealed record PaymentInput(PaymentMethod Method, decimal Amount, string? Reference = null);
 
@@ -63,7 +70,8 @@ public sealed record CheckoutRequest
     public string? DeliveryReference { get; init; }
 }
 
-public sealed record HeldCartLine(int VariantId, int Quantity, DiscountType DiscountType, decimal DiscountValue, decimal? UnitPrice = null);
+public sealed record HeldCartLine(int ProductId, int Quantity, DiscountType DiscountType, decimal DiscountValue, decimal? UnitPrice = null,
+    IReadOnlyList<int>? Options = null);
 
 public sealed record HeldCart(
     IReadOnlyList<HeldCartLine> Lines,

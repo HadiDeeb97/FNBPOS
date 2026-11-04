@@ -1,5 +1,6 @@
 using UniPos.Core;
 using UniPos.Core.Entities;
+using UniPos.Core.Menu;
 using UniPos.Core.Pricing;
 using UniPos.Core.Localization;
 using UniPos.Desktop.Converters;
@@ -9,22 +10,35 @@ namespace UniPos.Desktop.ViewModels;
 
 public sealed partial class CartItemViewModel : ObservableObject
 {
-    public CartItemViewModel(ProductVariant variant, int quantity = 1)
+    /// <param name="options">The options picked, in the item's order (see <see cref="ModifierRules.Ordered"/>).</param>
+    public CartItemViewModel(Product product, IReadOnlyList<Modifier> options, int quantity = 1)
     {
-        VariantId = variant.Id;
-        ProductName = variant.Product?.Name ?? variant.Sku;
-        VariantDescription = variant.Description;
-        Sku = variant.Sku;
-        UnitPrice = ShelfPrice = variant.EffectivePrice;
-        UnitCost = variant.EffectiveCost;
-        StockOnHand = variant.StockQuantity;
+        ProductId = product.Id;
+        ProductName = product.Name;
+        OptionIds = options.Select(o => o.Id).ToList();
+        Options = ModifierRules.Describe(options);
+        Sku = product.Sku;
+        UnitPrice = ShelfPrice = ModifierRules.Price(product, options);
+        UnitCost = ModifierRules.Cost(product, options);
+        TrackStock = product.TrackStock;
+        StockOnHand = product.StockQuantity;
         Quantity = quantity;
     }
 
-    public int VariantId { get; }
+    public int ProductId { get; }
     public string ProductName { get; }
-    public string VariantDescription { get; }
+
+    /// <summary>The options picked (modifier ids), sent with the sale.</summary>
+    public IReadOnlyList<int> OptionIds { get; }
+
+    /// <summary>"Large · Oat · No sugar", shown under the item; empty when none.</summary>
+    public string Options { get; }
+    public bool HasOptions => Options.Length > 0;
     public string Sku { get; }
+
+    /// <summary>The same item with the same options: another one goes on this line.</summary>
+    public bool IsSame(int productId, IReadOnlyCollection<int> optionIds) =>
+        ProductId == productId && OptionIds.Count == optionIds.Count && OptionIds.All(optionIds.Contains);
     /// <summary>The price charged: the shelf price, or the one the cashier typed in the price box.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PriceText), nameof(PriceChanged))]
@@ -94,6 +108,9 @@ public sealed partial class CartItemViewModel : ObservableObject
     public decimal NetEach { get; private set; }
 
     public bool NeedsBelowCostApproval => IsBelowCost && (BelowCostApprovedAt is not { } approved || NetEach < approved);
+
+    /// <summary>Counted in stock (packaged goods); items made to order have no stock to check.</summary>
+    public bool TrackStock { get; }
     public int StockOnHand { get; }
 
     [ObservableProperty]

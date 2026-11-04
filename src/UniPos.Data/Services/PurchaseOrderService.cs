@@ -24,7 +24,7 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.PurchaseOrders.AsNoTracking()
             .Include(p => p.Supplier)
-            .Include(p => p.Lines).ThenInclude(l => l.ProductVariant).ThenInclude(v => v!.Product)
+            .Include(p => p.Lines).ThenInclude(l => l.Product)
             .AsSplitQuery()
             .FirstOrDefaultAsync(p => p.Id == id, ct);
     }
@@ -36,10 +36,15 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
         var lines = order.Lines.Where(l => l.QuantityOrdered > 0).ToList();
         if (lines.Count == 0) throw new BusinessRuleException(Loc.T("Err.OrderNeedsItem"));
         if (lines.Any(l => l.UnitCost < 0)) throw new BusinessRuleException(Loc.T("Err.UnitCostNegative"));
-        if (lines.GroupBy(l => l.ProductVariantId).Any(g => g.Count() > 1))
+        if (lines.GroupBy(l => l.ProductId).Any(g => g.Count() > 1))
             throw new BusinessRuleException(Loc.T("Err.ItemOnceOnOrder"));
 
         await using var db = await factory.CreateDbContextAsync(ct);
+        // Only counted items come into stock from a supplier.
+        var ids = lines.Select(l => l.ProductId).ToList();
+        if (await db.Products.Where(p => ids.Contains(p.Id) && !p.TrackStock).Select(p => p.Name).FirstOrDefaultAsync(ct) is { } untracked)
+            throw new BusinessRuleException(Loc.T("Err.StockNotTracked", untracked));
+
         PurchaseOrder entity;
         if (order.Id == 0)
         {
@@ -74,7 +79,7 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
         {
             entity.Lines.Add(new PurchaseOrderLine
             {
-                ProductVariantId = l.ProductVariantId,
+                ProductId = l.ProductId,
                 QuantityOrdered = l.QuantityOrdered,
                 UnitCost = Money.Round(l.UnitCost),
             });
@@ -125,7 +130,7 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
 
     /// <summary>
     /// Books received quantities into stock. <paramref name="receivedByLineId"/> maps PO line id to units received now.
-    /// When <paramref name="updateCosts"/> is set, the variant cost is updated to the PO unit cost.
+    /// When <paramref name="updateCosts"/> is set, the item's cost is updated to the PO unit cost.
     /// </summary>
     /// <summary>
     /// Books received quantities into stock. More than still outstanding on a line is refused unless
@@ -140,7 +145,7 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
 
         await using var db = await factory.CreateDbContextAsync(ct);
         var po = await db.PurchaseOrders
-            .Include(p => p.Lines).ThenInclude(l => l.ProductVariant).ThenInclude(v => v!.Product)
+            .Include(p => p.Lines).ThenInclude(l => l.Product)
             .FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new BusinessRuleException(Loc.T("Err.PoNotFound"));
 
@@ -152,12 +157,11 @@ public class PurchaseOrderService(IDbContextFactory<PosDbContext> factory)
             var line = po.Lines.FirstOrDefault(l => l.Id == lineId) ?? throw new BusinessRuleException(Loc.T("Err.PoLineNotFound"));
             if (qty > line.QuantityOutstanding && !allowOverReceipt)
                 throw new BusinessRuleException(Loc.T("Err.ReceiveMoreThanOutstanding",
-                    $"{line.ProductVariant!.Product!.Name} {line.ProductVariant.Description}".Trim(), line.QuantityOutstanding, qty));
+                    line.Product!.Name, line.QuantityOutstanding, qty));
             line.QuantityReceived += qty;
-            var variant = line.ProductVariant!;
-            StockLedger.Apply(db, variant, qty, StockMovementType.PurchaseReceipt, userId, po.OrderNumber);
-            if (updateCosts && variant.EffectiveCost != line.UnitCost)
-                variant.CostOverride = line.UnitCost == variant.Product!.Cost ? null : line.UnitCost;
+            var product = line.Product!;
+            StockLedger.Apply(db, product, qty, StockMovementType.PurchaseReceipt, userId, po.OrderNumber);
+            if (updateCosts) product.Cost = line.UnitCost;
         }
 
         po.Status = po.Lines.All(l => l.QuantityReceived >= l.QuantityOrdered)

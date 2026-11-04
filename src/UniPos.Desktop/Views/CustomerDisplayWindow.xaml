@@ -129,8 +129,8 @@
                                             </TextBlock>
                                             <StackPanel VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding ProductName}" FontSize="21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding VariantDescription}" FontSize="16" Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis"
-                                                           Visibility="{Binding VariantDescription, Converter={StaticResource HasValueToVis}}" />
+                                                <TextBlock Text="{Binding Options}" FontSize="16" Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis"
+                                                           Visibility="{Binding Options, Converter={StaticResource HasValueToVis}}" />
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>

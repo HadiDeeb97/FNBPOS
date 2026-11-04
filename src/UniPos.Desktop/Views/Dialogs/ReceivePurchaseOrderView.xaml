@@ -17,8 +17,8 @@
         </StackPanel>
         <DataGrid ItemsSource="{Binding Lines}" IsReadOnly="False" infra:LayoutMemory.Key="ReceivePurchaseOrder">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Line.ProductVariant.DisplayName, Mode=OneWay}" Width="*" MinWidth="140" IsReadOnly="True" />
-                <DataGridTextColumn Header="{l:T Common.Sku}" Binding="{Binding Line.ProductVariant.Sku, Mode=OneWay}" Width="Auto" MinWidth="140" IsReadOnly="True" />
+                <DataGridTextColumn Header="{l:T Common.Item}" Binding="{Binding Line.Product.Name, Mode=OneWay}" Width="*" MinWidth="140" IsReadOnly="True" />
+                <DataGridTextColumn Header="{l:T Menu.Code}" Binding="{Binding Line.Product.Sku, Mode=OneWay}" Width="Auto" MinWidth="140" IsReadOnly="True" />
                 <DataGridTextColumn Header="{l:T Purchasing.Ordered}" Binding="{Binding Line.QuantityOrdered, Mode=OneWay}" Width="Auto" MinWidth="80" IsReadOnly="True" ElementStyle="{StaticResource RightCell}" />
                 <DataGridTextColumn Header="{l:T Purchasing.Received}" Binding="{Binding Line.QuantityReceived, Mode=OneWay}" Width="Auto" MinWidth="85" IsReadOnly="True" ElementStyle="{StaticResource RightCell}" />
                 <DataGridTextColumn Header="{l:T Purchasing.Outstanding}" Binding="{Binding Line.QuantityOutstanding, Mode=OneWay}" Width="Auto" MinWidth="95" IsReadOnly="True" ElementStyle="{StaticResource RightCell}" />

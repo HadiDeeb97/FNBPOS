@@ -40,7 +40,7 @@
   "Settings.OpenBackupFolder": "فتح مجلد النسخ الاحتياطية",
   "Settings.PointValue": "قيمة النقطة الواحدة",
   "Settings.PointsPerUnit": "النقاط لكل 1.00 مدفوع",
-  "Settings.PricesIncludeTax": "أسعار الرفوف تشمل الضريبة",
+  "Settings.PricesIncludeTax": "أسعار القائمة تشمل الضريبة",
   "Settings.PricingTax": "الأسعار والضريبة",
   "Settings.PrintLogoOnReceipt": "طباعة شعار المتجر أعلى الإيصالات",
   "Settings.PrintLogoOnReceiptHint": "لإيصالات البيع والإرجاع. يستخدم الشعار المحدد في شعار المتجر؛ الشعار البسيط بالأبيض والأسود يُطبع بشكل أفضل على طابعات الإيصالات.",

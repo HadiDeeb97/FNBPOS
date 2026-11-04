@@ -22,7 +22,7 @@
   "History.SaleCount": "عدد العمليات",
   "History.SalesTotal": "إجمالي المبيعات",
   "History.SearchFailed": "فشل البحث في المبيعات.",
-  "History.SearchHint": "رقم الإيصال أو الزبون أو المنتج أو الرمز",
+  "History.SearchHint": "الإيصال، الزبون، الصنف أو الرمز",
   "History.SelectSale": "اختر عملية لعرض تفاصيلها.",
   "History.ShowVoided": "إظهار الملغاة",
   "History.Source": "المصدر",

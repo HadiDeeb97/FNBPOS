@@ -120,7 +120,7 @@ public class FeatureServiceTests
 
         CheckoutRequest Order(string till) => new()
         {
-            UserId = db.Cashier.Id, TillId = till, CustomerId = shopper, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, TillId = till, CustomerId = shopper, Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Channel = SalesChannel.WhatsApp, Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
         };
 
@@ -131,7 +131,7 @@ public class FeatureServiceTests
         // In-store sales go on as usual at the bar's till.
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, TillId = "bar-till", Lines = [new CheckoutLine(tee.Variants[1].Id, 1)],
+            UserId = db.Cashier.Id, TillId = "bar-till", Lines = [new CheckoutLine(tee.Items[1].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
         });
     }
@@ -143,7 +143,7 @@ public class FeatureServiceTests
         var tee = await db.CreateTeeAsync();
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, CustomerId = await db.ShopperIdAsync(), Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            UserId = db.Cashier.Id, CustomerId = await db.ShopperIdAsync(), Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Channel = SalesChannel.Instagram, Courier = "Toters", Payments = [new PaymentInput(PaymentMethod.Delivery, 22m)],
         });
 
@@ -167,7 +167,7 @@ public class FeatureServiceTests
         PurchaseOrder Order() => new()
         {
             SupplierId = supplier.Id,
-            Lines = [new PurchaseOrderLine { ProductVariantId = tee.Variants[0].Id, QuantityOrdered = 4, UnitCost = 5m }],
+            Lines = [new PurchaseOrderLine { ProductId = tee.Items[0].Id, QuantityOrdered = 4, UnitCost = 5m }],
         };
 
         var po = await db.PurchaseOrders.SaveAsync(Order(), db.Manager.Id);

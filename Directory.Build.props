@@ -8,6 +8,6 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Company>UniPOS</Company>
     <Product>UniPOS</Product>
-    <Version>2.1.0</Version>
+    <Version>2.2.0</Version>
   </PropertyGroup>
 </Project>

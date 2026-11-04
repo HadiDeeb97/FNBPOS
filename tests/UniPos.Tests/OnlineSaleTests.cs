@@ -24,8 +24,8 @@ public class OnlineSaleTests
         var tee = await db.CreateTeeAsync();
         var shift = await db.OpenShiftAsync();
 
-        var online = await db.Sales.CompleteSaleAsync(Request(db, tee.Variants[0].Id, SalesChannel.Instagram, 3m, PaymentMethod.Cash, 30m) with { ShiftId = shift.Id });
-        var store = await db.Sales.CompleteSaleAsync(Request(db, tee.Variants[1].Id, SalesChannel.InStore, 0m, PaymentMethod.Card, 22m));
+        var online = await db.Sales.CompleteSaleAsync(Request(db, tee.Items[0].Id, SalesChannel.Instagram, 3m, PaymentMethod.Cash, 30m) with { ShiftId = shift.Id });
+        var store = await db.Sales.CompleteSaleAsync(Request(db, tee.Items[1].Id, SalesChannel.InStore, 0m, PaymentMethod.Card, 22m));
 
         Assert.Equal((SalesChannel.Instagram, 3m, 25m, 5m), (online.Channel, online.DeliveryFee, online.Total, online.ChangeGiven));
         Assert.Equal("Hamra, Beirut · @rana", online.Notes);
@@ -47,9 +47,9 @@ public class OnlineSaleTests
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync();
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            db.Sales.CompleteSaleAsync(Request(db, tee.Variants[0].Id, SalesChannel.InStore, 2m, PaymentMethod.Card, 24m)));
+            db.Sales.CompleteSaleAsync(Request(db, tee.Items[0].Id, SalesChannel.InStore, 2m, PaymentMethod.Card, 24m)));
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            db.Sales.CompleteSaleAsync(Request(db, tee.Variants[0].Id, SalesChannel.WhatsApp, -1m, PaymentMethod.Card, 21m)));
+            db.Sales.CompleteSaleAsync(Request(db, tee.Items[0].Id, SalesChannel.WhatsApp, -1m, PaymentMethod.Card, 21m)));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class OnlineSaleTests
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync();
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            db.Sales.CompleteSaleAsync(Request(db, tee.Variants[0].Id, SalesChannel.WhatsApp, 0m, PaymentMethod.Card, 22m) with { CustomerId = null }));
+            db.Sales.CompleteSaleAsync(Request(db, tee.Items[0].Id, SalesChannel.WhatsApp, 0m, PaymentMethod.Card, 22m) with { CustomerId = null }));
         Assert.Contains("customer", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -68,7 +68,7 @@ public class OnlineSaleTests
         await using var db = await TestDatabase.CreateAsync();
         var tee = await db.CreateTeeAsync();
         var held = await db.Sales.HoldAsync("Rana", db.Cashier.Id,
-            new HeldCart([new HeldCartLine(tee.Variants[0].Id, 2, DiscountType.None, 0)], DiscountType.None, 0, null, SalesChannel.WhatsApp, 4m, "Achrafieh"));
+            new HeldCart([new HeldCartLine(tee.Items[0].Id, 2, DiscountType.None, 0)], DiscountType.None, 0, null, SalesChannel.WhatsApp, 4m, "Achrafieh"));
 
         var cart = await db.Sales.ResumeAsync(held.Id);
         Assert.Equal((SalesChannel.WhatsApp, 4m, "Achrafieh"), (cart.Channel, cart.DeliveryFee, cart.Notes));

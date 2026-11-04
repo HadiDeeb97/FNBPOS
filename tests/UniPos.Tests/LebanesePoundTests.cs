@@ -19,7 +19,7 @@ public class LebanesePoundTests
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Cash, 10m), new PaymentInput(PaymentMethod.CashLbp, 1_100_000m)],
             ChangeIn = ChangeCurrency.Lbp, ExchangeRate = Rate,
         });
@@ -33,7 +33,7 @@ public class LebanesePoundTests
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[1].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[1].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Cash, 50m)],
             ChangeIn = ChangeCurrency.Mixed, ExchangeRate = Rate,
         }); // change 28 USD
@@ -62,7 +62,7 @@ public class LebanesePoundTests
         var request = new CheckoutRequest
         {
             UserId = db.Cashier.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.CashLbp, 1_980_000m)],
             ExchangeRate = Rate,
         };
@@ -104,7 +104,7 @@ public class LebanesePoundTests
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 2)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 2)],
             Payments = [new PaymentInput(PaymentMethod.CashLbp, 3_938_000m)],
             ExchangeRate = Rate,
         });
@@ -153,7 +153,7 @@ public class LebanesePoundTests
         var sale = await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[0].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[0].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Cash, 50m)],
             ChangeIn = ChangeCurrency.Mixed, GiveChangeUsd = 20m, ExchangeRate = Rate,
         });
@@ -166,7 +166,7 @@ public class LebanesePoundTests
         await Assert.ThrowsAsync<BusinessRuleException>(() => db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
             UserId = db.Cashier.Id, ShiftId = shift.Id,
-            Lines = [new CheckoutLine(tee.Variants[1].Id, 1)],
+            Lines = [new CheckoutLine(tee.Items[1].Id, 1)],
             Payments = [new PaymentInput(PaymentMethod.Cash, 50m)],
             GiveChangeUsd = 30m, ExchangeRate = Rate, // more than the $28 change
         }));

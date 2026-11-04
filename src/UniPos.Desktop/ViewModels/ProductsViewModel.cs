@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using UniPos.Core.Entities;
+using UniPos.Core.Menu;
 using UniPos.Core.Security;
 using UniPos.Data.Services;
 using UniPos.Desktop.Infrastructure;
-using UniPos.Desktop.Services;
 using UniPos.Desktop.ViewModels.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,22 +13,14 @@ namespace UniPos.Desktop.ViewModels;
 
 public sealed record ProductRow(Product Product)
 {
-    public int TotalStock => Product.Variants.Where(v => v.IsActive).Sum(v => v.StockQuantity);
-    public int VariantCount => Product.Variants.Count(v => v.IsActive);
-    public string Sizes => string.Join(", ", Product.Variants.Where(v => v.IsActive).Select(v => v.Size).Where(s => s.Length > 0).Distinct());
-    public string Colors => string.Join(", ", Product.Variants.Where(v => v.IsActive).Select(v => v.Color).Where(s => s.Length > 0).Distinct());
-    public bool HasLowStock => Product.Variants.Any(v => v.IsActive && v.IsLowStock);
+    public string PriceText => Converters.CurrencyFormat.Format(Product.Price);
 
-    /// <summary>The price, or "from – to" when some sizes/colours have their own price.</summary>
-    public string PriceText => PriceRange(Product.Variants.Where(v => v.IsActive).Select(v => v.PriceOverride ?? Product.Price), Product.Price);
+    /// <summary>Stock of a counted item; null for items made to order (nothing to count).</summary>
+    public int? Stock => Product.TrackStock ? Product.StockQuantity : null;
+    public bool HasLowStock => Product.IsLowStock;
 
-    public static string PriceRange(IEnumerable<decimal> prices, decimal fallback)
-    {
-        var list = prices.ToList();
-        if (list.Count == 0) return Converters.CurrencyFormat.Format(fallback);
-        var (min, max) = (list.Min(), list.Max());
-        return min == max ? Converters.CurrencyFormat.Format(min) : $"{Converters.CurrencyFormat.Format(min)} – {Converters.CurrencyFormat.Format(max)}";
-    }
+    /// <summary>The questions asked when it is ordered: "Size, Milk, Sugar".</summary>
+    public string OptionsText => string.Join(", ", ModifierRules.ActiveGroups(Product).Select(g => g.Name));
 }
 
 /// <summary>A page filtered by category (Products, Inventory).</summary>
@@ -40,7 +32,7 @@ public interface ICategoryFilter
 
 public sealed partial class ProductsViewModel(
     IDialogService dialogs, ProductService products, CategoryService categories, SupplierService suppliers,
-    Session session, PrintService print, SettingsService settings, SizePresetService sizePresets) : ViewModelBase(dialogs), IPageViewModel, ICategoryFilter
+    ModifierService modifiers, Session session) : ViewModelBase(dialogs), IPageViewModel, ICategoryFilter
 {
     /// <summary>The "All categories" filter entry (one per language, so selecting it by reference keeps working).</summary>
     public static Category AllCategories =>
@@ -72,7 +64,7 @@ public sealed partial class ProductsViewModel(
     public string CappedText => Loc.T("Products.Capped", ProductService.ProductListLimit);
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(EditCommand), nameof(DeleteCommand), nameof(PrintLabelsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(EditCommand), nameof(DeleteCommand), nameof(ToggleSoldOutCommand))]
     public partial ProductRow? SelectedProduct { get; set; }
 
     public async Task OnNavigatedToAsync()
@@ -133,7 +125,7 @@ public sealed partial class ProductsViewModel(
     private async Task NewAsync()
     {
         if (!CanEdit) return;
-        var editor = await ProductEditorViewModel.CreateAsync(Dialogs, products, categories, suppliers, sizePresets, session, null);
+        var editor = await ProductEditorViewModel.CreateAsync(Dialogs, products, categories, suppliers, modifiers, session, null);
         // Several may have been saved with "Save & add new" before the window was closed or cancelled.
         if (Dialogs.ShowDialog(editor) | editor.SavedAny) await SearchAsync();
     }
@@ -146,7 +138,7 @@ public sealed partial class ProductsViewModel(
         if (SelectedProduct is null || !CanEdit) return;
         var product = await products.GetAsync(SelectedProduct.Product.Id);
         if (product is null) return;
-        var editor = await ProductEditorViewModel.CreateAsync(Dialogs, products, categories, suppliers, sizePresets, session, product);
+        var editor = await ProductEditorViewModel.CreateAsync(Dialogs, products, categories, suppliers, modifiers, session, product);
         if (Dialogs.ShowDialog(editor) | editor.SavedAny) await SearchAsync();
     }
 
@@ -164,18 +156,16 @@ public sealed partial class ProductsViewModel(
         }
     }
 
-    /// <summary>Rows ticked in the list (Ctrl/Shift+click); labels are printed for all of them.</summary>
-    public System.Collections.ObjectModel.ObservableCollection<object> Selection { get; } = [];
-
-    /// <summary>Labels for every size/colour of the selected products. With nothing selected, opens an empty list to scan into.</summary>
-    [RelayCommand]
-    private void PrintLabels()
+    /// <summary>Ran out (or back): the register refuses it until it is back, without editing the item.</summary>
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task ToggleSoldOutAsync()
     {
-        var rows = Selection.OfType<ProductRow>().ToList();
-        if (rows.Count == 0 && SelectedProduct is not null) rows.Add(SelectedProduct);
-        var variants = rows
-            .SelectMany(r => r.Product.Variants.Where(v => v.IsActive).Select(v => { v.Product = r.Product; return v; }))
-            .ToList();
-        Dialogs.ShowDialog(new LabelPrintViewModel(Dialogs, print, products, settings, variants));
+        if (SelectedProduct is not { } row || !CanEdit) return;
+        var soldOut = !row.Product.SoldOut;
+        if (await RunAsync(() => products.SetSoldOutAsync(row.Product.Id, soldOut)))
+        {
+            Dialogs.Toast(Loc.T(soldOut ? "Menu.MarkedSoldOut" : "Menu.MarkedBack", row.Product.Name), soldOut ? ToastKind.Info : ToastKind.Success);
+            await SearchAsync();
+        }
     }
 }

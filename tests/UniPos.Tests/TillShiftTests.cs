@@ -35,7 +35,7 @@ public class TillShiftTests
         var drawer = await db.Shifts.OpenShiftAsync(db.Cashier.Id, 100m, 0, Till1, "Till 1");
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Cashier.Id, ShiftId = drawer.Id, Lines = [new CheckoutLine(tee.Variants[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
+            UserId = db.Cashier.Id, ShiftId = drawer.Id, Lines = [new CheckoutLine(tee.Items[0].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
         });
 
         var taken = await db.Shifts.TakeOverAsync(drawer.Id, db.Manager.Id);
@@ -44,7 +44,7 @@ public class TillShiftTests
         Assert.True((await db.Shifts.GetTillShiftAsync(db.Cashier.Id, Till1)).IsOtherCashiers);
         await db.Sales.CompleteSaleAsync(new CheckoutRequest
         {
-            UserId = db.Manager.Id, ShiftId = drawer.Id, Lines = [new CheckoutLine(tee.Variants[1].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
+            UserId = db.Manager.Id, ShiftId = drawer.Id, Lines = [new CheckoutLine(tee.Items[1].Id, 1)], Payments = [new PaymentInput(PaymentMethod.Cash, 22m)],
         });
 
         var closed = await db.Shifts.CloseShiftAsync(drawer.Id, 144m, null, 0m, db.Manager.Id);

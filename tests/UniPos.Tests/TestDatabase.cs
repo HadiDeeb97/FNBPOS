@@ -34,6 +34,7 @@ public sealed class TestDatabase : IAsyncDisposable
     public BrandingService Branding { get; }
     public DeliveryService Deliveries { get; }
     public FeatureService Features { get; }
+    public ModifierService Modifiers { get; }
 
     public User Admin { get; private set; } = null!;
     public User Cashier { get; private set; } = null!;
@@ -59,6 +60,7 @@ public sealed class TestDatabase : IAsyncDisposable
         Branding = new BrandingService(Factory);
         Deliveries = new DeliveryService(Factory);
         Features = new FeatureService(Factory, Deliveries);
+        Modifiers = new ModifierService(Factory);
     }
 
     public static async Task<TestDatabase> CreateAsync(Action<StoreSettings>? configure = null)
@@ -81,37 +83,38 @@ public sealed class TestDatabase : IAsyncDisposable
         return db;
     }
 
-    /// <summary>Creates a T-shirt in S/M/L (Black) with the given stock per variant and price 20.00.</summary>
+    /// <summary>Three counted items, as many tests sell: "Basic Tee S", "M" and "L".</summary>
+    public sealed record TestItems(IReadOnlyList<Product> Items);
+
     private int _tees;
 
-    public async Task<Product> CreateTeeAsync(int stockEach = 10, decimal price = 20m, decimal cost = 8m)
+    /// <summary>
+    /// Creates three counted items (S, M, L) priced 20.00 with the given stock each, in a category of their own. Names are
+    /// unique: the first set is "Basic Tee S/M/L", later ones in the same database "Basic Tee 2 S"...
+    /// </summary>
+    public async Task<TestItems> CreateTeeAsync(int stockEach = 10, decimal price = 20m, decimal cost = 8m)
     {
         var category = await Categories.SaveAsync(new Category { Name = "Tees " + Guid.NewGuid().ToString("N")[..6] });
-        // Product names are unique: the first is "Basic Tee", later ones in the same database "Basic Tee 2", "Basic Tee 3"...
         _tees++;
-        var product = new Product
+        var name = _tees == 1 ? "Basic Tee" : $"Basic Tee {_tees}";
+        List<Product> items = [];
+        foreach (var size in new[] { "S", "M", "L" })
         {
-            Name = _tees == 1 ? "Basic Tee" : $"Basic Tee {_tees}",
-            CategoryId = category.Id,
-            Price = price,
-            Cost = cost,
-            Variants =
-            [
-                new ProductVariant { Size = "S", Color = "Black", StockQuantity = stockEach },
-                new ProductVariant { Size = "M", Color = "Black", StockQuantity = stockEach },
-                new ProductVariant { Size = "L", Color = "Black", StockQuantity = stockEach },
-            ],
-        };
-        return await Products.SaveAsync(product, Admin.Id);
+            items.Add(await Products.SaveAsync(new Product
+            {
+                Name = $"{name} {size}", CategoryId = category.Id, Price = price, Cost = cost, TrackStock = true, StockQuantity = stockEach,
+            }, Admin.Id));
+        }
+        return new TestItems(items);
     }
 
     public async Task<Shift> OpenShiftAsync(User? user = null, decimal openingFloat = 100m) =>
         await Shifts.OpenShiftAsync((user ?? Cashier).Id, openingFloat);
 
-    public async Task<ProductVariant> GetVariantAsync(int id)
+    public async Task<Product> GetItemAsync(int id)
     {
         await using var ctx = await Factory.CreateDbContextAsync();
-        return await ctx.ProductVariants.AsNoTracking().SingleAsync(v => v.Id == id);
+        return await ctx.Products.AsNoTracking().SingleAsync(p => p.Id == id);
     }
 
     private int? _shopperId;

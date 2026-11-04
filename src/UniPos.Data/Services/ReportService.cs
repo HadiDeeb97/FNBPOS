@@ -24,7 +24,7 @@ public sealed record SettlementRow(DateTime Date, string? Courier, SettlementMet
 }
 
 /// <summary>Units in or out of the period's sales: sold (positive) or returned (negative).</summary>
-internal sealed record ItemFlow(string Product, string? Category, string? Size, int Quantity, decimal Net, decimal Cost);
+internal sealed record ItemFlow(string Product, string? Category, int Quantity, decimal Net, decimal Cost);
 
 public sealed record CashMovementRow(DateTime Date, string User, CashMovementType Type, CashCurrency Currency, decimal Amount, string Reason);
 
@@ -35,11 +35,11 @@ public sealed record ShiftCloseRow(
     public decimal? VarianceLbp => CountedLbp - ExpectedLbp;
 }
 
-internal sealed record StockLevel(int Id, string Product, string Size, string Color, string Sku, int Stock, int ReorderLevel, decimal Cost);
+internal sealed record StockLevel(int Id, string Product, string Sku, int Stock, int ReorderLevel, decimal Cost);
 
-public sealed record StockAlertRow(string Product, string Variant, string Sku, int Stock, int ReorderLevel, decimal CostValue, DateTime? LastSold);
+public sealed record StockAlertRow(string Product, string Sku, int Stock, int ReorderLevel, decimal CostValue, DateTime? LastSold);
 
-/// <summary>Variants to reorder, and stock that didn't sell in the period.</summary>
+/// <summary>Counted items to reorder, and stock that didn't sell in the period.</summary>
 public sealed record StockAlerts(IReadOnlyList<StockAlertRow> LowStock, IReadOnlyList<StockAlertRow> SlowMovers);
 
 public sealed record SalesReport
@@ -75,7 +75,8 @@ public sealed record SalesReport
     public IReadOnlyList<NamedAmount> ByCategory { get; init; } = [];
     public IReadOnlyList<NamedAmount> TopProducts { get; init; } = [];
     public IReadOnlyList<NamedAmount> ByCashier { get; init; } = [];
-    public IReadOnlyList<NamedAmount> BySize { get; init; } = [];
+    /// <summary>Options picked ("Large", "Extra cheese"): how many items had each, and what it added to their price.</summary>
+    public IReadOnlyList<NamedAmount> ByOption { get; init; } = [];
 
     /// <summary>In store vs WhatsApp, Instagram... (Count = sales).</summary>
     public IReadOnlyList<NamedAmount> ByChannel { get; init; } = [];
@@ -169,7 +170,7 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
 
         // A long period of a busy shop has hundreds of thousands of sales and lines: SQL Server adds them up (overall,
-        // and per cashier, channel, day, hour, customer, product, category and size) instead of each being downloaded.
+        // and per cashier, channel, day, hour, customer, product, category and option) instead of each being downloaded.
         var periodSales = db.Sales.AsNoTracking().Where(s => s.CreatedAt >= from && s.CreatedAt < to);
         var completed = periodSales.Where(s => s.Status == SaleStatus.Completed);
         var totals = await completed
@@ -185,10 +186,10 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
         var periodLines = db.SaleLines.AsNoTracking()
             .Where(l => l.Sale!.CreatedAt >= from && l.Sale.CreatedAt < to && l.Sale.Status == SaleStatus.Completed);
         var lines = await periodLines
-            .GroupBy(l => new { l.ProductName, l.CategoryName, Size = l.ProductVariant != null ? l.ProductVariant.Size : null })
+            .GroupBy(l => new { l.ProductName, l.CategoryName })
             .Select(g => new
             {
-                g.Key.ProductName, g.Key.CategoryName, g.Key.Size, Quantity = g.Sum(l => l.Quantity),
+                g.Key.ProductName, g.Key.CategoryName, Quantity = g.Sum(l => l.Quantity),
                 Net = g.Sum(l => l.LineTotal - l.TaxAmount), Cost = g.Sum(l => l.UnitCost * l.Quantity), FirstLine = g.Min(l => l.Id),
             })
             .ToListAsync(ct);
@@ -242,7 +243,7 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
                 .ToListAsync(ct))
             .Sum(rl => rl.Quantity * rl.UnitCost);
 
-        // Items sold minus items returned in the period, so category / product / size figures add up to the overall
+        // Items sold minus items returned in the period, so category and product figures add up to the overall
         // figures (which take returns off too). Returned units only take their cost back when they went back on the shelf.
         var returnedItems = await db.ReturnLines.AsNoTracking()
             .Where(rl => rl.SaleReturn!.CreatedAt >= from && rl.SaleReturn.CreatedAt < to)
@@ -251,13 +252,19 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
                 rl.Quantity, Net = rl.RefundAmount - rl.TaxAmount, Cost = rl.Restocked && rl.SaleLine != null ? rl.SaleLine.UnitCost * rl.Quantity : 0m,
                 ProductName = rl.SaleLine != null ? rl.SaleLine.ProductName : "",
                 CategoryName = rl.SaleLine != null ? rl.SaleLine.CategoryName : null,
-                Size = rl.SaleLine != null && rl.SaleLine.ProductVariant != null ? rl.SaleLine.ProductVariant.Size : null,
             })
             .ToListAsync(ct);
         var items = lines
-            .Select(l => new ItemFlow(l.ProductName, l.CategoryName, l.Size, l.Quantity, l.Net, l.Cost))
-            .Concat(returnedItems.Select(r => new ItemFlow(r.ProductName, r.CategoryName, r.Size, -r.Quantity, -r.Net, -r.Cost)))
+            .Select(l => new ItemFlow(l.ProductName, l.CategoryName, l.Quantity, l.Net, l.Cost))
+            .Concat(returnedItems.Select(r => new ItemFlow(r.ProductName, r.CategoryName, -r.Quantity, -r.Net, -r.Cost)))
             .ToList();
+
+        // Options picked on the period's sales (returns aside: an option comes back with its item, not on its own).
+        var options = await db.SaleLineModifiers.AsNoTracking()
+            .Where(m => m.SaleLine!.Sale!.CreatedAt >= from && m.SaleLine.Sale.CreatedAt < to && m.SaleLine.Sale.Status == SaleStatus.Completed)
+            .GroupBy(m => new { m.GroupName, m.Name })
+            .Select(g => new { g.Key.GroupName, g.Key.Name, Quantity = g.Sum(m => m.SaleLine!.Quantity), Amount = g.Sum(m => m.Price * m.SaleLine!.Quantity) })
+            .ToListAsync(ct);
 
         var extra = await DetailsAsync(db, from, to, ct);
         var totalSales = totals?.Total ?? 0m;
@@ -299,10 +306,9 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
                 .OrderByDescending(x => x.Quantity).ThenByDescending(x => x.Amount)
                 .Take(100).ToList(),
 
-            BySize = WithShares(items
-                .GroupBy(l => string.IsNullOrWhiteSpace(l.Size) ? "-" : l.Size)
-                .Select(g => new NamedAmount(g.Key, g.Sum(l => l.Quantity), g.Sum(l => l.Net)))
-                .OrderByDescending(x => x.Quantity)),
+            ByOption = WithShares(options
+                .Select(o => new NamedAmount($"{o.GroupName}: {o.Name}", o.Quantity, o.Amount))
+                .OrderByDescending(x => x.Quantity).ThenByDescending(x => x.Amount)),
 
             // Two cashiers with the same name are one row, as before.
             ByCashier = WithShares(byUser
@@ -382,36 +388,36 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
             settlements, movements, closes);
     }
 
-    /// <summary>Variants at or below their reorder level, and stock with no sales between the two dates.</summary>
+    /// <summary>Counted items at or below their reorder level, and stock with no sales between the two dates.</summary>
     public async Task<StockAlerts> GetStockAlertsAsync(DateTime from, DateTime to, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var variants = await db.ProductVariants.AsNoTracking()
-            .Where(v => v.IsActive && v.Product!.IsActive)
-            .Select(v => new StockLevel(v.Id, v.Product!.Name, v.Size, v.Color, v.Sku, v.StockQuantity, v.ReorderLevel, v.CostOverride ?? v.Product.Cost))
+        var items = await db.Products.AsNoTracking()
+            .Where(p => p.IsActive && p.TrackStock)
+            .Select(p => new StockLevel(p.Id, p.Name, p.Sku, p.StockQuantity, p.ReorderLevel, p.Cost))
             .ToListAsync(ct);
 
         var lastSold = await db.SaleLines.AsNoTracking()
             .Where(l => l.Sale!.Status == SaleStatus.Completed)
-            .GroupBy(l => l.ProductVariantId)
+            .GroupBy(l => l.ProductId)
             .Select(g => new { Id = g.Key, Last = g.Max(l => l.Sale!.CreatedAt) })
             .ToDictionaryAsync(x => x.Id, x => x.Last, ct);
 
         StockAlertRow Row(StockLevel v) => new(
-            v.Product, Core.Entities.ProductVariant.DescribeVariant(v.Size, v.Color), v.Sku, v.Stock, v.ReorderLevel,
+            v.Product, v.Sku, v.Stock, v.ReorderLevel,
             v.Stock > 0 ? v.Stock * v.Cost : 0m, lastSold.TryGetValue(v.Id, out var last) ? last : null);
 
         // Sold at any time inside the dates (not just "last sold" inside them: an item sold in the period and again
         // since would otherwise look unsold for a past period).
         var soldInPeriod = (await db.SaleLines.AsNoTracking()
             .Where(l => l.Sale!.Status == SaleStatus.Completed && l.Sale.CreatedAt >= from && l.Sale.CreatedAt < to)
-            .Select(l => l.ProductVariantId).Distinct().ToListAsync(ct)).ToHashSet();
+            .Select(l => l.ProductId).Distinct().ToListAsync(ct)).ToHashSet();
         bool SoldInPeriod(StockLevel v) => soldInPeriod.Contains(v.Id);
 
-        var low = variants.Where(v => v.Stock <= v.ReorderLevel)
+        var low = items.Where(v => v.Stock <= v.ReorderLevel)
             .OrderBy(v => v.Stock).ThenBy(v => v.Product)
             .Take(500).Select(Row).ToList();
-        var slow = variants
+        var slow = items
             .Where(v => v.Stock > 0 && !SoldInPeriod(v))
             .OrderByDescending(v => v.Stock * v.Cost)
             .Take(500).Select(Row).ToList();
@@ -421,22 +427,22 @@ public class ReportService(IDbContextFactory<PosDbContext> factory)
     public async Task<InventoryValuation> GetInventoryValuationAsync(CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var variants = await db.ProductVariants.AsNoTracking()
-            .Include(v => v.Product).ThenInclude(p => p!.Category)
-            .Where(v => v.IsActive && v.Product!.IsActive)
+        var items = await db.Products.AsNoTracking()
+            .Include(p => p.Category)
+            .Where(p => p.IsActive && p.TrackStock)
             .ToListAsync(ct);
 
-        var inStock = variants.Where(v => v.StockQuantity > 0).ToList();
+        var inStock = items.Where(v => v.StockQuantity > 0).ToList();
         return new InventoryValuation(
-            Skus: variants.Count,
+            Skus: items.Count,
             Units: inStock.Sum(v => v.StockQuantity),
-            CostValue: inStock.Sum(v => v.StockQuantity * v.EffectiveCost),
-            RetailValue: inStock.Sum(v => v.StockQuantity * v.EffectivePrice),
-            LowStockCount: variants.Count(v => v.IsLowStock && v.StockQuantity > 0),
-            OutOfStockCount: variants.Count(v => v.StockQuantity <= 0),
+            CostValue: inStock.Sum(v => v.StockQuantity * v.Cost),
+            RetailValue: inStock.Sum(v => v.StockQuantity * v.Price),
+            LowStockCount: items.Count(v => v.IsLowStock && v.StockQuantity > 0),
+            OutOfStockCount: items.Count(v => v.StockQuantity <= 0),
             ByCategoryCost: inStock
-                .GroupBy(v => v.Product!.Category?.Name ?? Loc.T("Reports.Uncategorised"))
-                .Select(g => new NamedAmount(g.Key, g.Sum(v => v.StockQuantity), g.Sum(v => v.StockQuantity * v.EffectiveCost)))
+                .GroupBy(v => v.Category?.Name ?? Loc.T("Reports.Uncategorised"))
+                .Select(g => new NamedAmount(g.Key, g.Sum(v => v.StockQuantity), g.Sum(v => v.StockQuantity * v.Cost)))
                 .OrderByDescending(x => x.Amount).ToList());
     }
 
