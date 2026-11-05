@@ -9,7 +9,7 @@ namespace UniPos.Data.Services;
 /// </summary>
 public sealed record CheckoutLine(
     int ProductId, int Quantity, DiscountType DiscountType = DiscountType.None, decimal DiscountValue = 0m, decimal? UnitPrice = null,
-    IReadOnlyList<int>? Options = null)
+    IReadOnlyList<int>? Options = null, string? Note = null)
 {
     public IReadOnlyList<int> PickedOptions => Options ?? [];
 }
@@ -60,6 +60,12 @@ public sealed record CheckoutRequest
     /// <summary>In store, or the channel of an online order (WhatsApp, Instagram...).</summary>
     public SalesChannel Channel { get; init; } = SalesChannel.InStore;
 
+    /// <summary>Eat in or takeaway (an online order is always delivery).</summary>
+    public OrderType OrderType { get; init; }
+
+    /// <summary>A name or pager number to call the order by.</summary>
+    public string? CallName { get; init; }
+
     /// <summary>Delivery charge for an online order, added to the total (not taxed). Must be 0 in store.</summary>
     public decimal DeliveryFee { get; init; }
 
@@ -71,7 +77,7 @@ public sealed record CheckoutRequest
 }
 
 public sealed record HeldCartLine(int ProductId, int Quantity, DiscountType DiscountType, decimal DiscountValue, decimal? UnitPrice = null,
-    IReadOnlyList<int>? Options = null);
+    IReadOnlyList<int>? Options = null, string? Note = null);
 
 public sealed record HeldCart(
     IReadOnlyList<HeldCartLine> Lines,
@@ -82,7 +88,9 @@ public sealed record HeldCart(
     decimal DeliveryFee = 0,
     string? Notes = null,
     string? Courier = null,
-    string? DeliveryReference = null);
+    string? DeliveryReference = null,
+    OrderType OrderType = OrderType.EatIn,
+    string? CallName = null);
 
 public sealed record ReturnLineRequest(int SaleLineId, int Quantity, bool Restock = true);
 

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using UniPos.Core.Localization;
 using UniPos.Desktop.Infrastructure;
 
 namespace UniPos.Desktop.Services;
@@ -40,6 +41,46 @@ public sealed class PrintService
             dialog.PrintDocument(((IDocumentPaginatorSource)doc).DocumentPaginator, jobName);
         }
         return true;
+    }
+
+    /// <summary>
+    /// Prints text on <paramref name="printer"/> without ever asking (a kitchen ticket while the cashier serves the
+    /// next customer). Returns why it couldn't (no printer set, not installed on this PC, off, out of paper...), or
+    /// null when the job was handed to the printer.
+    /// </summary>
+    public static string? PrintTo(IReadOnlyList<string> lines, string? printer, string jobName)
+    {
+        if (string.IsNullOrWhiteSpace(printer)) return Loc.T("Kitchen.NoPrinter");
+        var queue = FindQueue(printer);
+        if (queue is null) return Loc.T("Kitchen.PrinterNotFound", printer);
+        try
+        {
+            queue.Refresh();
+            // A printer that is off or jammed would just keep the job in the queue: say so now, so it is printed again.
+            if (queue.IsOffline || queue.IsNotAvailable) return Loc.T("Kitchen.PrinterOffline", printer);
+            if (queue.IsOutOfPaper || queue.HasPaperProblem || queue.IsPaperJammed || queue.IsDoorOpened || queue.IsInError)
+                return Loc.T("Kitchen.PrinterProblem", printer);
+
+            var dialog = new PrintDialog { PrintQueue = queue };
+            try { dialog.PrintTicket = queue.UserPrintTicket ?? queue.DefaultPrintTicket ?? dialog.PrintTicket; }
+            catch (PrintSystemException) { /* keep the dialog's ticket */ }
+            dialog.PrintTicket.CopyCount = 1;
+
+            const double padding = 16;
+            var width = dialog.PrintableAreaWidth;
+            var longest = Math.Max(20, lines.Count == 0 ? 20 : lines.Max(l => l.Length));
+            var doc = BuildTextDocument(lines, Math.Clamp((width - padding * 2) / (longest * 0.56), 6, 12));
+            doc.PageWidth = width;
+            doc.PageHeight = dialog.PrintableAreaHeight;
+            doc.ColumnWidth = width;
+            doc.PagePadding = new Thickness(padding);
+            dialog.PrintDocument(((IDocumentPaginatorSource)doc).DocumentPaginator, jobName);
+            return null;
+        }
+        catch (Exception ex) when (ex is PrintSystemException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return Loc.T("Kitchen.PrintFailed", printer, ex.Message);
+        }
     }
 
     /// <summary>Printers installed on this PC (local and shared connections), for the Settings page.</summary>

@@ -62,6 +62,18 @@ public class Sale : Entity
     /// <summary>In store, or the channel of the online order it completed.</summary>
     public SalesChannel Channel { get; set; }
 
+    /// <summary>Eat in, takeaway, or delivery (an online order).</summary>
+    public OrderType OrderType { get; set; }
+
+    /// <summary>The order's number for the day (1, 2, 3...), called out when it is ready; null when order numbers are off.</summary>
+    public int? OrderNumber { get; set; }
+
+    /// <summary>The day <see cref="OrderNumber"/> counts in (numbers start again at 1 each day).</summary>
+    public DateTime? OrderDay { get; set; }
+
+    /// <summary>A name or pager number to call the order by ("Rana", "pager 7"); printed on the tickets.</summary>
+    public string? CallName { get; set; }
+
     /// <summary>Delivery charge included in <see cref="Total"/> (not in the lines, not taxed).</summary>
     public decimal DeliveryFee { get; set; }
 
@@ -108,6 +120,9 @@ public class SaleLine : Entity
 
     /// <summary>The options picked, as printed under the item ("Large · Nutella, Banana"); empty when none.</summary>
     public string Options { get; set; } = "";
+
+    /// <summary>A note for the kitchen on this item ("well done", "cut in half"); null when none.</summary>
+    public string? Note { get; set; }
     public string Sku { get; set; } = "";
     public string? CategoryName { get; set; }
 

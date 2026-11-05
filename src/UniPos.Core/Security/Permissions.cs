@@ -42,10 +42,10 @@ public enum Permission
 
 public static class Permissions
 {
+    // Refunds are for managers: food can't come back to the shelf, so a refund is money out of the drawer.
     private static readonly HashSet<Permission> CashierPermissions =
     [
         Permission.Sell,
-        Permission.ProcessReturns,
         Permission.ManageCustomers,
         Permission.ViewProducts,
     ];
@@ -53,6 +53,7 @@ public static class Permissions
     private static readonly HashSet<Permission> ManagerPermissions =
     [
         .. CashierPermissions,
+        Permission.ProcessReturns,
         Permission.ManageProducts,
         Permission.ManageInventory,
         Permission.ManagePurchasing,

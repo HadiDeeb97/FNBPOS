@@ -28,6 +28,11 @@ public static class ReceiptFormatter
         lines.Add(rule);
         lines.Add(Center(doc.Title.ToUpperInvariant(), width));
         if (doc.IsCopy) lines.Add(Center(R("Receipt.Copy"), width));
+        if (doc.OrderNumber is { } order)
+        {
+            lines.Add(rule);
+            lines.Add(Center(Loc.Format(doc.Language, "Ticket.Order", order), width));
+        }
         lines.Add(rule);
         lines.Add(Pair(R("Receipt.No"), doc.Number, width));
         lines.Add(Pair(R("Receipt.Date"), DateText.DateTime(doc.Date), width));

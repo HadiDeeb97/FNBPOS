@@ -167,8 +167,78 @@ public sealed record LanguageOption(string Code, string Name);
 public sealed record PrinterChoice(string Name, string Display);
 
 public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsService settings, BackupService backup, Session session, BrandingService branding,
-    PrintService print, OnlineReportsViewModel online, FeatureService features) : ViewModelBase(dialogs), IPageViewModel, IDisposable
+    PrintService print, OnlineReportsViewModel online, FeatureService features, KitchenService kitchen) : ViewModelBase(dialogs), IPageViewModel, IDisposable
 {
+    // ---- Kitchen and bar printers (stations) ----
+
+    /// <summary>Shown where kitchen tickets are switched on.</summary>
+    public bool ShowStations => session.Features.KitchenTickets;
+
+    public System.Collections.ObjectModel.ObservableCollection<StationRow> Stations { get; } = [];
+    private readonly List<int> _removedStations = [];
+
+    /// <summary>Printers for a station for every till ("" = none yet), and this PC's own ("" = the store's).</summary>
+    [ObservableProperty]
+    public partial List<PrinterChoice> StationPrinters { get; set; } = [];
+
+    [ObservableProperty]
+    public partial List<PrinterChoice> PcStationPrinters { get; set; } = [];
+
+    private async Task LoadStationsAsync()
+    {
+        _removedStations.Clear();
+        Stations.Clear();
+        foreach (var s in await kitchen.GetStationsAsync(includeInactive: true))
+        {
+            Stations.Add(new StationRow
+            {
+                Id = s.Id, Name = s.Name, StorePrinter = s.PrinterName ?? "", IsActive = s.IsActive,
+                PcPrinter = LocalPreferences.Current.StationPrinters.GetValueOrDefault(s.Id) ?? "",
+            });
+        }
+    }
+
+    [RelayCommand]
+    private void AddStation() => Stations.Add(new StationRow { Name = Stations.Count == 0 ? Loc.T("Kitchen.DefaultStation") : "" });
+
+    [RelayCommand]
+    private void RemoveStation(StationRow? row)
+    {
+        if (row is null) return;
+        if (row.Id != 0) _removedStations.Add(row.Id);
+        Stations.Remove(row);
+    }
+
+    /// <summary>A short test ticket at the printer this PC would use for the station.</summary>
+    [RelayCommand]
+    private void TestStation(StationRow? row)
+    {
+        if (row is null) return;
+        var printer = string.IsNullOrEmpty(row.PcPrinter) ? row.StorePrinter : row.PcPrinter;
+        string[] lines = [row.Name.ToUpperInvariant(), "", Loc.T("Print.TestLine"), DateTime.Now.ToString("g"), "", new string('-', 32)];
+        if (PrintService.PrintTo(lines, printer, Loc.T("Print.TestTitle")) is { } error) Dialogs.Warning(error);
+        else Dialogs.Toast(Loc.T("Print.Sent", 1));
+    }
+
+    private async Task SaveStationsAsync()
+    {
+        if (!ShowStations) return;
+        foreach (var id in _removedStations)
+        {
+            await kitchen.DeleteStationAsync(id);
+            LocalPreferences.Current.StationPrinters.Remove(id);
+        }
+        _removedStations.Clear();
+        foreach (var row in Stations)
+        {
+            var saved = await kitchen.SaveStationAsync(row.ToEntity());
+            row.Id = saved.Id;
+            if (string.IsNullOrEmpty(row.PcPrinter)) LocalPreferences.Current.StationPrinters.Remove(saved.Id);
+            else LocalPreferences.Current.StationPrinters[saved.Id] = row.PcPrinter;
+        }
+        LocalPreferences.Current.Save();
+    }
+
     /// <summary>The Online reports section.</summary>
     public OnlineReportsViewModel Online { get; } = online;
 
@@ -392,6 +462,8 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
         var installed = PrintService.InstalledPrinters();
         var list = new List<PrinterChoice> { new("", Loc.T("Print.AskEveryTime")) };
         list.AddRange(installed.Select(n => new PrinterChoice(n, n)));
+        StationPrinters = [new("", Loc.T("Kitchen.NoPrinterSet")), .. installed.Select(n => new PrinterChoice(n, n))];
+        PcStationPrinters = [new("", Loc.T("Kitchen.SameAsStore")), .. installed.Select(n => new PrinterChoice(n, n))];
         // A saved printer that is unplugged or renamed stays visible, so it isn't silently forgotten.
         foreach (var saved in new[] { LocalPreferences.Current.ReceiptPrinter })
             if (!string.IsNullOrEmpty(saved) && list.All(c => !string.Equals(c.Name, saved, StringComparison.OrdinalIgnoreCase)))
@@ -510,6 +582,8 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
         RefreshPrinters();
         Settings = (await settings.GetAsync()).Clone();
         await LoadFeaturesAsync();
+        OnPropertyChanged(nameof(ShowStations));
+        if (ShowStations) await LoadStationsAsync();
         Backups = await backup.GetRecentAsync(BackupsShown);
     });
 
@@ -519,6 +593,10 @@ public sealed partial class SettingsViewModel(IDialogService dialogs, SettingsSe
         SavePrinters();
         // Features first: switching one off can be refused (work still waiting), and then nothing else is saved either.
         await SaveFeaturesAsync();
+        await SaveStationsAsync();
+        // Kitchen tickets may have just been switched on or off.
+        OnPropertyChanged(nameof(ShowStations));
+        if (ShowStations) await LoadStationsAsync();
         await settings.SaveAsync(Settings.Clone());
         Settings = (await settings.GetAsync()).Clone();
         Dialogs.Toast(Loc.T("Settings.Saved"));

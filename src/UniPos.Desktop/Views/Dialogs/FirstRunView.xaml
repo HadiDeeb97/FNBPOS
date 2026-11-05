@@ -75,6 +75,12 @@
             <CheckBox IsChecked="{Binding Settings.LbpEnabled}">
                 <TextBlock Text="{l:T Settings.LbpEnabled}" TextWrapping="Wrap" />
             </CheckBox>
+            <StackPanel Margin="0,12,0,0" Visibility="{Binding CanAddSampleMenu, Converter={StaticResource BoolToVis}}">
+                <CheckBox IsChecked="{Binding AddSampleMenu}">
+                    <TextBlock Text="{l:T FirstRun.SampleMenu}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                </CheckBox>
+                <TextBlock Text="{l:T FirstRun.SampleMenuHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="24,2,0,0" />
+            </StackPanel>
         </StackPanel>
     </DockPanel>
 </UserControl>

@@ -29,6 +29,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     private readonly CategoryService _categories;
     private readonly PrintService _print;
     private readonly INavigationService _navigation;
+    private readonly KitchenPrinter _kitchenPrinter;
 
     private int? _approvedByUserId;
     private decimal _approvedDiscountPercent;
@@ -38,9 +39,10 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     public SalesViewModel(
         IDialogService dialogs, ProductService products, SalesService sales, CustomerService customers,
         SettingsService settings, UserService users, CategoryService categories, Session session, PrintService print,
-        INavigationService navigation, DeliveryService deliveries, ShiftService shifts)
+        INavigationService navigation, DeliveryService deliveries, ShiftService shifts, KitchenPrinter kitchenPrinter)
         : base(dialogs)
     {
+        _kitchenPrinter = kitchenPrinter;
         _deliveries = deliveries;
         _shifts = shifts;
         _products = products;
@@ -58,7 +60,13 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         session.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(Session.CurrentUser)) ResetSale();
-            else if (e.PropertyName == nameof(Session.Features)) OnPropertyChanged(nameof(ShowOrderSource));
+            else if (e.PropertyName == nameof(Session.Features))
+            {
+                OnPropertyChanged(nameof(ShowOrderSource));
+                OnPropertyChanged(nameof(ShowTakeaway));
+                OnPropertyChanged(nameof(ShowCallName));
+                OnPropertyChanged(nameof(ShowOrderDetails));
+            }
         };
     }
 
@@ -80,7 +88,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
     public ObservableCollection<CartItemViewModel> Items { get; } = [];
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RemoveItemCommand), nameof(LineDiscountCommand), nameof(SetQuantityCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveItemCommand), nameof(LineDiscountCommand), nameof(SetQuantityCommand), nameof(LineNoteCommand))]
     public partial CartItemViewModel? SelectedItem { get; set; }
 
     [ObservableProperty]
@@ -549,8 +557,9 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         if (label is null) return;
 
         var cart = new HeldCart(
-            Items.Select(i => new HeldCartLine(i.ProductId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null, i.OptionIds)).ToList(),
-            CartDiscountType, CartDiscountValue, Customer?.Id, Channel, IsOnline ? DeliveryFee : 0, OrderNotes, IsOnline ? Courier : null, IsOnline ? DeliveryReference : null);
+            Items.Select(i => new HeldCartLine(i.ProductId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null, i.OptionIds, i.Note)).ToList(),
+            CartDiscountType, CartDiscountValue, Customer?.Id, Channel, IsOnline ? DeliveryFee : 0, OrderNotes, IsOnline ? Courier : null, IsOnline ? DeliveryReference : null,
+            IsTakeaway ? OrderType.Takeaway : OrderType.EatIn, CallName);
         await _sales.HoldAsync(label, Session.User.Id, cart);
         ResetSale();
         Dialogs.Toast(Loc.T("Register.Held", label));
@@ -590,6 +599,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
             item.DiscountType = line.DiscountType;
             item.DiscountValue = line.DiscountValue;
             if (line.UnitPrice is { } price) item.SetPrice(price);
+            item.Note = line.Note;
             Items.Add(item);
         }
         CartDiscountType = cart.CartDiscountType;
@@ -600,6 +610,8 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         OrderNotes = cart.Notes;
         Courier = cart.Courier;
         DeliveryReference = cart.DeliveryReference;
+        IsTakeaway = cart.OrderType == OrderType.Takeaway;
+        CallName = cart.CallName;
         SelectedItem = Items.FirstOrDefault();
         Recalculate();
         await RefreshHeldCountAsync();
@@ -618,7 +630,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
 
     /// <summary>In store, or the channel of an online order (WhatsApp, Instagram...).</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOnline), nameof(ShowOrderSource), nameof(GrandTotal), nameof(TotalLbp))]
+    [NotifyPropertyChangedFor(nameof(IsOnline), nameof(ShowOrderSource), nameof(ShowTakeaway), nameof(ShowOrderDetails), nameof(GrandTotal), nameof(TotalLbp))]
     public partial SalesChannel Channel { get; set; } = SalesChannel.InStore;
 
     [ObservableProperty]
@@ -812,7 +824,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
                 ShiftId = Session.CurrentShift?.Id,
                 TillId = Session.TillId,
                 CustomerId = Customer?.Id,
-                Lines = Items.Select(i => new CheckoutLine(i.ProductId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null, i.OptionIds)).ToList(),
+                Lines = Items.Select(i => new CheckoutLine(i.ProductId, i.Quantity, i.DiscountType, i.DiscountValue, i.PriceChanged ? i.UnitPrice : null, i.OptionIds, i.Note)).ToList(),
                 CartDiscountType = CartDiscountType,
                 CartDiscountValue = CartDiscountValue,
                 Payments = payment.Payments,
@@ -826,6 +838,8 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
                 Notes = OrderNotes,
                 Courier = IsOnline ? Courier : null,
                 DeliveryReference = IsOnline ? DeliveryReference : null,
+                OrderType = IsTakeaway ? OrderType.Takeaway : OrderType.EatIn,
+                CallName = CallName,
             });
         });
         if (!ok || sale is null)
@@ -847,6 +861,7 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         };
         SaleCompleted?.Invoke(this, change); // before the cart is cleared, so the display thanks instead of going idle
         ResetSale();
+        if (Session.Features.KitchenTickets) await PrintKitchenTicketsAsync(sale.Id);
         _ = LoadBrowseProductsAsync(); // stock on the tiles changed
         var receipt = Core.Receipts.ReceiptFormatter.Format(ReceiptBuilder.FromSale(sale, _settings.Current), _settings.Current.ReceiptWidth);
         var title = change is not null
@@ -857,10 +872,61 @@ public sealed partial class SalesViewModel : ViewModelBase, IPageViewModel
         FocusSearchRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// The order's tickets to the kitchen and bar. One that doesn't print (printer off, out of paper) stays on the
+    /// Kitchen page, and the cashier is told so the order isn't forgotten.
+    /// </summary>
+    private async Task PrintKitchenTicketsAsync(int saleId)
+    {
+        try
+        {
+            var failed = await _kitchenPrinter.PrintSaleAsync(saleId);
+            if (failed > 0) Dialogs.Toast(Loc.T("Kitchen.NotPrinted", failed), ToastKind.Warning);
+        }
+        catch (Exception ex)
+        {
+            Dialogs.Toast(Loc.T("Kitchen.NotPrinted", 1) + " " + ex.GetBaseException().Message, ToastKind.Warning);
+        }
+        KitchenTicketsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Tickets were made or printed: the Kitchen menu item's number changes.</summary>
+    public event EventHandler? KitchenTicketsChanged;
+
+    // ---- Eat in / takeaway, the name to call, notes for the kitchen ----------------------------
+
+    /// <summary>Takeaway instead of eat in (printed on the kitchen tickets). An online order is a delivery.</summary>
+    [ObservableProperty]
+    public partial bool IsTakeaway { get; set; }
+
+    /// <summary>The eat in / takeaway switch: where the till offers takeaway, and not for an online order.</summary>
+    public bool ShowTakeaway => Session.Features.Takeaway && !IsOnline;
+
+    /// <summary>A name or pager number to call the order by (printed on its tickets).</summary>
+    [ObservableProperty]
+    public partial string? CallName { get; set; }
+
+    public bool ShowCallName => Session.Features.OrderNumbers || Session.Features.KitchenTickets;
+
+    /// <summary>The bar with the two above, when either is shown.</summary>
+    public bool ShowOrderDetails => ShowTakeaway || ShowCallName;
+
+    /// <summary>A note for the kitchen on the selected item ("well done", "cut in half").</summary>
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void LineNote()
+    {
+        if (SelectedItem is not { } item) return;
+        var note = Dialogs.Prompt(Loc.T("Register.LineNoteTitle"), Loc.T("Register.LineNotePrompt", item.ProductName), item.Note);
+        if (note is null) return;
+        item.Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+    }
+
     // ---- Internals --------------------------------------------------------------------------
 
     private void ResetSale()
     {
+        IsTakeaway = false;
+        CallName = null;
         Items.Clear();
         Customer = null;
         CartDiscountType = DiscountType.None;

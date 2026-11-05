@@ -13,6 +13,9 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
     public DbSet<Modifier> Modifiers => Set<Modifier>();
     public DbSet<ProductModifierGroup> ProductModifierGroups => Set<ProductModifierGroup>();
     public DbSet<SaleLineModifier> SaleLineModifiers => Set<SaleLineModifier>();
+    public DbSet<Station> Stations => Set<Station>();
+    public DbSet<KitchenTicket> KitchenTickets => Set<KitchenTicket>();
+    public DbSet<KitchenTicketLine> KitchenTicketLines => Set<KitchenTicketLine>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleLine> SaleLines => Set<SaleLine>();
@@ -87,6 +90,7 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
             e.Property(x => x.Version).IsConcurrencyToken();
             e.HasOne(x => x.Category).WithMany(c => c.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Station).WithMany().HasForeignKey(x => x.StationId).OnDelete(DeleteBehavior.SetNull);
             e.HasMany(x => x.ModifierGroups).WithOne(g => g.Product).HasForeignKey(g => g.ProductId).OnDelete(DeleteBehavior.Cascade);
             e.Ignore(x => x.IsLowStock);
             e.Ignore(x => x.HasOptions);
@@ -107,6 +111,34 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
         });
 
         b.Entity<Modifier>(e => e.Property(x => x.Name).HasMaxLength(100).IsRequired());
+
+        b.Entity<Station>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(60).UseCollation(CaseInsensitive).IsRequired();
+            e.HasIndex(x => x.Name).IsUnique();
+            e.Property(x => x.PrinterName).HasMaxLength(260);
+        });
+
+        b.Entity<KitchenTicket>(e =>
+        {
+            // The Kitchen page lists the day's tickets, and the ones still to print.
+            e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => x.PrintedAt);
+            e.Property(x => x.CallName).HasMaxLength(60);
+            e.Property(x => x.PrintError).HasMaxLength(500);
+            // A sale deleted for good takes its tickets with it.
+            e.HasOne(x => x.Sale).WithMany().HasForeignKey(x => x.SaleId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Station).WithMany().HasForeignKey(x => x.StationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Lines).WithOne(l => l.KitchenTicket).HasForeignKey(l => l.KitchenTicketId).OnDelete(DeleteBehavior.Cascade);
+            e.Ignore(x => x.IsPrinted);
+        });
+
+        b.Entity<KitchenTicketLine>(e =>
+        {
+            e.Property(x => x.ProductName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Options).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Note).HasMaxLength(200);
+        });
 
         b.Entity<SaleLineModifier>(e =>
         {
@@ -155,6 +187,9 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
             e.HasMany(x => x.Payments).WithOne(p => p.Sale).HasForeignKey(p => p.SaleId).OnDelete(DeleteBehavior.Cascade);
             e.Property(x => x.Courier).HasMaxLength(100);
             e.HasIndex(x => x.Courier).IncludeProperties(x => new { x.CreatedAt, x.Status, x.DeliverySettlementId });
+            // Each number once a day: two tills taking the same number at once, the second save fails and takes the next.
+            e.HasIndex(x => new { x.OrderDay, x.OrderNumber }).IsUnique().HasFilter("[OrderNumber] IS NOT NULL");
+            e.Property(x => x.CallName).HasMaxLength(60);
             e.Property(x => x.DeliveryReference).HasMaxLength(100).UseCollation(CaseInsensitive);
             e.HasIndex(x => x.DeliveryReference);
             e.HasOne(x => x.DeliverySettlement).WithMany(d => d.Sales).HasForeignKey(x => x.DeliverySettlementId).OnDelete(DeleteBehavior.Restrict);
@@ -171,6 +206,7 @@ public class PosDbContext(DbContextOptions<PosDbContext> options) : DbContext(op
             e.Property(x => x.ProductName).HasMaxLength(200).IsRequired();
             e.Property(x => x.CategoryName).HasMaxLength(100);
             e.Property(x => x.Options).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Note).HasMaxLength(200);
             e.Property(x => x.Sku).HasMaxLength(64).IsRequired();
             // Item counts in sales history, and everything a report reads from a line, so a report over months doesn't
             // look up each line on its own.

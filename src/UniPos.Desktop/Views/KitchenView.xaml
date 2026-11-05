@@ -1,0 +1,62 @@
+<UserControl x:Class="UniPos.Desktop.Views.KitchenView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:UniPos.Desktop.Localization"
+             xmlns:infra="clr-namespace:UniPos.Desktop.Infrastructure">
+    <DockPanel>
+        <DockPanel Style="{StaticResource Toolbar}" DockPanel.Dock="Top">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="{l:T Common.Refresh}" Command="{Binding RefreshCommand}" />
+                <Button Content="{l:T Kitchen.PrintAgain}" Command="{Binding PrintAgainCommand}" />
+                <Button Content="{l:T Kitchen.PrintWaiting}" Style="{StaticResource PrimaryButton}" Command="{Binding PrintWaitingCommand}" Margin="0" />
+            </StackPanel>
+            <WrapPanel VerticalAlignment="Center">
+                <CheckBox Content="{l:T Kitchen.WaitingOnly}" IsChecked="{Binding WaitingOnly}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                <TextBlock Text="{Binding WaitingCount, StringFormat={l:T Kitchen.WaitingCount}}" VerticalAlignment="Center"
+                           Foreground="{StaticResource WarningBrush}" FontWeight="SemiBold"
+                           Visibility="{Binding WaitingCount, Converter={StaticResource HasValueToVis}}" />
+            </WrapPanel>
+        </DockPanel>
+
+        <Grid infra:LayoutMemory.Key="Kitchen" infra:PanelFit.IsEnabled="True">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="420" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="360" MinWidth="280" />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource TableCard}">
+                <Grid>
+                    <DataGrid Style="{StaticResource CardGrid}" ItemsSource="{Binding Tickets}" SelectedItem="{Binding SelectedTicket}" infra:LayoutMemory.Key="Kitchen.List">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPrinted}" Value="False">
+                                        <Setter Property="Background" Value="#FFFBEB" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{l:T Kitchen.Time}" Binding="{Binding Time}" Width="Auto" MinWidth="70" />
+                            <DataGridTextColumn Header="{l:T Kitchen.Order}" Binding="{Binding Order}" Width="Auto" MinWidth="80" FontWeight="SemiBold" />
+                            <DataGridTextColumn Header="{l:T Kitchen.Station}" Binding="{Binding Station}" Width="Auto" MinWidth="90" />
+                            <DataGridTextColumn Header="{l:T Kitchen.Items}" Binding="{Binding Items}" Width="2*" MinWidth="160" />
+                            <DataGridTextColumn Header="{l:T Kitchen.Status}" Binding="{Binding Status}" Width="*" MinWidth="140" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Text="{l:T Kitchen.None}" Style="{StaticResource MutedText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding Tickets, Converter={StaticResource HasValueToVis}, ConverterParameter=invert}" />
+                </Grid>
+            </Border>
+            <GridSplitter Grid.Column="1" Style="{StaticResource ColumnSplitter}" />
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T Kitchen.Preview}" Style="{StaticResource SectionTitle}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <TextBlock Text="{Binding Preview}" FontFamily="Consolas, Courier New" FontSize="13" />
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

@@ -22,8 +22,9 @@ public sealed partial class ReturnLineViewModel(SaleLine line) : ObservableObjec
     [NotifyPropertyChangedFor(nameof(EstimatedRefund))]
     public partial int ReturnQuantity { get; set; }
 
+    /// <summary>Back on the shelf: ticked for counted stock (a can of soda), not for something made to order.</summary>
     [ObservableProperty]
-    public partial bool Restock { get; set; } = true;
+    public partial bool Restock { get; set; } = line.Product?.TrackStock ?? true;
 
     public decimal EstimatedRefund => UnitRefund * ReturnQuantity;
 

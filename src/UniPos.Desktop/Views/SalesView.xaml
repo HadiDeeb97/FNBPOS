@@ -163,6 +163,7 @@
                 </Button>
                 <StackPanel Orientation="Horizontal">
                     <Button Content="{l:T Register.QuantityButton}" Command="{Binding SetQuantityCommand}" />
+                    <Button Content="{l:T Register.LineNoteButton}" Command="{Binding LineNoteCommand}" ToolTip="{l:T Register.LineNoteTip}" />
                     <Button Content="{l:T Register.LineDiscountButton}" Command="{Binding LineDiscountCommand}" />
                     <Button Content="{l:T Register.RemoveButton}" Command="{Binding RemoveItemCommand}" CommandParameter="{x:Null}" />
                 </StackPanel>
@@ -179,25 +180,24 @@
                 </Grid.RowDefinitions>
             <Grid>
                 <Border Style="{StaticResource TableCard}">
-                    <DataGrid x:Name="CartGrid" Style="{StaticResource CardGrid}" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" RowHeight="58"
+                    <DataGrid x:Name="CartGrid" Style="{StaticResource CardGrid}" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" RowHeight="NaN" MinRowHeight="58"
                               PreviewKeyDown="OnCartKeyDown" CanUserSortColumns="False" infra:LayoutMemory.Key="Register.Cart">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="{l:T Common.Item}" Width="*" MinWidth="140">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ProductName}" FontWeight="SemiBold" FontSize="13.5" TextWrapping="Wrap" />
-                                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                                <Border Style="{StaticResource Chip}" Padding="7,1" Margin="0,0,6,0"
-                                                        Visibility="{Binding Options, Converter={StaticResource HasValueToVis}}">
-                                                    <TextBlock Text="{Binding Options}" FontSize="11.5" TextWrapping="Wrap" />
-                                                </Border>
-                                                <TextBlock Text="{Binding Sku}" Style="{StaticResource MutedText}" FontSize="11.5" VerticalAlignment="Center" />
-                                                <Border Style="{StaticResource Chip}" Padding="7,1" Margin="6,0,0,0" Background="{StaticResource DangerLightBrush}"
-                                                        Visibility="{Binding IsBelowCost, Converter={StaticResource BoolToVis}}">
-                                                    <TextBlock Text="{Binding BelowCostText}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource DangerBrush}" />
-                                                </Border>
-                                            </StackPanel>
+                                        <!-- The item, then its options and its note for the kitchen, each wrapped in full -->
+                                        <StackPanel VerticalAlignment="Center" Margin="0,6">
+                                            <TextBlock Text="{Binding ProductName}" FontWeight="SemiBold" FontSize="13.5" TextWrapping="Wrap" TextTrimming="None" />
+                                            <TextBlock Text="{Binding Options}" FontSize="12.5" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap" TextTrimming="None"
+                                                       Margin="0,2,0,0" Visibility="{Binding Options, Converter={StaticResource HasValueToVis}}" />
+                                            <TextBlock Text="{Binding Note, StringFormat={l:T Register.LineNoteShown}}" FontSize="12.5" FontStyle="Italic"
+                                                       Foreground="{StaticResource PrimaryDarkBrush}" TextWrapping="Wrap" TextTrimming="None" Margin="0,2,0,0"
+                                                       Visibility="{Binding HasNote, Converter={StaticResource BoolToVis}}" />
+                                            <Border Style="{StaticResource Chip}" Padding="7,1" Margin="0,3,0,0" Background="{StaticResource DangerLightBrush}" HorizontalAlignment="Left"
+                                                    Visibility="{Binding IsBelowCost, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding BelowCostText}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource DangerBrush}" />
+                                            </Border>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -336,6 +336,24 @@
                         </DockPanel>
                     </Button>
                 </Grid>
+            </Border>
+
+            <!-- Eat in or takeaway, and the name or pager to call the order by -->
+            <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Margin="0,0,0,12" Padding="14,10"
+                    Visibility="{Binding ShowOrderDetails, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <Border DockPanel.Dock="Left" Style="{StaticResource SegmentGroup}" Margin="0,0,12,0" VerticalAlignment="Center"
+                            Visibility="{Binding ShowTakeaway, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource SegmentButton}" GroupName="OrderType" Content="{l:T Enum.OrderType.EatIn}" Focusable="False"
+                                         IsChecked="{Binding IsTakeaway, Converter={StaticResource Not}}" />
+                            <RadioButton Style="{StaticResource SegmentButton}" GroupName="OrderType" Content="{l:T Enum.OrderType.Takeaway}" Focusable="False"
+                                         IsChecked="{Binding IsTakeaway}" />
+                        </StackPanel>
+                    </Border>
+                    <TextBox Text="{Binding CallName, UpdateSourceTrigger=PropertyChanged}" Tag="{l:T Register.CallNameHint}" MaxLength="60"
+                             VerticalAlignment="Center" Visibility="{Binding ShowCallName, Converter={StaticResource BoolToVis}}" />
+                </DockPanel>
             </Border>
 
             <!-- In store / online order -->

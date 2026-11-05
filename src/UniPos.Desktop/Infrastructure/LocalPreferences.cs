@@ -23,6 +23,12 @@ public sealed class LocalPreferences
     /// <summary>Printer receipts go to without asking (null = show the Windows print dialog).</summary>
     public string? ReceiptPrinter { get; set; }
 
+    /// <summary>
+    /// Stations whose tickets this PC prints somewhere else than the store's printer for them (station id → printer),
+    /// e.g. a till upstairs with its own bar printer.
+    /// </summary>
+    public Dictionary<int, string> StationPrinters { get; set; } = [];
+
     /// <summary>A cash drawer is plugged into this PC's receipt printer (opened by a signal sent to the printer).</summary>
     public bool CashDrawer { get; set; }
 

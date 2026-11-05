@@ -16,6 +16,9 @@ public sealed record ReceiptDocument
 {
     public required string Title { get; init; }
     public required string StoreName { get; init; }
+
+    /// <summary>The order's number for the day, printed big at the top so the customer knows what is called; null for none.</summary>
+    public int? OrderNumber { get; init; }
     public string? StoreAddress { get; init; }
     public string? StorePhone { get; init; }
     public string? TaxNumber { get; init; }

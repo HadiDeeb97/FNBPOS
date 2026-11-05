@@ -1,5 +1,6 @@
 using UniPos.Core;
 using UniPos.Core.Entities;
+using UniPos.Core.Features;
 using UniPos.Core.Text;
 using Microsoft.EntityFrameworkCore;
 using UniPos.Core.Localization;
@@ -65,6 +66,7 @@ public class ProductService(IDbContextFactory<PosDbContext> factory)
     /// <summary>An item with its category and its groups with all their options (switched-off ones too: the caller filters).</summary>
     internal static IQueryable<Product> WithOptions(IQueryable<Product> query) =>
         query.Include(p => p.Category)
+            .Include(p => p.Station)
             .Include(p => p.ModifierGroups).ThenInclude(g => g.ModifierGroup).ThenInclude(g => g!.Options)
             .AsSplitQuery();
 
@@ -158,6 +160,8 @@ public class ProductService(IDbContextFactory<PosDbContext> factory)
         if (groupIds.Count != groupIds.Distinct().Count()) throw new BusinessRuleException(Loc.T("Err.GroupTwice"));
         if (await db.ModifierGroups.CountAsync(g => groupIds.Contains(g.Id), ct) != groupIds.Count)
             throw new BusinessRuleException(Loc.T("Err.GroupNotFound"));
+        if (product.StationId is { } stationId && !await db.Stations.AnyAsync(s => s.Id == stationId, ct))
+            throw new BusinessRuleException(Loc.T("Err.StationNotFound"));
 
         Product entity;
         var isNew = product.Id == 0;
@@ -176,6 +180,7 @@ public class ProductService(IDbContextFactory<PosDbContext> factory)
         entity.Description = QueryHelpers.Clean(product.Description);
         entity.CategoryId = product.CategoryId;
         entity.SupplierId = product.SupplierId;
+        entity.StationId = product.StationId;
         entity.Price = Money.Round(product.Price);
         entity.Cost = Money.Round(product.Cost);
         entity.SoldOut = product.SoldOut;
@@ -219,6 +224,22 @@ public class ProductService(IDbContextFactory<PosDbContext> factory)
         }
 
         return (await GetAsync(entity.Id, ct))!;
+    }
+
+    /// <summary>True while the store has no menu yet (no item, no category): a sample menu can be added.</summary>
+    public async Task<bool> IsMenuEmptyAsync(CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return !await db.Products.AnyAsync(ct) && !await db.Categories.AnyAsync(ct);
+    }
+
+    /// <summary>Adds the starter menu for the kind of place (categories, stations, options, items) to an empty store.</summary>
+    public async Task AddSampleMenuAsync(Venue venue, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        if (await db.Products.AnyAsync(ct) || await db.Categories.AnyAsync(ct)) throw new BusinessRuleException(Loc.T("Err.MenuNotEmpty"));
+        Seeding.SampleMenus.Add(db, venue);
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>Marks an item sold out (or back) at once, from the register or the menu list.</summary>

@@ -15,6 +15,10 @@ public class Product : Entity
     public int? SupplierId { get; set; }
     public Supplier? Supplier { get; set; }
 
+    /// <summary>Where it is made (kitchen, bar...): its ticket prints there. Null: no ticket (packaged goods).</summary>
+    public int? StationId { get; set; }
+    public Station? Station { get; set; }
+
     /// <summary>Price before any options.</summary>
     public decimal Price { get; set; }
 

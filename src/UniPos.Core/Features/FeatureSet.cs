@@ -16,6 +16,9 @@ public sealed class FeatureSet : IEquatable<FeatureSet>
 
     public bool Delivery => IsOn(Feature.Delivery);
     public bool Purchasing => IsOn(Feature.Purchasing);
+    public bool KitchenTickets => IsOn(Feature.KitchenTickets);
+    public bool OrderNumbers => IsOn(Feature.OrderNumbers);
+    public bool Takeaway => IsOn(Feature.Takeaway);
 
     /// <summary>
     /// The features on at <paramref name="tillId"/>: the till's own switch where it may have one, else the store's,

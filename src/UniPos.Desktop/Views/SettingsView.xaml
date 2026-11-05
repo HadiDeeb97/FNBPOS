@@ -48,6 +48,7 @@
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecLoyalty}"><DockPanel><TextBlock Text="&#xE734;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Settings.Loyalty}" TextWrapping="Wrap" /></DockPanel></Button>
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecLbp}"><DockPanel><TextBlock Text="&#xE825;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Settings.Lbp}" TextWrapping="Wrap" /></DockPanel></Button>
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecPrinters}"><DockPanel><TextBlock Text="&#xE749;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Print.Section}" TextWrapping="Wrap" /></DockPanel></Button>
+                    <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecStations}" Visibility="{Binding ShowStations, Converter={StaticResource BoolToVis}}"><DockPanel><TextBlock Text="&#xE8EF;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Kitchen.StationsSection}" TextWrapping="Wrap" /></DockPanel></Button>
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecDisplay}"><DockPanel><TextBlock Text="&#xE7F4;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Display.Section}" TextWrapping="Wrap" /></DockPanel></Button>
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecScreen}"><DockPanel><TextBlock Text="&#xE8E9;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Display.ScreenSection}" TextWrapping="Wrap" /></DockPanel></Button>
                     <Button Style="{StaticResource NavItem}" Click="GoTo" Tag="{Binding ElementName=SecOnline}"><DockPanel><TextBlock Text="&#xE774;" Style="{StaticResource Icon}" Margin="0,0,10,0" /><TextBlock Text="{l:T Online.Section}" TextWrapping="Wrap" /></DockPanel></Button>
@@ -289,6 +290,55 @@
                                 </DockPanel>
                                 <TextBlock Text="{l:T Drawer.Hint}" Style="{StaticResource HintText}" TextWrapping="Wrap" />
                             </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Kitchen and bar printers: where each station's tickets print -->
+                    <Border x:Name="SecStations" Style="{StaticResource Section}" Visibility="{Binding ShowStations, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="{l:T Print.Refresh}" Command="{Binding RefreshPrintersCommand}" Style="{StaticResource LinkButton}" Margin="0" />
+                                <TextBlock Text="{l:T Kitchen.StationsSection}" Style="{StaticResource SectionTitle}" TextWrapping="Wrap" />
+                            </DockPanel>
+                            <TextBlock Text="{l:T Kitchen.StationsHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,16,8" />
+                            <Grid Margin="0,0,16,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="170" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{l:T Kitchen.Station}" Style="{StaticResource Label}" />
+                                <TextBlock Grid.Column="1" Text="{l:T Kitchen.StorePrinter}" Style="{StaticResource Label}" Margin="8,0,0,0" />
+                                <TextBlock Grid.Column="2" Text="{l:T Kitchen.PcPrinter}" Style="{StaticResource Label}" Margin="8,0,0,0" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Stations}" Margin="0,0,16,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="3*" />
+                                                <ColumnDefinition Width="3*" />
+                                                <ColumnDefinition Width="170" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" />
+                                            <ComboBox Grid.Column="1" Margin="8,0,0,0" ItemsSource="{Binding DataContext.StationPrinters, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      SelectedValuePath="Name" DisplayMemberPath="Display" SelectedValue="{Binding StorePrinter}" ToolTip="{l:T Kitchen.StorePrinterTip}" />
+                                            <ComboBox Grid.Column="2" Margin="8,0,0,0" ItemsSource="{Binding DataContext.PcStationPrinters, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      SelectedValuePath="Name" DisplayMemberPath="Display" SelectedValue="{Binding PcPrinter}" ToolTip="{l:T Kitchen.PcPrinterTip}" />
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                <CheckBox IsChecked="{Binding IsActive}" Content="{l:T Common.Active}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                <Button Content="{l:T Print.Test}" Margin="0,0,4,0"
+                                                        Command="{Binding DataContext.TestStationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                                <Button Style="{StaticResource IconButton}" Content="&#xE74D;" Width="30" Height="30" ToolTip="{l:T Kitchen.RemoveStation}"
+                                                        Command="{Binding DataContext.RemoveStationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="{l:T Kitchen.AddStation}" Command="{Binding AddStationCommand}" HorizontalAlignment="Left" Margin="0,4,0,0" />
                         </StackPanel>
                     </Border>
 

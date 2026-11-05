@@ -12,6 +12,15 @@ public enum Feature
 
     /// <summary>Suppliers and purchase orders.</summary>
     Purchasing,
+
+    /// <summary>Each order prints a ticket at the kitchen, bar or drinks printer of its items, and the Kitchen page lists them.</summary>
+    KitchenTickets,
+
+    /// <summary>Each order gets a number for the day (1, 2, 3...), printed big on the receipt and the tickets, to call it out.</summary>
+    OrderNumbers,
+
+    /// <summary>The register asks "eat in" or "takeaway", printed on the tickets so the kitchen packs it.</summary>
+    Takeaway,
 }
 
 /// <summary>The kind of place the POS runs in; it decides which features are on until an admin changes them.</summary>
@@ -39,7 +48,7 @@ public static class FeatureCatalog
     /// Features one till may have differently from the rest of the store (a till by the phone takes online orders, the
     /// bar's till doesn't). The others belong to the store's own records, so every till sees the same.
     /// </summary>
-    public static bool CanVaryByTill(Feature feature) => feature is Feature.Delivery;
+    public static bool CanVaryByTill(Feature feature) => feature is Feature.Delivery or Feature.Takeaway;
 }
 
 /// <summary>Which features each kind of place starts with.</summary>
@@ -56,6 +65,10 @@ public static class Presets
         (Venue.Bar, Feature.Delivery) => false,
         (Venue.FoodTruck, Feature.Delivery) => false,
         (Venue.FoodTruck, Feature.Purchasing) => false,
+        // At a bar the drinks are served on the spot; a restaurant's tables come with their own numbers.
+        (Venue.Bar, Feature.Takeaway) => false,
+        (Venue.Bar, Feature.OrderNumbers) => false,
+        (Venue.Restaurant, Feature.OrderNumbers) => false,
         _ => true,
     };
 }

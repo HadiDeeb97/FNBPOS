@@ -35,6 +35,7 @@ public sealed class TestDatabase : IAsyncDisposable
     public DeliveryService Deliveries { get; }
     public FeatureService Features { get; }
     public ModifierService Modifiers { get; }
+    public KitchenService Kitchen { get; }
 
     public User Admin { get; private set; } = null!;
     public User Cashier { get; private set; } = null!;
@@ -61,6 +62,7 @@ public sealed class TestDatabase : IAsyncDisposable
         Deliveries = new DeliveryService(Factory);
         Features = new FeatureService(Factory, Deliveries);
         Modifiers = new ModifierService(Factory);
+        Kitchen = new KitchenService(Factory);
     }
 
     public static async Task<TestDatabase> CreateAsync(Action<StoreSettings>? configure = null)

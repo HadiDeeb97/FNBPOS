@@ -54,6 +54,7 @@ public static class ReceiptBuilder
         return new ReceiptDocument
         {
             Title = R("Receipt.SalesTitle"),
+            OrderNumber = sale.OrderNumber,
             Language = lang,
             StoreName = s.StoreName,
             StoreAddress = s.Address,

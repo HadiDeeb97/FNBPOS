@@ -39,13 +39,14 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     private readonly UserService _users;
     private readonly BrandingService _branding;
     private readonly FeatureService _features;
+    private readonly KitchenService _kitchen;
     private readonly DispatcherTimer _clock;
 
     private readonly SalesViewModel _register;
 
     public MainViewModel(
         IDialogService dialogs, NavigationService navigation, Session session, SettingsService settings, UserService users,
-        BrandingService branding, LicenseManager license, SalesViewModel register, FeatureService features)
+        BrandingService branding, LicenseManager license, SalesViewModel register, FeatureService features, KitchenService kitchen)
         : base(dialogs)
     {
         _register = register;
@@ -55,16 +56,20 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         _users = users;
         _branding = branding;
         _features = features;
+        _kitchen = kitchen;
         Session = session;
         IsSidebarCollapsed = LocalPreferences.Current.SidebarCollapsed;
         UiScale.Changed += OnUiScaleChanged;
 
         BuildNav();
+        _ = RefreshKitchenBadgeAsync();
 
         _navigation.Navigated += OnNavigated;
         _navigation.PropertyChanged += OnNavigationPropertyChanged;
         _settings.SettingsChanged += OnSettingsChanged;
         Session.PropertyChanged += OnSessionPropertyChanged;
+        _register.KitchenTicketsChanged += OnKitchenTicketsChanged;
+        KitchenViewModel.Printed += OnKitchenTicketsChanged;
 
         _clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
         _clock.Tick += OnClockTick;
@@ -127,6 +132,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             Nav<SalesViewModel>("Nav.Register", "", Permission.Sell),
             Nav<ReturnsViewModel>("Nav.Returns", "", Permission.ProcessReturns),
             Nav<SalesHistoryViewModel>("Nav.SalesHistory", "", Permission.Sell),
+            Nav<KitchenViewModel>("Nav.Kitchen", "", Permission.Sell, Feature.KitchenTickets),
             Nav<DeliveriesViewModel>("Nav.Deliveries", "\uE7B8", Permission.Sell, Feature.Delivery),
             Nav<ShiftViewModel>("Nav.CashDrawer", "", Permission.Sell));
         AddGroup("Nav.Group.People",
@@ -151,11 +157,28 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             ? new NavItem(Loc.T(titleKey), glyph, typeof(TPage), () => _navigation.NavigateToAsync<TPage>())
             : null;
 
+    /// <summary>The Kitchen menu item shows how many of today's tickets still have to print (any till's).</summary>
+    private async Task RefreshKitchenBadgeAsync()
+    {
+        if (!Session.Features.KitchenTickets || NavItems.FirstOrDefault(i => i.PageType == typeof(KitchenViewModel)) is not { } item) return;
+        try
+        {
+            item.Badge = await _kitchen.CountNotPrintedAsync();
+        }
+        catch
+        {
+            // Offline for a moment: the next minute tries again.
+        }
+    }
+
+    private void OnKitchenTicketsChanged(object? sender, EventArgs e) => _ = RefreshKitchenBadgeAsync();
+
     /// <summary>Features changed (here or on another till): the menu follows, and a page switched off is left.</summary>
     private void OnSessionPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(Session.Features)) return;
         BuildNav();
+        _ = RefreshKitchenBadgeAsync();
         OnNavigated(this, EventArgs.Empty);
         if (_navigation.CurrentPage is { } page && NavItems.All(i => i.PageType != page.GetType()))
             _ = NavItems.FirstOrDefault()?.NavigateCommand.ExecuteAsync(null);
@@ -205,6 +228,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             await Branding.Instance.RefreshAsync(_branding, onlyIfChanged: true);
             var features = await _features.GetAsync(Session.TillId);
             if (!features.Equals(Session.Features)) Session.Features = features;
+            await RefreshKitchenBadgeAsync();
         }
         catch
         {
@@ -377,6 +401,8 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         _navigation.PropertyChanged -= OnNavigationPropertyChanged;
         _settings.SettingsChanged -= OnSettingsChanged;
         Session.PropertyChanged -= OnSessionPropertyChanged;
+        _register.KitchenTicketsChanged -= OnKitchenTicketsChanged;
+        KitchenViewModel.Printed -= OnKitchenTicketsChanged;
         UiScale.Changed -= OnUiScaleChanged;
     }
 }

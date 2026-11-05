@@ -140,6 +140,16 @@ public enum ChangeCurrency
     Mixed = 2,
 }
 
+/// <summary>How the customer gets the order: printed on the kitchen tickets so it is served or packed.</summary>
+public enum OrderType
+{
+    EatIn = 0,
+    Takeaway = 1,
+
+    /// <summary>An online order taken for delivery.</summary>
+    Delivery = 2,
+}
+
 /// <summary>Where a sale came from.</summary>
 public enum SalesChannel
 {

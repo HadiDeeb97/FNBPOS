@@ -32,7 +32,7 @@ public interface ICategoryFilter
 
 public sealed partial class ProductsViewModel(
     IDialogService dialogs, ProductService products, CategoryService categories, SupplierService suppliers,
-    ModifierService modifiers, Session session) : ViewModelBase(dialogs), IPageViewModel, ICategoryFilter
+    ModifierService modifiers, KitchenService kitchen, Session session) : ViewModelBase(dialogs), IPageViewModel, ICategoryFilter
 {
     /// <summary>The "All categories" filter entry (one per language, so selecting it by reference keeps working).</summary>
     public static Category AllCategories =>
@@ -125,7 +125,7 @@ public sealed partial class ProductsViewModel(
     private async Task NewAsync()
     {
         if (!CanEdit) return;
-        var editor = await ProductEditorViewModel.CreateAsync(Dialogs, products, categories, suppliers, modifiers, session, null);
+        var editor = await ProductEditorViewModel.CreateAsync(Dialogs, products, categories, suppliers, modifiers, kitchen, session, null);
         // Several may have been saved with "Save & add new" before the window was closed or cancelled.
         if (Dialogs.ShowDialog(editor) | editor.SavedAny) await SearchAsync();
     }
@@ -138,7 +138,7 @@ public sealed partial class ProductsViewModel(
         if (SelectedProduct is null || !CanEdit) return;
         var product = await products.GetAsync(SelectedProduct.Product.Id);
         if (product is null) return;
-        var editor = await ProductEditorViewModel.CreateAsync(Dialogs, products, categories, suppliers, modifiers, session, product);
+        var editor = await ProductEditorViewModel.CreateAsync(Dialogs, products, categories, suppliers, modifiers, kitchen, session, product);
         if (Dialogs.ShowDialog(editor) | editor.SavedAny) await SearchAsync();
     }
 

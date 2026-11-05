@@ -55,7 +55,7 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
 
     public static async Task<ProductEditorViewModel> CreateAsync(
         IDialogService dialogs, ProductService products, CategoryService categories, SupplierService suppliers,
-        ModifierService modifiers, Session session, Product? product)
+        ModifierService modifiers, KitchenService kitchen, Session session, Product? product)
     {
         var vm = new ProductEditorViewModel(dialogs, products, session, product)
         {
@@ -66,6 +66,9 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
         };
         vm.SelectedCategory = vm.Categories.FirstOrDefault(c => c.Id == product?.CategoryId) ?? vm.Categories.FirstOrDefault();
         vm.SelectedSupplier = vm.Suppliers.FirstOrDefault(s => s.Id == product?.SupplierId);
+        // Active stations, plus the item's own if switched off since (saving would otherwise drop it).
+        vm.Stations = [NoStation, .. (await kitchen.GetStationsAsync(includeInactive: true)).Where(s => s.IsActive || s.Id == product?.StationId)];
+        vm.SelectedStation = vm.Stations.FirstOrDefault(s => s.Id == product?.StationId) ?? vm.Stations[0];
 
         // The item's groups first, in its order, then the others A–Z.
         var all = await modifiers.GetGroupsAsync(includeInactive: true);
@@ -105,6 +108,14 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
 
     public List<Category> Categories { get; private init; } = [];
     public List<Supplier> Suppliers { get; private init; } = [];
+
+    /// <summary>"No ticket" first (packaged goods), then the kitchen, bar...</summary>
+    public List<Station> Stations { get; private set; } = [];
+
+    private static Station NoStation => new() { Id = 0, Name = Loc.T("Menu.NoStation") };
+
+    /// <summary>Where it is made: its tickets print there.</summary>
+    [ObservableProperty] public partial Station? SelectedStation { get; set; }
 
     [ObservableProperty] public partial string Name { get; set; } = "";
     [ObservableProperty] public partial string? Description { get; set; }
@@ -205,6 +216,7 @@ public sealed partial class ProductEditorViewModel : DialogViewModelBase
             ReorderLevel = ReorderLevel,
             CategoryId = SelectedCategory.Id,
             SupplierId = SelectedSupplier?.Id,
+            StationId = SelectedStation is { Id: > 0 } station ? station.Id : null,
             ModifierGroups = Groups.Where(g => g.IsChecked).Select(g => new ProductModifierGroup { ModifierGroupId = g.Group.Id }).ToList(),
         };
         await _products.SaveAsync(product, _session.User.Id);

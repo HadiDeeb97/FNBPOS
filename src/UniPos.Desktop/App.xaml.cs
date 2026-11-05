@@ -332,6 +332,7 @@ public partial class App : Application
         services.AddSingleton<NavigationService>();
         services.AddSingleton<INavigationService>(sp => sp.GetRequiredService<NavigationService>());
         services.AddSingleton<PrintService>();
+        services.AddSingleton<KitchenPrinter>();
         services.AddSingleton<LicenseManager>();
         services.AddHostedService<AutoBackupWorker>();
         services.AddHostedService<OnlineReportsWorker>();
@@ -344,6 +345,7 @@ public partial class App : Application
         services.AddSingleton<CustomerDisplayViewModel>();
         services.AddTransient<ReturnsViewModel>();
         services.AddTransient<DeliveriesViewModel>();
+        services.AddTransient<KitchenViewModel>();
         services.AddTransient<SalesHistoryViewModel>();
         services.AddTransient<CustomersViewModel>();
         services.AddTransient<ProductsViewModel>();
@@ -398,7 +400,12 @@ public partial class App : Application
         // A new store: what kind of place it is decides the features it starts with ("Later" asks again next time).
         var settings = Services.GetRequiredService<SettingsService>();
         if (settings.Current.Venue is null && session.Can(Core.Security.Permission.ManageSettings))
-            dialogs.ShowDialog(new FirstRunViewModel(dialogs, settings, Services.GetRequiredService<FeatureService>(), session));
+        {
+            var products = Services.GetRequiredService<ProductService>();
+            // On a worker thread: this method isn't async and waiting here on the UI thread could lock up.
+            var menuIsEmpty = Task.Run(() => products.IsMenuEmptyAsync()).GetAwaiter().GetResult();
+            dialogs.ShowDialog(new FirstRunViewModel(dialogs, settings, Services.GetRequiredService<FeatureService>(), products, session, menuIsEmpty));
+        }
 
         ShowMain(startPage: null);
     }

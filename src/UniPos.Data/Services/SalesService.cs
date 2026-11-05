@@ -34,7 +34,8 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
         var settings = await db.Settings.AsNoTracking().OrderBy(s => s.Id).FirstOrDefaultAsync(ct) ?? new StoreSettings();
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.UserId && u.IsActive, ct)
                    ?? throw new BusinessRuleException(Loc.T("Err.CashierInactive"));
-        if (request.Channel != SalesChannel.InStore && !(await FeatureService.ReadAsync(db, request.TillId, ct)).Delivery)
+        var features = await FeatureService.ReadAsync(db, request.TillId, ct);
+        if (request.Channel != SalesChannel.InStore && !features.Delivery)
             throw new BusinessRuleException(Loc.T("Err.DeliveryOff"));
 
         Shift? shift = null;
@@ -100,11 +101,23 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
             CartDiscountValue = request.CartDiscountType == DiscountType.None ? 0 : request.CartDiscountValue,
             Notes = QueryHelpers.Clean(request.Notes),
             Status = SaleStatus.Completed,
+            // An online order is delivered; otherwise eat in, unless takeaway was asked where the till offers it.
+            OrderType = request.Channel != SalesChannel.InStore ? OrderType.Delivery
+                : request.OrderType == OrderType.Takeaway && features.Takeaway ? OrderType.Takeaway
+                : OrderType.EatIn,
+            CallName = QueryHelpers.Clean(request.CallName),
         };
+        if (sale.CallName?.Length > 60) throw new BusinessRuleException(Loc.T("Err.CallNameLength"));
+        if (request.Lines.Any(l => l.Note?.Trim().Length > 200)) throw new BusinessRuleException(Loc.T("Err.LineNoteLength"));
         ApplyPayments(sale, request.Payments, customer, settings, request.ChangeIn, request.ExchangeRate, request.GiveChangeUsd, request.GiveChangeLbp);
 
         // Lines + stock.
         sale.ReceiptNumber = await NextReceiptNumberAsync(db, settings.ReceiptPrefix, sale.CreatedAt, ct);
+        if (features.OrderNumbers)
+        {
+            sale.OrderDay = sale.CreatedAt.Date;
+            sale.OrderNumber = (await db.Sales.Where(s => s.OrderDay == sale.OrderDay).MaxAsync(s => s.OrderNumber, ct) ?? 0) + 1;
+        }
         for (var i = 0; i < priced.Count; i++)
         {
             var l = priced[i];
@@ -120,6 +133,7 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
                 ListPrice = l.Charged != l.MenuPrice ? l.MenuPrice : null,
                 UnitCost = l.Cost,
                 Quantity = l.Request.Quantity,
+                Note = QueryHelpers.Clean(l.Request.Note),
                 DiscountAmount = r.Discount,
                 TaxAmount = r.Tax,
                 LineTotal = r.Total,
@@ -132,6 +146,8 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
                 allowNegative: settings.AllowNegativeStock);
         }
 
+        if (features.KitchenTickets) AddKitchenTickets(db, sale, priced);
+
         db.Sales.Add(sale);
         try
         {
@@ -143,9 +159,35 @@ public class SalesService(IDbContextFactory<PosDbContext> factory)
         }
         catch (DbUpdateException ex) when (QueryHelpers.IsUniqueViolation(ex))
         {
+            // The same receipt or order number taken by another till a moment earlier: tried again with the next.
             throw new TillConflictException(Loc.T("Err.ReceiptNumberTaken"));
         }
         return (await GetAsync(sale.Id, ct))!;
+    }
+
+    /// <summary>
+    /// One ticket per station for the items made there, saved with the sale (printed afterwards; see
+    /// <see cref="KitchenService"/>). Items with no station, or whose station is switched off, get none.
+    /// </summary>
+    private static void AddKitchenTickets(PosDbContext db, Sale sale, IReadOnlyList<PricedLine> lines)
+    {
+        foreach (var station in lines.Where(l => l.Product.Station is { IsActive: true }).GroupBy(l => l.Product.StationId!.Value))
+        {
+            db.KitchenTickets.Add(new KitchenTicket
+            {
+                Sale = sale,
+                StationId = station.Key,
+                CreatedAt = sale.CreatedAt,
+                OrderNumber = sale.OrderNumber,
+                OrderType = sale.OrderType,
+                CallName = sale.CallName,
+                Lines = station.Select(l => new KitchenTicketLine
+                {
+                    ProductName = l.Product.Name, Options = ModifierRules.Describe(l.Options),
+                    Note = QueryHelpers.Clean(l.Request.Note), Quantity = l.Request.Quantity,
+                }).ToList(),
+            });
+        }
     }
 
     /// <summary>

@@ -9,6 +9,7 @@
     <DataTemplate DataType="{x:Type vm:SalesViewModel}"><v:SalesView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ReturnsViewModel}"><v:ReturnsView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:DeliveriesViewModel}"><v:DeliveriesView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:KitchenViewModel}"><v:KitchenView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:SalesHistoryViewModel}"><v:SalesHistoryView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:CustomersViewModel}"><v:CustomersView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ProductsViewModel}"><v:ProductsView /></DataTemplate>

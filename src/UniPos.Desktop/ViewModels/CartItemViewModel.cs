@@ -36,9 +36,16 @@ public sealed partial class CartItemViewModel : ObservableObject
     public bool HasOptions => Options.Length > 0;
     public string Sku { get; }
 
-    /// <summary>The same item with the same options: another one goes on this line.</summary>
+    /// <summary>The same item with the same options and no note of its own: another one goes on this line.</summary>
     public bool IsSame(int productId, IReadOnlyCollection<int> optionIds) =>
-        ProductId == productId && OptionIds.Count == optionIds.Count && OptionIds.All(optionIds.Contains);
+        ProductId == productId && Note is null && OptionIds.Count == optionIds.Count && OptionIds.All(optionIds.Contains);
+
+    /// <summary>A note for the kitchen on this item ("well done"); printed on its ticket.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNote))]
+    public partial string? Note { get; set; }
+
+    public bool HasNote => !string.IsNullOrEmpty(Note);
     /// <summary>The price charged: the shelf price, or the one the cashier typed in the price box.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PriceText), nameof(PriceChanged))]

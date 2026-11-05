@@ -36,6 +36,10 @@
                     <TextBlock Text="{l:T ProductEditor.CategoryRequired}" Style="{StaticResource FieldLabel}" />
                     <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" DisplayMemberPath="Name" />
 
+                    <TextBlock Text="{l:T Menu.Station}" Style="{StaticResource FieldLabel}" />
+                    <ComboBox ItemsSource="{Binding Stations}" SelectedItem="{Binding SelectedStation}" DisplayMemberPath="Name" />
+                    <TextBlock Text="{l:T Menu.StationHint}" Style="{StaticResource HintText}" TextWrapping="Wrap" />
+
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
