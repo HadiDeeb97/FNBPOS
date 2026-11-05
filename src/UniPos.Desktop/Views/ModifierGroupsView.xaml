@@ -72,31 +72,51 @@
                     <Button Content="{l:T Common.Save}" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" MinWidth="90" />
                     <Button Content="{l:T Common.Delete}" Style="{StaticResource GhostButton}" Foreground="{StaticResource DangerBrush}" Command="{Binding DeleteCommand}" />
                 </StackPanel>
-                <Border Style="{StaticResource TableCard}">
-                    <DataGrid ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" CanUserAddRows="False" CanUserSortColumns="False"
-                              HeadersVisibility="Column" MinHeight="140" infra:LayoutMemory.Key="Modifiers.Options">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="{l:T Modifiers.Option}" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*" MinWidth="140" />
-                            <DataGridTextColumn Header="{l:T Modifiers.ExtraPrice}" Binding="{Binding Price, StringFormat=0.00}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
-                            <DataGridTextColumn Header="{l:T Modifiers.ExtraCost}" Binding="{Binding Cost, StringFormat=0.00}" Width="Auto" MinWidth="80" ElementStyle="{StaticResource RightCell}" />
-                            <DataGridCheckBoxColumn Header="{l:T Menu.SoldOut}" Binding="{Binding SoldOut, UpdateSourceTrigger=PropertyChanged}" Width="Auto" MinWidth="70" />
-                            <DataGridTemplateColumn Width="Auto">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Style="{StaticResource IconButton}" Content="&#xE70E;" Width="26" Height="26" ToolTip="{l:T Menu.MoveUp}"
+                <!-- The options as rows of ordinary boxes: typed straight into, like the rest of the form -->
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="86" />
+                            <ColumnDefinition Width="86" />
+                            <ColumnDefinition Width="64" />
+                            <ColumnDefinition Width="96" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{l:T Modifiers.Option}" Style="{StaticResource Caption}" />
+                        <TextBlock Grid.Column="1" Text="{l:T Modifiers.ExtraPrice}" Style="{StaticResource Caption}" Margin="6,0,0,0" />
+                        <TextBlock Grid.Column="2" Text="{l:T Modifiers.ExtraCost}" Style="{StaticResource Caption}" Margin="6,0,0,0" />
+                        <TextBlock Grid.Column="3" Text="{l:T Menu.SoldOut}" Style="{StaticResource Caption}" HorizontalAlignment="Center" />
+                    </Grid>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Options}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="86" />
+                                            <ColumnDefinition Width="86" />
+                                            <ColumnDefinition Width="64" />
+                                            <ColumnDefinition Width="96" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox Grid.Column="1" Text="{Binding Price, StringFormat=0.00}" Margin="6,0,0,0" HorizontalContentAlignment="Right" />
+                                        <TextBox Grid.Column="2" Text="{Binding Cost, StringFormat=0.00}" Margin="6,0,0,0" HorizontalContentAlignment="Right" />
+                                        <CheckBox Grid.Column="3" IsChecked="{Binding SoldOut}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Button Style="{StaticResource IconButton}" Content="&#xE70E;" Width="30" Height="30" ToolTip="{l:T Menu.MoveUp}"
                                                     Command="{Binding DataContext.MoveOptionUpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                            <Button Style="{StaticResource IconButton}" Content="&#xE70D;" Width="26" Height="26" ToolTip="{l:T Menu.MoveDown}"
+                                            <Button Style="{StaticResource IconButton}" Content="&#xE70D;" Width="30" Height="30" ToolTip="{l:T Menu.MoveDown}"
                                                     Command="{Binding DataContext.MoveOptionDownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                            <Button Style="{StaticResource IconButton}" Content="&#xE711;" Width="26" Height="26" ToolTip="{l:T Common.Remove}"
+                                            <Button Style="{StaticResource IconButton}" Content="&#xE711;" Width="30" Height="30" ToolTip="{l:T Common.Remove}"
                                                     Command="{Binding DataContext.RemoveOptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                                         </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
             </DockPanel>
         </Border>
     </Grid>
